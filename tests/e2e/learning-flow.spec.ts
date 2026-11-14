@@ -696,6 +696,20 @@ test("primary pages and a dedicated lesson route reflow at a 320px viewport", as
     const routeLabel = route.replace(/[^a-z0-9]+/gi, "-").replace(/(^-+|-+$)/g, "") || "home";
     await page.screenshot({ path: path.join(screenshotDirectory, `small-mobile-${routeLabel}.png`), fullPage: true });
   }
+
+  await page.goto("/activities");
+  const troubleshootingCard = page.locator("#troubleshooting-t03");
+  await troubleshootingCard.locator("summary.troubleshooting-summary").click();
+  await expect(troubleshootingCard.locator(".troubleshooting-record")).toBeVisible();
+  const troubleshootingWidths = await page.evaluate(() => ({
+    viewportWidth: document.documentElement.clientWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    bodyWidth: document.querySelector<HTMLElement>("#troubleshooting-t03 .troubleshooting-body")?.clientWidth ?? 0,
+    scenarioWidth: document.querySelector<HTMLElement>("#troubleshooting-t03 .troubleshooting-section")?.clientWidth ?? 0,
+  }));
+  expect(troubleshootingWidths.documentWidth, "expanded troubleshooting must not overflow the viewport").toBeLessThanOrEqual(troubleshootingWidths.viewportWidth);
+  expect(troubleshootingWidths.scenarioWidth).toBeLessThanOrEqual(troubleshootingWidths.bodyWidth);
+  await page.screenshot({ path: path.join(screenshotDirectory, "small-mobile-troubleshooting-t03.png"), fullPage: true });
 });
 
 test("progress API validates IDs, same-origin writes, and payload sizes", async ({ request }) => {

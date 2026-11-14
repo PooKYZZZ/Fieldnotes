@@ -1069,11 +1069,14 @@ body { font-size: 15px; }
 .activity-continuation-link > strong svg { flex: 0 0 auto; }
 .activity-continuation-link--previous > strong { color: #52676a; }
 .activity-continuation-link--next { border-color: #c5dad2; background: #f2f7f4; }
-.troubleshooting-section { border-bottom: 1px solid #e8eeeb; padding-bottom: 9px; }
+.troubleshooting-body { grid-template-columns: minmax(0, 1fr); }
+.troubleshooting-body > * { min-width: 0; }
+.troubleshooting-section { min-width: 0; border-bottom: 1px solid #e8eeeb; padding-bottom: 9px; }
 .troubleshooting-section .eyebrow, .troubleshooting-record > .eyebrow { margin: 0 0 4px; color: #52746d; font-size: 10px; font-weight: 750; }
 .troubleshooting-section > p:not(.eyebrow) { margin: 0; color: #52666a; font-size: 12px; line-height: 1.55; }
 .troubleshooting-section .article-copy { max-width: none; color: #52666a; font-size: 12px; line-height: 1.55; }
-.troubleshooting-section .article-copy ol, .troubleshooting-section .article-copy ul { gap: 6px; margin: 7px 0; padding-left: 21px; }
+.troubleshooting-section .article-copy ol, .troubleshooting-section .article-copy ul { grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 6px; margin: 7px 0; padding-left: 21px; }
+.troubleshooting-section .article-copy li { min-width: 0; overflow-wrap: anywhere; }
 .troubleshooting-section .article-copy pre { font-size: 11px; }
 .troubleshooting-safety { border-left: 3px solid #ddc99a; background: #fcfaf4; padding: 9px 11px; }
 .troubleshooting-hint { border-bottom: 1px solid #e8eeeb; padding: 8px 0; }
