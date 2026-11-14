@@ -1,0 +1,36 @@
+name: devops-learning-platform
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: devops-fieldnotes:local
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /data/lms.sqlite
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    volumes:
+      - learning-data:/data
+    init: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+volumes:
+  learning-data:

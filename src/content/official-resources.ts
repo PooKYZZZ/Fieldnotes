@@ -1,0 +1,18 @@
+export const officialResources = [
+  { category: "Linux & systems", label: "Linux Foundation: Introduction to Linux", url: "https://training.linuxfoundation.org/training/introduction-to-linux/", note: "Free course material; certificate terms may differ." },
+  { category: "Linux & systems", label: "Linux Foundation: Introduction to DevOps and SRE (LFS162)", url: "https://training.linuxfoundation.org/training/introduction-to-devops-and-site-reliability-engineering-lfs162/", note: "Build Linux, networking, and scripting foundations first." },
+  { category: "Git & delivery", label: "GitHub Skills: Introduction to GitHub", url: "https://github.com/skills/introduction-to-github", note: "Hands-on repository and collaboration practice." },
+  { category: "Git & delivery", label: "GitHub Actions: Quickstart", url: "https://docs.github.com/en/actions/writing-workflows/quickstart", note: "Workflow syntax, permissions, and runner behavior." },
+  { category: "Containers & automation", label: "Docker: Get started", url: "https://docs.docker.com/get-started/", note: "Official container and Compose learning path." },
+  { category: "Containers & automation", label: "HashiCorp: Terraform Docker tutorials", url: "https://developer.hashicorp.com/terraform/tutorials/docker-get-started", note: "Use local Docker labs before billable cloud resources." },
+  { category: "Containers & automation", label: "Ansible: Getting started", url: "https://docs.ansible.com/ansible/latest/getting_started/index.html", note: "Start with inventory, ad-hoc commands, and playbooks." },
+  { category: "Web & programming", label: "Python: The official tutorial", url: "https://docs.python.org/3/tutorial/", note: "Use the documentation matching the Python version in your lab." },
+  { category: "Web & programming", label: "NGINX: Reverse proxy guide", url: "https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/", note: "Understand upstreams, headers, and request paths." },
+  { category: "Operations", label: "Prometheus: Getting started", url: "https://prometheus.io/docs/introduction/first_steps/", note: "A small set of useful metrics is easier to operate." },
+  { category: "Operations", label: "Kubernetes: Basics tutorial", url: "https://kubernetes.io/docs/tutorials/kubernetes-basics/", note: "Treat Kubernetes as a later module, after Docker Compose." },
+  { category: "Security & reliability", label: "NIST: Secure Software Development Framework", url: "https://csrc.nist.gov/projects/ssdf", note: "Build security into development and release processes." },
+  { category: "Security & reliability", label: "OWASP: CI/CD Security Risks", url: "https://owasp.org/www-project-top-10-ci-cd-security-risks/", note: "Review pipeline identities, secrets, artifacts, and access." },
+  { category: "Security & reliability", label: "Google SRE books", url: "https://sre.google/books/", note: "Free SRE references; apply ideas to a small service first." },
+  { category: "Cloud learning", label: "Microsoft Learn: Azure fundamentals", url: "https://learn.microsoft.com/training/azure/", note: "Use local labs first; review current prices and eligibility before provisioning." },
+  { category: "Cloud learning", label: "Azure for Students", url: "https://azure.microsoft.com/free/students/", note: "Eligibility, offers, and billing terms change; confirm them before use." },
+] as const;
