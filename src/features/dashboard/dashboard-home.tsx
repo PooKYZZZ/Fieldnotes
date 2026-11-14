@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProgressRecord } from "@/features/progress/model";
-import { curriculumPhaseNames } from "@/content/taxonomy";
 import { buildDashboardModel, type DashboardActivity, type DashboardMajorProject, type DashboardModule, type DashboardSmallProject } from "@/features/dashboard/model";
 import { ContinueLearningPanel, DashboardSidebar } from "@/features/dashboard/dashboard-panels";
-import { DashboardModuleSection } from "@/features/dashboard/dashboard-module-section";
 
 export function DashboardHome({
   modules,
@@ -62,20 +60,6 @@ export function DashboardHome({
   const currentActivityModuleStatus = currentActivityModule
     ? model.statusByModule.get(`M${String(currentActivityModule.id).padStart(2, "0")}`) ?? "not_started"
     : undefined;
-  const currentModuleActivityStatus = useMemo(() => {
-    if (!model.currentModule) return undefined;
-    const status = records.find((record) => record.itemType === "activity" && record.itemId === model.currentModule?.activityId)?.status;
-    return status ?? "not_started";
-  }, [model.currentModule, records]);
-  const phaseCounts = useMemo(() => curriculumPhaseNames.map((phase) => {
-    const phaseModules = modules.filter((module) => module.phase === phase);
-    return {
-      phase,
-      total: phaseModules.length,
-      completed: phaseModules.filter((module) => model.statusByModule.get(`M${String(module.id).padStart(2, "0")}`) === "completed").length,
-    };
-  }), [modules, model.statusByModule]);
-
   function retryProgress() {
     setLoaded(false);
     setLoadError(false);
@@ -103,17 +87,7 @@ export function DashboardHome({
             currentActivityModule={currentActivityModule}
             currentActivityModuleStatus={currentActivityModuleStatus}
             currentActivityLessonProgress={currentActivityModule ? model.lessonProgressByModule.get(`M${String(currentActivityModule.id).padStart(2, "0")}`) : undefined}
-            currentModuleActivityStatus={currentModuleActivityStatus}
             totalModules={modules.length}
-            onRetry={retryProgress}
-          />
-          <DashboardModuleSection
-            modules={modules}
-            activities={activities}
-            records={records}
-            model={model}
-            loaded={loaded}
-            loadError={loadError}
             onRetry={retryProgress}
           />
         </section>
@@ -123,7 +97,6 @@ export function DashboardHome({
           loadError={loadError}
           totalModules={modules.length}
           totalLessons={model.totalLessons}
-          phaseCounts={phaseCounts}
         />
       </div>
     </>

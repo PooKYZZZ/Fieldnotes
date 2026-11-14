@@ -11,30 +11,27 @@ function progressRecord(itemType: string, itemId: string, status: string, notes 
   return { itemType, itemId, status, comfort: null, notes, evidence: "", repositoryUrl: "" };
 }
 
-test("dashboard handles day-one state, working filters, and responsive layouts", async ({ page }) => {
+test("dashboard gives a day-one learner one clear starting point and stays responsive", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const homeResponse = await page.goto("/");
   expect(homeResponse?.headers()["x-content-type-options"]).toBe("nosniff");
   expect(homeResponse?.headers()["x-frame-options"]).toBe("DENY");
   await expect(page.getByRole("heading", { level: 1, name: "My learning" })).toBeVisible();
-  await expect(page.locator(".continue-panel .continue-kicker")).toContainText("Next lesson");
-  await expect(page.getByText("Pick up where you left off")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Recent work" })).toBeVisible();
-  await expect(page.getByText("Your notes and completed work will appear here after you save a record.")).toBeVisible();
-  await expect(page.getByRole("link", { name: /View all 24/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /A01/ })).toHaveCount(0);
-  await expect(page.locator(".overall-count").nth(0).locator("strong")).toHaveText("0");
-  await expect(page.locator(".overall-count").nth(0).locator("span")).toHaveText("of 24 modules completed");
-  await expect(page.locator(".overall-count").nth(1).locator("strong")).toHaveText("0");
-  await expect(page.locator(".overall-count").nth(1).locator("span")).toHaveText("of 77 lesson records marked complete");
-  await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-desktop-day-one.png") });
+  await expect(page.locator(".continue-panel .continue-kicker")).toContainText("Your next lesson");
+  const startLesson = page.getByRole("link", { name: "Start lesson" });
+  await expect(startLesson).toHaveAttribute("href", "/modules/01/lessons/m01-l01");
+  await expect(page.getByRole("link", { name: "Browse the roadmap" })).toHaveAttribute("href", "/roadmap");
+  await expect(page.getByRole("heading", { name: "Up next" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Recent work" })).toHaveCount(0);
+  await expect(page.locator(".progress-summary-stat").nth(0)).toContainText("0/24");
+  await expect(page.locator(".progress-summary-stat").nth(1)).toContainText("0/77");
+  await expect(page.locator(".progress-summary-stat").nth(2)).toContainText("0/24");
+  await expect(page.locator(".module-card")).toHaveCount(0);
+  await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-after-1440.png") });
 
-  await page.getByRole("button", { name: /Completed/ }).click();
-  await expect(page.getByText("No modules match this filter yet.")).toBeVisible();
-  await page.getByRole("button", { name: /Needs review/ }).click();
-  await expect(page.getByText("Modules marked for review will appear here.")).toBeVisible();
-  await page.getByRole("button", { name: /All modules/ }).click();
-  await expect(page.locator(".dashboard-module-grid .module-card")).toHaveCount(6);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect(startLesson).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-after-1920.png") });
 
   await page.setViewportSize({ width: 768, height: 1024 });
   await expect(page.getByRole("heading", { name: "My learning" })).toBeVisible();
@@ -42,7 +39,7 @@ test("dashboard handles day-one state, working filters, and responsive layouts",
     const sidebar = document.querySelector<HTMLElement>(".sidebar");
     return Boolean(sidebar && sidebar.getBoundingClientRect().right <= 0);
   });
-  await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-tablet-day-one.png") });
+  await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-after-768.png") });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForFunction(() => {
@@ -52,7 +49,8 @@ test("dashboard handles day-one state, working filters, and responsive layouts",
   const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   const viewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
   expect(documentWidth).toBeLessThanOrEqual(viewportWidth);
-  await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-mobile-day-one.png"), fullPage: true });
+  await expect(startLesson).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-after-390.png"), fullPage: true });
   await page.getByRole("button", { name: "Open navigation menu" }).click();
   await expect(page.getByRole("navigation", { name: "Learning pages" })).toBeVisible();
   await expect(page.getByRole("link", { name: "DevOps Fieldnotes home" })).toBeFocused();
@@ -161,10 +159,12 @@ test("progress edits save to SQLite and survive a page reload", async ({ page })
   await page.goto("/modules/01");
   await expect(page.locator(".module-lesson-progress-label")).toContainText("2 of 6 marked complete");
   await page.goto("/");
-  await expect(page.locator(".continue-panel .continue-kicker")).toContainText("Next lesson");
-  await expect(page.getByRole("button", { name: /In progress 1/ })).toBeVisible();
-  await page.getByRole("button", { name: /In progress 1/ }).click();
-  await expect(page.locator(".dashboard-module-grid .module-card")).toHaveCount(1);
+  await expect(page.locator(".continue-panel .continue-kicker")).toContainText("Your next lesson");
+  await expect(page.getByRole("link", { name: "Start lesson" })).toHaveAttribute("href", "/modules/01/lessons/m01-l01");
+  await expect(page.getByRole("heading", { name: "Up next" })).toBeVisible();
+  await expect(page.locator(".next-item")).toHaveCount(1);
+  await expect(page.locator(".next-item")).toHaveAttribute("href", "/modules/01/lessons/m01-l04");
+  await expect(page.locator(".progress-summary-stat").nth(1)).toContainText("2/77");
   await page.goto("/roadmap");
   await page.locator("#roadmap-progress-filter").selectOption("in_progress");
   await expect(page.locator(".module-grid .module-card")).toHaveCount(1);
@@ -209,8 +209,10 @@ test("backup import merges records and export downloads the saved data", async (
   expect(exported.records).toHaveLength(rows.length);
 
   await page.goto("/");
-  await expect(page.locator(".continue-panel .continue-kicker")).toContainText("Next lesson");
-  await expect(page.getByRole("button", { name: /Needs review 1/ })).toBeVisible();
+  await expect(page.locator(".continue-panel .continue-kicker")).toContainText("Your next lesson");
+  await expect(page.getByRole("link", { name: "Start lesson" })).toHaveAttribute("href", "/modules/03/lessons/m03-l01");
+  await expect(page.getByRole("heading", { name: "Up next" })).toBeVisible();
+  await expect(page.locator(".next-item").first()).toHaveAttribute("href", "/modules/03/lessons/m03-l02");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-desktop-in-progress.png") });
 });

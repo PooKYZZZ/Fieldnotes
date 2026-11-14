@@ -1,7 +1,6 @@
 import "server-only";
 
 import { activities, majorProjects, modules, smallProjects } from "@/content/catalog";
-import type { ActivityTask } from "@/content/catalog";
 import type { DashboardActivity, DashboardMajorProject, DashboardModule, DashboardSmallProject } from "@/features/dashboard/model";
 
 function preview(text: string, maxLength = 180): string {
@@ -9,10 +8,6 @@ function preview(text: string, maxLength = 180): string {
   return normalized.length <= maxLength
     ? normalized
     : `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
-}
-
-function previewTask(task: ActivityTask): ActivityTask {
-  return { ...task, content: preview(task.content) };
 }
 
 export function getDashboardContent(): {
@@ -31,12 +26,7 @@ export function getDashboardContent(): {
       activityId,
       lessons: lessons.map(({ id: lessonId, title: lessonTitle }) => ({ id: lessonId, title: lessonTitle })),
     })),
-    activities: activities.map(({ id, moduleId, title, tasks }) => ({
-      id,
-      moduleId,
-      title,
-      tasks: tasks.map(previewTask),
-    })),
+    activities: activities.map(({ id, moduleId, title }) => ({ id, moduleId, title })),
     majorProjects: majorProjects.map(({ id, title, details }) => ({
       id,
       title,

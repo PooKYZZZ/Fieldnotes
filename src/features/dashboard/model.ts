@@ -1,5 +1,5 @@
 import { milestonesForProjects } from "@/content/project-milestones";
-import type { ActivityTask, ModuleRecord, ModuleSummary, SmallProjectRecord } from "@/content/catalog";
+import type { ModuleRecord, ModuleSummary, SmallProjectRecord } from "@/content/catalog";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
 
 export type ModuleStatus = ProgressStatus | "not_started";
@@ -24,6 +24,8 @@ export type DashboardModel = {
   lessonProgressByModule: Map<string, { completed: number; total: number }>;
   completedLessons: number;
   totalLessons: number;
+  completedActivities: number;
+  totalActivities: number;
   completedModules: number;
   currentModule?: DashboardModule;
   currentModuleStatus?: ModuleStatus;
@@ -36,7 +38,7 @@ export type DashboardModel = {
 };
 
 export type DashboardModule = ModuleSummary & Pick<ModuleRecord, "activityId">;
-export type DashboardActivity = { id: string; moduleId: number; title: string; tasks: ActivityTask[] };
+export type DashboardActivity = { id: string; moduleId: number; title: string };
 export type DashboardMajorProject = { id: string; title: string; details: Record<string, string> };
 export type DashboardSmallProject = Pick<SmallProjectRecord, "id" | "title">;
 
@@ -51,46 +53,54 @@ function makeNextItems(
   records: ProgressRecord[],
   currentModule: DashboardModule | undefined,
   currentActivity: DashboardActivity | undefined,
-  preferredLesson: (DashboardModule["lessons"][number] & { moduleId: number }) | undefined,
+  currentLesson: (DashboardModule["lessons"][number] & { moduleId: number }) | undefined,
 ): DashboardNextItem[] {
   const items: DashboardNextItem[] = [];
   const lessonRecords = new Map(records.filter((record) => record.itemType === "lesson").map((record) => [record.itemId, record]));
   const activityRecords = new Map(records.filter((record) => record.itemType === "activity").map((record) => [record.itemId, record]));
-  const moduleRecords = new Map(records.filter((record) => record.itemType === "module").map((record) => [record.itemId, record]));
-  const activity = currentActivity
-    ?? (currentModule ? activities.find((item) => item.id === currentModule.activityId) : undefined);
-  if (activity && activityRecords.get(activity.id)?.status !== "completed") {
-    const moduleStatus = moduleRecords.get(moduleKey(activity.moduleId))?.status ?? "not_started";
-    const activityStatus = activityRecords.get(activity.id)?.status;
-    const eligible = moduleStatus !== "not_started" || activityStatus === "in_progress" || activityStatus === "needs_review";
-    if (eligible) {
-      for (const task of activity.tasks) {
-        if (items.length >= 3) break;
+  const hasSavedWork = records.some((record) => record.status !== "not_started" || Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim()));
+
+  // The first-time learner already has a clear primary action. Suggest a later
+  // step only after the learner has saved meaningful work, and never repeat the
+  // primary lesson or activity link.
+  if (hasSavedWork && currentLesson && currentModule) {
+    const lessonIndex = currentModule.lessons.findIndex((lesson) => lesson.id === currentLesson.id);
+    const followingLesson = currentModule.lessons
+      .slice(lessonIndex + 1)
+      .find((lesson) => lessonRecords.get(lesson.id)?.status !== "completed");
+    if (followingLesson) {
+      items.push({
+        id: followingLesson.id,
+        type: `Next lesson · Module ${String(currentModule.id).padStart(2, "0")}`,
+        title: followingLesson.title,
+        detail: currentModule.title,
+        href: `/modules/${String(currentModule.id).padStart(2, "0")}/lessons/${followingLesson.id.toLowerCase()}`,
+      });
+    } else {
+      const moduleActivity = activities.find((activity) => activity.id === currentModule.activityId);
+      if (moduleActivity && activityRecords.get(moduleActivity.id)?.status !== "completed") {
         items.push({
-          id: `${activity.id}-${task.kind}`,
-          type: `${task.title} · Module ${String(activity.moduleId).padStart(2, "0")}`,
-          title: task.content,
-          detail: `${activity.id} · ${activity.title}`,
-          href: `/activities/${activity.id}`,
+          id: moduleActivity.id,
+          type: `Practical activity · Module ${String(currentModule.id).padStart(2, "0")}`,
+          title: moduleActivity.title,
+          detail: "Apply the ideas from this module",
+          href: `/activities/${moduleActivity.id}`,
         });
       }
     }
-  }
-
-  // Lesson completion is a learner-managed progress marker, not evidence of mastery.
-  const nextLesson = preferredLesson
-    ? { lesson: preferredLesson, module: modules.find((item) => item.id === preferredLesson.moduleId) }
-    : modules.flatMap((module) => module.lessons.map((lesson) => ({ lesson, module })))
-      .find(({ lesson }) => lessonRecords.get(lesson.id)?.status !== "completed");
-  if (nextLesson?.module) {
-    const { lesson, module } = nextLesson;
-    items.unshift({
-      id: lesson.id,
-      type: `Lesson · Module ${String(module.id).padStart(2, "0")}`,
-      title: lesson.title,
-      detail: `${lessonRecords.get(lesson.id)?.status ? `${lessonRecords.get(lesson.id)?.status.replace("_", " ")} · ` : ""}${module.title}`,
-      href: `/modules/${String(module.id).padStart(2, "0")}/lessons/${lesson.id.toLowerCase()}`,
-    });
+  } else if (hasSavedWork && currentActivity) {
+    const followingModule = modules.find((module) => module.id > currentActivity.moduleId
+      && module.lessons.some((lesson) => lessonRecords.get(lesson.id)?.status !== "completed"));
+    const followingLesson = followingModule?.lessons.find((lesson) => lessonRecords.get(lesson.id)?.status !== "completed");
+    if (followingModule && followingLesson) {
+      items.push({
+        id: followingLesson.id,
+        type: `Continue to Module ${String(followingModule.id).padStart(2, "0")}`,
+        title: followingLesson.title,
+        detail: followingModule.title,
+        href: `/modules/${String(followingModule.id).padStart(2, "0")}/lessons/${followingLesson.id.toLowerCase()}`,
+      });
+    }
   }
 
   const projectById = new Map(majorProjects.map((project) => [project.id, project]));
@@ -122,10 +132,15 @@ function makeNextItems(
       href: `/projects/${projectId}`,
     });
   }
-  return [...items, ...projectTasks].slice(0, 5);
+  const primaryHref = currentLesson
+    ? `/modules/${String(currentLesson.moduleId).padStart(2, "0")}/lessons/${currentLesson.id.toLowerCase()}`
+    : currentActivity ? `/activities/${currentActivity.id}` : undefined;
+  return [...items, ...projectTasks]
+    .filter((item) => item.href !== primaryHref)
+    .slice(0, 3);
 }
 
-function makeRecentItems(records: ProgressRecord[], modules: DashboardModule[], activities: DashboardActivity[], projects: DashboardMajorProject[], smallProjects: DashboardSmallProject[]): DashboardRecentItem[] {
+function makeRecentItems(records: ProgressRecord[], modules: DashboardModule[], activities: DashboardActivity[], projects: DashboardMajorProject[], smallProjects: DashboardSmallProject[], excludedRecord?: string): DashboardRecentItem[] {
   const milestones = new Map(milestonesForProjects(projects).map((milestone) => [milestone.id, milestone]));
   const labels = new Map<string, { title: string; href: string; type: string }>();
   for (const learningModule of modules) labels.set(`module:${moduleKey(learningModule.id)}`, { title: learningModule.title, href: moduleHref(learningModule.id), type: "Module" });
@@ -140,6 +155,7 @@ function makeRecentItems(records: ProgressRecord[], modules: DashboardModule[], 
   for (const [id, milestone] of milestones) labels.set(`milestone:${id}`, { title: milestone.label, href: `/projects/${milestone.projectId}`, type: "Milestone" });
 
   return records
+    .filter((record) => `${record.itemType}:${record.itemId}` !== excludedRecord)
     .filter((record) => record.status !== "not_started" || Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim()))
     .map((record) => {
       const item = labels.get(`${record.itemType}:${record.itemId}`);
@@ -174,49 +190,52 @@ export function buildDashboardModel(
   const moduleRecords = new Map(records.filter((record) => record.itemType === "module").map((record) => [record.itemId, record]));
   const statusByModule = new Map(modules.map((module) => [moduleKey(module.id), moduleRecords.get(moduleKey(module.id))?.status ?? "not_started"]));
   const completedModules = [...statusByModule.values()].filter((status) => status === "completed").length;
-  const activeModuleRecords = records
-    .filter((record) => record.itemType === "module" && (record.status === "in_progress" || record.status === "needs_review"))
-    .map((record) => ({ kind: "module" as const, itemId: record.itemId, status: record.status, updatedAt: record.updatedAt }));
-  const activeActivityRecords = records
-    .filter((record) => record.itemType === "activity" && (record.status === "in_progress" || record.status === "needs_review"))
-    .map((record) => ({ kind: "activity" as const, itemId: record.itemId, status: record.status, updatedAt: record.updatedAt }));
-  const activeLessonRecords = records
-    .filter((record) => record.itemType === "lesson" && (record.status === "in_progress" || record.status === "needs_review"))
-    .map((record) => ({ kind: "lesson" as const, itemId: record.itemId, status: record.status, updatedAt: record.updatedAt }));
-  const mostRecentActiveTarget = [...activeModuleRecords, ...activeActivityRecords].sort((left, right) => right.updatedAt - left.updatedAt)[0];
-  const currentActivityRecord = activeActivityRecords.sort((left, right) => right.updatedAt - left.updatedAt)[0];
-  const currentActivity = currentActivityRecord ? activities.find((activity) => activity.id === currentActivityRecord.itemId) : undefined;
-  const currentActivityStatus = currentActivityRecord?.status;
+  const activityRecords = new Map(records.filter((record) => record.itemType === "activity").map((record) => [record.itemId, record]));
   const lessonById = new Map(modules.flatMap((module) => module.lessons.map((lesson) => [lesson.id, { ...lesson, moduleId: module.id }] as const)));
   const statusByLesson = new Map(records.filter((record) => record.itemType === "lesson").map((record) => [record.itemId, record.status]));
   const completedLessons = modules.flatMap((module) => module.lessons).filter((lesson) => statusByLesson.get(lesson.id) === "completed").length;
   const totalLessons = modules.reduce((total, module) => total + module.lessons.length, 0);
+  const completedActivities = activities.filter((activity) => activityRecords.get(activity.id)?.status === "completed").length;
   const lessonProgressByModule = new Map(modules.map((module) => [moduleKey(module.id), {
     completed: module.lessons.filter((lesson) => statusByLesson.get(lesson.id) === "completed").length,
     total: module.lessons.length,
   }]));
-  const activeLessonRecord = activeLessonRecords.sort((left, right) => right.updatedAt - left.updatedAt)[0];
-  const activeLesson = activeLessonRecord ? lessonById.get(activeLessonRecord.itemId) : undefined;
+  const activeTargets = records
+    .filter((record) => record.status === "in_progress" || record.status === "needs_review")
+    .filter((record) => record.itemType === "module" || record.itemType === "lesson" || record.itemType === "activity")
+    .sort((left, right) => right.updatedAt - left.updatedAt);
+  const mostRecentActiveTarget = activeTargets[0];
+  const activeLesson = mostRecentActiveTarget?.itemType === "lesson" ? lessonById.get(mostRecentActiveTarget.itemId) : undefined;
+  const activeActivity = mostRecentActiveTarget?.itemType === "activity"
+    ? activities.find((activity) => activity.id === mostRecentActiveTarget.itemId)
+    : undefined;
+  const activeModuleId = mostRecentActiveTarget?.itemType === "module"
+    ? Number(mostRecentActiveTarget.itemId.replace(/^M/, ""))
+    : activeLesson?.moduleId ?? activeActivity?.moduleId;
   const nextLesson = modules.flatMap((module) => module.lessons.map((lesson) => ({ ...lesson, moduleId: module.id })))
     .find((lesson) => statusByLesson.get(lesson.id) !== "completed");
-  const activeWorkModuleId = mostRecentActiveTarget?.kind === "activity"
-    ? activities.find((activity) => activity.id === mostRecentActiveTarget.itemId)?.moduleId
-    : Number(mostRecentActiveTarget?.itemId.replace(/^M/, ""));
-  const candidateModule = activeLesson
-    ? modules.find((module) => module.id === activeLesson.moduleId)
-    : mostRecentActiveTarget
-      ? modules.find((module) => module.id === activeWorkModuleId)
-      : nextLesson ? modules.find((module) => module.id === nextLesson.moduleId) : undefined;
+  const candidateModule = activeModuleId
+    ? modules.find((module) => module.id === activeModuleId)
+    : nextLesson ? modules.find((module) => module.id === nextLesson.moduleId) : undefined;
+  const unfinishedActivity = activities.find((activity) => activityRecords.get(activity.id)?.status !== "completed");
   const currentModule = candidateModule
-    ?? modules.find((module) => statusByModule.get(moduleKey(module.id)) !== "completed");
+    ?? (unfinishedActivity ? modules.find((module) => module.id === unfinishedActivity.moduleId) : undefined);
   const nextLessonInModule = currentModule?.lessons.find((lesson) => statusByLesson.get(lesson.id) !== "completed");
   const currentLesson = activeLesson
-    ?? (currentModule && nextLessonInModule ? { ...nextLessonInModule, moduleId: currentModule.id } : undefined)
-    ?? (mostRecentActiveTarget ? undefined : nextLesson);
-  const currentLessonStatus = activeLesson
-    ? activeLessonRecord?.status
-    : currentLesson ? statusByLesson.get(currentLesson.id) : undefined;
+    ?? (activeActivity ? undefined : nextLessonInModule ? { ...nextLessonInModule, moduleId: currentModule!.id } : undefined);
+  const recommendedActivity = !currentLesson && !activeActivity && currentModule
+    ? activities.find((activity) => activity.id === currentModule.activityId && activityRecords.get(activity.id)?.status !== "completed")
+    : undefined;
+  const currentActivity = activeActivity ?? recommendedActivity;
+  const currentActivityRecord = currentActivity ? activityRecords.get(currentActivity.id) : undefined;
+  const currentActivityStatus = currentActivityRecord?.status ?? (recommendedActivity ? "not_started" : undefined);
+  const currentLessonRecord = currentLesson ? records.find((record) => record.itemType === "lesson" && record.itemId === currentLesson.id) : undefined;
+  const currentLessonStatus = currentLessonRecord?.status;
   const currentModuleStatus = currentModule ? statusByModule.get(moduleKey(currentModule.id)) : undefined;
+
+  const excludedRecentRecord = mostRecentActiveTarget
+    ? `${mostRecentActiveTarget.itemType}:${mostRecentActiveTarget.itemId}`
+    : undefined;
 
   return {
     statusByModule,
@@ -224,6 +243,8 @@ export function buildDashboardModel(
     lessonProgressByModule,
     completedLessons,
     totalLessons,
+    completedActivities,
+    totalActivities: activities.length,
     completedModules,
     currentModule,
     currentModuleStatus,
@@ -232,7 +253,7 @@ export function buildDashboardModel(
     currentActivity,
     currentActivityStatus,
     nextItems: makeNextItems(modules, activities, majorProjects, smallProjects, records, currentModule, currentActivity, currentLesson),
-    recentItems: makeRecentItems(records, modules, activities, majorProjects, smallProjects),
+    recentItems: makeRecentItems(records, modules, activities, majorProjects, smallProjects, excludedRecentRecord),
   };
 }
 
