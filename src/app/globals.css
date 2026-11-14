@@ -892,7 +892,7 @@ body { font-size: 15px; }
 .concept-list a { color: #176b99; font-weight: 600; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .concept-list a:hover { color: #0f506f; }
 .concept-list a:focus-visible { border-radius: 3px; outline: 2px solid #176b99; outline-offset: 3px; }
-.module-lesson-main .article-copy { max-width: 72ch; }
+.module-lesson-main .article-copy { max-width: 72ch; font-size: 15px; line-height: 1.7; }
 .module-lesson-main .article-copy h3 { scroll-margin-top: 24px; }
 .lesson-sequence-label { margin: 0 0 5px; color: #52746d; font-size: 11px; }
 .lesson-sequence-label + h2 { margin-top: 0; }
