@@ -1,0 +1,28 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M01-L03";
+export const lessonTitle = "User space and the kernel";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+**How can an application use a file without controlling the storage hardware directly?** Applications normally run in user space with restricted privileges. When a program needs a protected operation, such as opening a file, it requests a service from the kernel through a system call. The kernel checks the request and mediates access to shared resources.
+
+For a file read, application code asks a library to read from a file descriptor. The library eventually requests the kernel to read; the kernel checks access and coordinates the filesystem and any required device or cached data. The result returns to the application, or an error explains why the request failed. Not every read requires a physical disk operation: data may already be in memory caches. Network sockets and devices have their own paths through kernel-managed interfaces.
+
+Figure 3 places the user-mode application above the kernel and hardware, showing where the system-call interface fits in this request path.
+
+This boundary helps isolate applications from one another and from hardware. A permission error is evidence about the identity and access path used for the request; restarting the machine does not establish which check failed.
+
+
+**Check:** If a process is running but cannot read a file, which identity, path permissions, and error details would you inspect before changing anything?
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module01/user-kernel-hardware-openstax.webp"
+    alt="Three system layers: applications run in user mode, system-call and hardware interfaces are in kernel mode, and CPU, devices, and memory form the hardware layer."
+    width={983}
+    height={318}
+    caption="Figure 3. The system-call interface connects user-mode applications to kernel services and hardware."
+    source={{ label: "OpenStax, Figure 6.3", url: "https://openstax.org/books/introduction-computer-science/pages/6-1-what-is-an-operating-system", license: "CC BY-NC-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/" }}
+  />
+</ConceptSection>

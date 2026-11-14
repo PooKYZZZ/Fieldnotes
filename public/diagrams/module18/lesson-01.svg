@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Kubernetes desired-state reconciliation</title>
+  <desc id="desc">The API stores declared objects, controllers act on differences, and observed Pod state feeds the next reconciliation cycle.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Kubernetes desired-state reconciliation</text>
+  <path d="M230 206 L285 206" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M480 206 L535 206" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M785 252 L650 300" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M650 300 L650 140" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="35" y="160" width="195" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="132" y="199" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="132" dy="0">Desired state</tspan>
+  </text>
+  <text x="132" y="235" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">Deployment replicas</text>
+  <rect x="285" y="160" width="195" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="382" y="199" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="382" dy="0">API server</tspan>
+  </text>
+  <text x="382" y="235" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">declared objects</text>
+  <rect x="535" y="160" width="195" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="632" y="199" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="632" dy="0">Controller</tspan>
+  </text>
+  <text x="632" y="235" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">compare and reconcile</text>
+  <rect x="785" y="160" width="150" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="860" y="199" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="860" dy="0">Pods</tspan>
+  </text>
+  <text x="860" y="235" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">observed state</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">Reconciliation repeats: observed state informs the next controller action.</text>
+  </svg>

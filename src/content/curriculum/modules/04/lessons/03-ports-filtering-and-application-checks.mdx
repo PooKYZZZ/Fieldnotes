@@ -1,0 +1,50 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M04-L03";
+export const lessonTitle = "Ports, filtering, and application checks";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A port identifies a transport endpoint on a host. A service must bind a compatible address and port, and network
+filters must permit the traffic. A successful ping tests an ICMP exchange only. It does not prove TCP port 443 is open,
+TLS succeeds, or the application authorizes the user.
+
+Work through evidence in order: resolve the name, inspect the selected IP and route, check the listener, check host
+and network filters, then make an application-level request. Keep home-router rules, cloud network rules, host
+firewalls and application authentication distinct because each has different logs and owners.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module04/lesson-03.svg"
+    alt="A listener and port, network filtering, and application behavior are separate checks along a connection path."
+    caption="Inspect the listener, filtering path, and application response separately to locate the failing connection stage."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-04-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "listener-filter",
+      prompt: "A client reaches the host, but the application request fails. How should you isolate the problem?",
+      options: ["Check the destination listener and port, filtering path, and application response as separate layers.", "Assume DNS is the only possible cause.", "Change the client subnet before checking the destination."],
+      correctIndex: 0,
+      explanation: "A connection depends on multiple stages; listener, filtering, and application behavior provide distinct evidence.",
+    },
+    {
+      id: "dns-vs-transport",
+      prompt: "A hostname resolves to an address, but connecting to the service times out. What has the lookup established?",
+      options: ["That the application accepted the request.", "That DNS returned a record; transport reachability and service response still need checking.", "That the destination port is open."],
+      correctIndex: 1,
+      explanation: "Name resolution is separate from transport connectivity and application behavior.",
+    },
+    {
+      id: "subnet-route",
+      prompt: "A destination is outside the local subnet. Which system information helps explain where packets go next?",
+      options: ["The DNS search suffix alone.", "The application’s response body.", "The routing table and selected next hop."],
+      correctIndex: 2,
+      explanation: "The route selection determines the next hop for a destination beyond the local network prefix.",
+    },
+  ]}
+/>

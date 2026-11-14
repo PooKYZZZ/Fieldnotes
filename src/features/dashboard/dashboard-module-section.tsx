@@ -51,8 +51,6 @@ export function DashboardModuleSection({
     });
   }, [filteredModules, model.currentModule]);
   const visibleModules = prioritizedModules.slice(0, 6);
-  const completedActivityIds = new Set(records.filter((record) => record.itemType === "activity" && record.status === "completed").map((record) => record.itemId));
-
   return (
     <section className="module-section" aria-labelledby="my-modules-title">
       <div className="module-section-heading">
@@ -88,14 +86,20 @@ export function DashboardModuleSection({
         <div className="module-grid dashboard-module-grid">
           {visibleModules.map((module) => {
             const linkedActivities = activities.filter((activity) => activity.moduleId === module.id);
-            const done = linkedActivities.filter((activity) => completedActivityIds.has(activity.id)).length;
-            return <ModuleCard
-              key={module.id}
-              module={module}
-              status={loaded && !loadError ? statusForModule(model, module.id) : undefined}
-              activityCount={linkedActivities.length}
-              completedActivityCount={done}
-            />;
+            const lessonProgress = model.lessonProgressByModule.get(`M${String(module.id).padStart(2, "0")}`);
+            const activityStatus = linkedActivities[0]
+              ? records.find((record) => record.itemType === "activity" && record.itemId === linkedActivities[0].id)?.status ?? "not_started"
+              : undefined;
+            return <div className="dashboard-module-entry" key={module.id}>
+              <ModuleCard
+                module={module}
+                status={loaded && !loadError ? statusForModule(model, module.id) : undefined}
+                activityCount={linkedActivities.length}
+                activityId={linkedActivities[0]?.id}
+                activityStatus={activityStatus}
+                completedLessonCount={lessonProgress?.completed ?? 0}
+              />
+            </div>;
           })}
         </div>
       )}

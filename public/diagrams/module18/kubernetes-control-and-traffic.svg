@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title description">
+  <title id="title">Kubernetes desired state, controllers, Pods and Service routing</title>
+  <desc id="description">A Deployment declares the desired number of replicas. A controller reconciles that state through a ReplicaSet and replaceable Pods. A Service selector finds matching ready Pod endpoints. The control plane and worker nodes perform different roles.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#4c7d9b"/></marker>
+  </defs>
+  <rect width="1000" height="560" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">Control plane reconciles; Service finds ready Pods</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">Pods are replaceable. Use labels, readiness and durable storage deliberately.</text>
+
+  <rect x="35" y="102" width="930" height="158" rx="16" fill="#e8eef3" stroke="#bac8d2" stroke-width="2"/>
+  <text x="57" y="132" fill="#536c7c" font-family="Arial,sans-serif" font-size="15" font-weight="700">CONTROL PLANE · API + cluster state</text>
+  <rect x="60" y="153" width="212" height="78" rx="11" fill="#fff" stroke="#bdc9d1"/>
+  <text x="80" y="183" fill="#365f6c" font-family="Arial,sans-serif" font-size="14" font-weight="700">Deployment</text>
+  <text x="80" y="206" fill="#5f7078" font-family="Arial,sans-serif" font-size="12">desired replicas + rollout</text>
+  <rect x="359" y="153" width="228" height="78" rx="11" fill="#fff" stroke="#bdc9d1"/>
+  <text x="379" y="183" fill="#365f6c" font-family="Arial,sans-serif" font-size="14" font-weight="700">Controller + ReplicaSet</text>
+  <text x="379" y="206" fill="#5f7078" font-family="Arial,sans-serif" font-size="12">reconcile observed state</text>
+  <rect x="674" y="153" width="251" height="78" rx="11" fill="#fff" stroke="#bdc9d1"/>
+  <text x="695" y="183" fill="#365f6c" font-family="Arial,sans-serif" font-size="14" font-weight="700">Scheduler + API server</text>
+  <text x="695" y="206" fill="#5f7078" font-family="Arial,sans-serif" font-size="12">place Pods; expose cluster API</text>
+  <path d="M272 192h78M587 192h78" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="6 5" marker-end="url(#arrow-blue)"/>
+
+  <rect x="35" y="291" width="930" height="209" rx="16" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="57" y="321" fill="#456c65" font-family="Arial,sans-serif" font-size="15" font-weight="700">WORKER NODE · kubelet + container runtime</text>
+  <rect x="73" y="347" width="202" height="77" rx="11" fill="#fff" stroke="#96b4a9"/>
+  <text x="94" y="377" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Service</text>
+  <text x="94" y="400" fill="#5c7371" font-family="Arial,sans-serif" font-size="12">stable endpoint + selector</text>
+  <rect x="339" y="342" width="166" height="87" rx="12" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="359" y="372" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Pod A</text>
+  <text x="359" y="396" fill="#5c7371" font-family="Arial,sans-serif" font-size="12">label app=api</text>
+  <text x="359" y="416" fill="#5c7371" font-family="Arial,sans-serif" font-size="11">ready · replaceable</text>
+  <rect x="549" y="342" width="166" height="87" rx="12" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="569" y="372" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Pod B</text>
+  <text x="569" y="396" fill="#5c7371" font-family="Arial,sans-serif" font-size="12">label app=api</text>
+  <text x="569" y="416" fill="#5c7371" font-family="Arial,sans-serif" font-size="11">ready · replaceable</text>
+  <rect x="759" y="342" width="166" height="87" rx="12" fill="#fff6e8" stroke="#dec49e" stroke-width="2"/>
+  <text x="779" y="372" fill="#75583a" font-family="Arial,sans-serif" font-size="14" font-weight="700">Pod C</text>
+  <text x="779" y="396" fill="#7a654e" font-family="Arial,sans-serif" font-size="12">starting / not ready</text>
+  <text x="779" y="416" fill="#7a654e" font-family="Arial,sans-serif" font-size="11">not a Service endpoint yet</text>
+  <path d="M275 385h57M505 385h37M715 385h37" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M168 260v76" fill="none" stroke="#4c7d9b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-blue)"/>
+  <path d="M465 260v73M465 333h160M625 333v-1" fill="none" stroke="#4c7d9b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-blue)"/>
+  <text x="57" y="466" fill="#607573" font-family="Arial,sans-serif" font-size="12">A failing endpoint can be a selector or readiness issue. Pod IPs and local writable layers are not durable state.</text>
+</svg>

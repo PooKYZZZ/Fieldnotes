@@ -1,0 +1,44 @@
+export const lessonId = "M10-L03";
+export const lessonTitle = "Permissions and trust boundaries";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Treat code from external pull requests as untrusted input. Give the workflow token only the permissions needed for
+that event and job; a test job rarely needs repository write access. Do not expose deployment secrets to unreviewed
+code. Avoid privileged triggers that check out and execute pull-request content under the base repository's
+authority. Review action versions and protect workflow files like application code.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module10/lesson-03.svg"
+    alt="An untrusted pull request uses limited, secret-free checks; a separate trusted, protected path passes review before using scoped deployment authority."
+    caption="Untrusted pull request → read-only checks without deployment secrets. Separate protected revision → review and deployment gate → scoped deployment authority."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-10-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "A workflow has two jobs on separate runners, and the second needs a report from the first. What should connect them?",
+      options: ["Assume both runners share a filesystem.", "Pass the report as a named workflow artifact.", "Read it from the dependency cache."],
+      correctIndex: 1,
+      explanation: "Jobs may run on separate environments and do not automatically share files. Artifacts pass specific outputs; caches are for dependency reuse.",
+    },
+    {
+      id: "q2",
+      prompt: "An outside pull request changes code executed by a test job. Which permissions are the safest default?",
+      options: ["Only the read permissions needed for checks, with no deployment secret.", "Repository write access so tests can update files.", "Owner permissions inherited from the repository maintainer."],
+      correctIndex: 0,
+      explanation: "Pull request code is untrusted input. Limit token permissions and keep deployment secrets outside workflows that execute unreviewed code.",
+    },
+    {
+      id: "q3",
+      prompt: "A job fails after a new commit. What is the best first diagnostic step?",
+      options: ["Rerun repeatedly until it passes.", "Find the earliest causally relevant error and compare the commit, event, and environment.", "Assume the deployment environment is unhealthy."],
+      correctIndex: 1,
+      explanation: "The earliest relevant error often explains downstream failures. Confirm which revision and event ran before rerunning.",
+    }
+  ]}
+/>

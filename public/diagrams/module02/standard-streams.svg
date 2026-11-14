@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" role="img" aria-labelledby="title description">
+  <title id="title">How a shell pipeline connects standard streams</title>
+  <desc id="description">The first process sends standard output through a pipe to the next process's standard input. Standard error remains separate, and the second process can redirect its output to a report file.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker>
+    <marker id="arrow-muted" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#8b9896"/></marker>
+  </defs>
+  <rect width="900" height="480" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">One command line, separate streams</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">The shell connects file descriptors before each process runs.</text>
+
+  <rect x="36" y="105" width="285" height="180" rx="14" fill="#fff" stroke="#9abbb1" stroke-width="2"/>
+  <rect x="36" y="105" width="285" height="42" rx="14" fill="#e4f0eb"/>
+  <path d="M36 133h285v14H36Z" fill="#e4f0eb"/>
+  <text x="56" y="133" fill="#315e58" font-family="Arial,sans-serif" font-size="17" font-weight="700">Process A · find</text>
+  <text x="56" y="178" fill="#263f47" font-family="Arial,sans-serif" font-size="15">stdout · matching paths</text>
+  <text x="56" y="207" fill="#6c5141" font-family="Arial,sans-serif" font-size="15">stderr · diagnostics</text>
+  <rect x="53" y="229" width="246" height="36" rx="8" fill="#f2f7f5"/>
+  <text x="67" y="252" fill="#57736e" font-family="Arial,sans-serif" font-size="13">stdin is unused for this command</text>
+
+  <rect x="535" y="105" width="325" height="180" rx="14" fill="#fff" stroke="#9abbb1" stroke-width="2"/>
+  <rect x="535" y="105" width="325" height="42" rx="14" fill="#e4f0eb"/>
+  <path d="M535 133h325v14H535Z" fill="#e4f0eb"/>
+  <text x="555" y="133" fill="#315e58" font-family="Arial,sans-serif" font-size="17" font-weight="700">Process B · grep ERROR</text>
+  <text x="555" y="180" fill="#263f47" font-family="Arial,sans-serif" font-size="15">stdin · receives paths from the pipe</text>
+  <text x="555" y="211" fill="#263f47" font-family="Arial,sans-serif" font-size="15">stdout · matching lines</text>
+  <text x="555" y="242" fill="#6c5141" font-family="Arial,sans-serif" font-size="15">stderr · diagnostics</text>
+
+  <path d="M321 184H529" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="382" y="157" width="86" height="27" rx="13" fill="#dcebe6"/>
+  <text x="399" y="176" fill="#315e58" font-family="Arial,sans-serif" font-size="13" font-weight="700">stdout → stdin</text>
+  <path d="M177 285v63h87" fill="none" stroke="#8b9896" stroke-width="3" stroke-dasharray="7 6" marker-end="url(#arrow-muted)"/>
+  <path d="M694 285v63h84" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="36" y="357" width="250" height="68" rx="11" fill="#fff" stroke="#d6dfdc"/>
+  <text x="55" y="383" fill="#4f6264" font-family="Arial,sans-serif" font-size="14" font-weight="700">Terminal</text>
+  <text x="55" y="405" fill="#66777a" font-family="Arial,sans-serif" font-size="13">stderr stays separate by default</text>
+  <rect x="535" y="357" width="325" height="68" rx="11" fill="#fff" stroke="#b8c9c2"/>
+  <path d="M557 373h25l10 10v26h-35Z" fill="#e5efeb" stroke="#91aaa2"/>
+  <path d="M582 373v11h10" fill="none" stroke="#91aaa2"/>
+  <text x="607" y="385" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">report.txt</text>
+  <text x="607" y="407" fill="#66777a" font-family="Arial,sans-serif" font-size="13">&gt; replaces; &gt;&gt; appends</text>
+  <text x="36" y="458" fill="#607573" font-family="Arial,sans-serif" font-size="13">To capture stderr too, redirect it deliberately; order matters in commands such as 2&gt;&amp;1.</text>
+</svg>

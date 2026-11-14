@@ -1,0 +1,16 @@
+export const lessonId = "M14-L02";
+export const lessonTitle = "State, dependencies, and drift";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+State maps Terraform resource addresses to real objects and records attributes needed for future operations. It may
+contain sensitive values, so protect access and storage. A resource dependency graph controls operation order, while
+outputs expose selected values to callers. Drift occurs when live infrastructure changes outside the configuration
+or Terraform; compare the plan and decide whether to update configuration or correct the resource.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module14/lesson-02.svg"
+    alt="Compare configuration and state with live resources; when an out-of-band change creates drift, decide whether to update configuration or correct the live resource."
+    caption="Configuration and state compared with live resources reveal drift; update configuration if the change is intended, or correct the live resource if it is not."
+  />
+</ConceptSection>

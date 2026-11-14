@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+<title id="title">Metrics and distributions</title>
+<desc id="desc">Counters, gauges, and histograms summarize different measurements in parallel. Stable labels support useful comparisons; unique IDs and raw URLs create high-cardinality series.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6586a3"/></marker></defs>
+<rect width="960" height="360" rx="24" fill="#f4f7fb"/>
+<text x="40" y="48" fill="#15324b" font-family="Arial,sans-serif" font-size="22" font-weight="700">Metrics and distributions</text>
+<rect x="70" y="125" width="235" height="70" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="187.5" y="156.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="187.5" dy="0">Counter: request</tspan><tspan x="187.5" dy="17">totals</tspan></text>
+<rect x="362" y="125" width="235" height="70" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="479.5" y="165.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="479.5" dy="0">Gauge: queue depth</tspan></text>
+<rect x="655" y="125" width="235" height="70" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="772.5" y="156.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="772.5" dy="0">Histogram: latency</tspan><tspan x="772.5" dy="17">buckets</tspan></text>
+<rect x="180" y="250" width="260" height="58" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="310.0" y="275.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="310.0" dy="0">Stable labels:</tspan><tspan x="310.0" dy="17">route, status class</tspan></text>
+<rect x="520" y="250" width="260" height="58" rx="14" fill="#f4e0df" stroke="#7794ad" stroke-width="2"/>
+<text x="650.0" y="275.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="650.0" dy="0">Avoid unique IDs and</tspan><tspan x="650.0" dy="17">raw URLs</tspan></text>
+<text x="90" y="220" fill="#526579" font-family="Arial,sans-serif" font-size="14">Metric types are complementary, not a processing chain.</text>
+</svg>

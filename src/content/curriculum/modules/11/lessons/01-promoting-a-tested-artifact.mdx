@@ -1,0 +1,16 @@
+export const lessonId = "M11-L01";
+export const lessonTitle = "Promoting a tested artifact";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+CI tests a particular source revision and produces evidence about it. A release pipeline should promote the same
+artifact through environments rather than rebuild different bytes for each environment. Record the commit and
+artifact identifier (ideally a digest for a container image) with the deployment. Configuration can vary by
+environment, but it must be explicit and validated.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module11/lesson-01.svg"
+    alt="A source revision is built and tested once, identified by an artifact digest, then the same bytes are promoted and recorded."
+    caption="Source revision → build and test → artifact digest → promote the same bytes → release record."
+  />
+</ConceptSection>

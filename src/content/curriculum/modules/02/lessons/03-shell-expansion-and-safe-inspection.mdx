@@ -1,0 +1,28 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M02-L03";
+export const lessonTitle = "Shell expansion and safe inspection";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+The shell expands variables, wildcards and command substitutions before passing arguments to a program. Quoting
+preserves a value as one argument and prevents accidental wildcard expansion. Before changing anything, inspect
+targets with `pwd`, `ls -la`, `find`, `head` or `less`; use `--help` and the manual page to confirm options.
+
+This searches log files and displays a limited preview without editing them:
+
+```bash
+grep -RIn --include='*.log' -- 'ERROR' ./logs | head -n 20
+```
+
+The pattern after `--` is treated as a pattern even if it begins with a dash. A shell pipeline can hide an earlier
+command's exit status; in Bash, `set -o pipefail` makes a failing pipeline visible, though scripts still need explicit
+handling for expected cases such as no matches.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module02/lesson-03.svg"
+    alt="Quoting controls how the shell expands arguments; read-only inspection establishes the target before a change."
+    caption="Quote shell inputs, inspect the intended files, and only then consider a deliberate change."
+  />
+</ConceptSection>

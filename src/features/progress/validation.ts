@@ -6,6 +6,7 @@ const itemIdSchema = z.string().trim().min(2).max(16).regex(/^[A-Za-z0-9.-]+$/);
 
 const knownItemIds: Record<ProgressItemType, ReadonlySet<string>> = {
   module: new Set(modules.map((item) => `M${String(item.id).padStart(2, "0")}`)),
+  lesson: new Set(modules.flatMap((item) => item.lessons.map((lesson) => lesson.id))),
   activity: new Set(activities.map((item) => item.id)),
   troubleshooting: new Set(troubleshooting.map((item) => item.id)),
   small_project: new Set(smallProjects.map((item) => item.id)),
@@ -32,8 +33,7 @@ export const progressSchema = z.object({
   repositoryUrl: z.string().trim().max(512).refine(isHttpUrl, "Enter an http or https URL."),
 }).refine(belongsToCatalog, { path: ["itemId"], message: "Select a learning item from this workspace." }) satisfies z.ZodType<ProgressInput>;
 
-export const progressImportSchema = z.object({
-  version: z.literal(1),
+const progressBackupSchema = z.object({
   exportedAt: z.string().datetime(),
   records: z.array(progressSchema.extend({ updatedAt: z.number().int().nonnegative() })).max(250),
 }).superRefine((backup, context) => {
@@ -50,6 +50,11 @@ export const progressImportSchema = z.object({
     seen.add(key);
   });
 });
+
+export const progressImportSchema = z.discriminatedUnion("version", [
+  progressBackupSchema.extend({ version: z.literal(1) }),
+  progressBackupSchema.extend({ version: z.literal(2) }),
+]);
 
 function isHttpUrl(value: string): boolean {
   if (value === "") return true;

@@ -1,0 +1,28 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M03-L02";
+export const lessonTitle = "Process and service lifecycle";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+`systemd` is a system and service manager on many Linux distributions. A unit describes how to start, stop and
+supervise a process. `enabled` means it is configured to start during boot; `active` describes its present state.
+Neither label proves the application is answering correctly.
+
+```diagram
+systemd starts unit ──▶ service account process ──▶ listening socket
+         │                         │                         │
+         └── restart policy        └── exit status/logs      └── client request
+```
+
+Signals request a process action: `SIGTERM` allows a program to shut down cleanly, while `SIGKILL` stops it
+immediately and gives it no cleanup opportunity. Prefer the service manager's stop action over killing arbitrary
+PIDs; the manager owns the lifecycle it started.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module03/lesson-02.svg"
+    alt="A service manager starts and supervises a process; process state and application health require separate observations."
+    caption="A unit’s boot setting, manager-reported state, and application health answer different questions."
+  />
+</ConceptSection>

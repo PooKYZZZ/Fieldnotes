@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createProgressDatabase } from "@/features/progress/storage/database";
@@ -28,6 +28,31 @@ const record: ProgressInput = {
 };
 
 describe("local progress database", () => {
+  it("adds lesson rows while preserving existing module and activity fields", () => {
+    const databasePath = makePath();
+    const directory = path.dirname(databasePath);
+    const oldMigrations = path.join(directory, "old-migrations");
+    mkdirSync(oldMigrations);
+    copyFileSync(path.join(migrationDirectory, "0001_create_learning_progress.sql"), path.join(oldMigrations, "0001_create_learning_progress.sql"));
+
+    const beforeMigration = createProgressDatabase(databasePath, oldMigrations);
+    const activity: ProgressInput = { ...record, itemType: "activity", itemId: "A01", notes: "Activity notes", evidence: "Activity evidence" };
+    beforeMigration.save(record);
+    beforeMigration.save(activity);
+    beforeMigration.close();
+
+    const afterMigration = createProgressDatabase(databasePath, migrationDirectory);
+    expect(afterMigration.find("module", "M01")).toMatchObject(record);
+    expect(afterMigration.find("activity", "A01")).toMatchObject(activity);
+
+    const lesson: ProgressInput = { ...record, itemType: "lesson", itemId: "M01-L01", notes: "Lesson note" };
+    afterMigration.save(lesson);
+    expect(afterMigration.find("lesson", "M01-L01")).toMatchObject(lesson);
+    expect(afterMigration.find("module", "M01")).toMatchObject({ notes: record.notes, evidence: record.evidence });
+    expect(afterMigration.list()).toHaveLength(3);
+    afterMigration.close();
+  });
+
   it("applies migrations and persists updates across connections", () => {
     const databasePath = makePath();
     const first = createProgressDatabase(databasePath, migrationDirectory);

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Assess service and user health</title>
+  <desc id="desc">Host, application, and synthetic user-journey signals are complementary evidence considered together.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Assess service and user health</text>
+  <path d="M165 204 L420 275" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M480 204 L480 275" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M795 204 L540 275" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="40" y="110" width="250" height="94" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="165" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="165" dy="0">Host signals</tspan>
+  </text>
+  <text x="165" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">CPU, memory, saturation</text>
+  <rect x="355" y="110" width="250" height="94" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Application signals</tspan>
+  </text>
+  <text x="480" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">success, errors, latency</text>
+  <rect x="670" y="110" width="250" height="94" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="795" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="795" dy="0">Synthetic journey</tspan>
+  </text>
+  <text x="795" y="187" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">defined user outcome</text>
+  <rect x="355" y="275" width="250" height="78" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="307" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Health assessment</tspan>
+  </text>
+  <text x="480" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">interpret signals together</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">No single host or process metric proves that a user journey works.</text>
+  </svg>

@@ -8,6 +8,7 @@ export const progressStatuses = [
 export const comfortLevels = ["familiar", "guided", "independent"] as const;
 export const progressItemTypes = [
   "module",
+  "lesson",
   "activity",
   "troubleshooting",
   "small_project",

@@ -1,0 +1,49 @@
+export const lessonId = "M22-L03";
+export const lessonTitle = "Toil and learning from incidents";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Toil is recurring operational work that consumes attention without creating lasting service value. Automate it only after understanding its failure modes and measuring whether the automation helps. Review incidents without blame: describe the timeline, contributing conditions, detection gaps and actions that reduce recurrence. Reliability also includes correct data, recoverability and maintainability, not only uptime.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module22/lesson-03.svg" alt="The diagram shows two complementary practices: understand and safely automate recurring toil, and review incident evidence to choose blameless improvement actions." caption="Toil reduction and incident learning are distinct practices: measure automation value and use incident evidence to reduce recurrence without blame." />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-22-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "question-1",
+      prompt: "A team reports 99% request success. What else is needed to interpret that SLI?",
+      options: [
+        "The event eligibility and success rules, measurement window, exclusions, and data source.",
+        "Only a chart color indicating the target was met.",
+        "A larger target percentage with no measurement details.",
+      ],
+      correctIndex: 0,
+      explanation: "A ratio is meaningful only when the measured events, success definition, window, exclusions, and source are clear.",
+    },
+    {
+      id: "question-2",
+      prompt: "In a lab, 98 of 100 eligible requests succeed against a 99% target over the same sample. What is the observed result?",
+      options: [
+        "The target is met because most requests succeeded.",
+        "The 2% unsuccessful fraction exceeds the 1% illustrative error budget, though the small sample limits conclusions.",
+        "The sample proves the service's production reliability is 98%.",
+      ],
+      correctIndex: 1,
+      explanation: "Two failures are more than the one failure allowed by a 99% target in this 100-request example; a small sample is not production proof.",
+    },
+    {
+      id: "question-3",
+      prompt: "A repetitive operational task is being automated. What should the team do first?",
+      options: [
+        "Automate it immediately and assume automation removes all risk.",
+        "Hide the task from incident reviews.",
+        "Understand its failure modes and measure whether automation removes toil without adding hidden failure modes.",
+      ],
+      correctIndex: 2,
+      explanation: "Automation should target understood, repeatable toil and be evaluated for its own failure modes and effect.",
+    },
+  ]}
+/>

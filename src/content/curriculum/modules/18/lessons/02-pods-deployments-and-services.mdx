@@ -1,0 +1,10 @@
+export const lessonId = "M18-L02";
+export const lessonTitle = "Pods, Deployments, and Services";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>A Pod groups one or more tightly coupled containers that share network identity and volumes. A Deployment manages replica count and rollout history. A Service selects matching Pods and provides a stable endpoint while Pod addresses change. Check labels and selectors together; a Service with no ready endpoints may be a selector or readiness problem rather than a network outage.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module18/lesson-02.svg" alt="A Deployment manages a ReplicaSet that maintains replaceable Pods. A separate Service selector identifies matching ready Pods and provides stable discovery." caption="The Deployment and ReplicaSet manage Pods; the Service selects matching ready Pods for a stable endpoint." />
+</ConceptSection>
+

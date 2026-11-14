@@ -1,0 +1,19 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M02-L02";
+export const lessonTitle = "Streams, pipes, and redirection";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Each process can read standard input and write standard output and standard error. A pipe connects one process's
+output to the next process's input; redirection sends a stream to a file or another destination. The shell opens
+redirection targets before starting the command, so `>` can truncate an existing file even if the command later
+fails. Use a new report path or append with `>>` when that is intended.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module02/lesson-02.svg"
+    alt="A shell pipeline sends standard output from one process to the next process's standard input. Standard error remains separate unless redirected."
+    caption="Figure 1. Standard output flows through a pipe while standard error remains separate; output redirection has its own file behavior."
+  />
+</ConceptSection>

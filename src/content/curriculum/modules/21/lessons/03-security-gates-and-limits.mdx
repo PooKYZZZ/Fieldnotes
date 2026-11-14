@@ -1,0 +1,49 @@
+export const lessonId = "M21-L03";
+export const lessonTitle = "Security gates and limits";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Use a small set of gates with clear ownership: tests, dependency review, image scanning and permission checks. Define what blocks a release, how a finding is triaged, and how a false positive is documented. A scanner covers known patterns and databases; it may miss new vulnerabilities, malicious maintainers, unsafe behavior or a compromised workflow. Separate untrusted pull-request testing from deployment credentials and production writes.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module21/lesson-03.svg" alt="Tests, dependency review, image scanning, and permission checks are independent gates whose findings are triaged before a promotion decision." caption="Use distinct CI gates for behavior, dependencies, images, and permissions; triage results before promotion." />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-21-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "question-1",
+      prompt: "A dependency bot updates a lock file. What should happen before accepting the change?",
+      options: [
+        "Review the update and test it; pinning alone does not establish that a dependency is safe.",
+        "Accept every update automatically because locked versions cannot be vulnerable.",
+        "Remove the lock file to avoid recording versions.",
+      ],
+      correctIndex: 0,
+      explanation: "Lock files improve repeatability, but updates still need review, testing, and vulnerability triage.",
+    },
+    {
+      id: "question-2",
+      prompt: "A container has an SBOM and a clean vulnerability scan. What can you conclude?",
+      options: [
+        "Its build workflow was trustworthy and the code is correct.",
+        "Known components are more visible and no covered known issue was reported; provenance and runtime safety remain separate questions.",
+        "It contains no vulnerabilities, including unknown ones.",
+      ],
+      correctIndex: 1,
+      explanation: "SBOMs and scanners provide useful but limited evidence; they do not prove provenance, workflow integrity, or safe behavior.",
+    },
+    {
+      id: "question-3",
+      prompt: "An untrusted pull request needs tests, while deployment credentials are available to the pipeline. Which design best limits risk?",
+      options: [
+        "Expose deployment credentials to every pull request so tests can publish artifacts.",
+        "Give the pull request an Owner cloud role.",
+        "Keep untrusted testing separate from deployment credentials and production writes.",
+      ],
+      correctIndex: 2,
+      explanation: "Separating untrusted PR execution from deployment authority limits the effect of malicious workflow changes or code.",
+    },
+  ]}
+/>

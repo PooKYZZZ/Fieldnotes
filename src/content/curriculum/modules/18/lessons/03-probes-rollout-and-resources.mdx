@@ -1,0 +1,49 @@
+export const lessonId = "M18-L03";
+export const lessonTitle = "Probes, rollout, and resources";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Readiness decides whether a container should receive Service traffic; it does not restart the container. Liveness can restart a container after a defined failure. A startup probe gives a slow-starting application time before liveness checks begin. Poorly chosen probes can remove healthy Pods or create restart loops. Resource requests inform scheduling; limits constrain use. A rollout is safe only when enough replicas are ready and compatible with the current data and dependencies.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module18/lesson-03.svg" alt="Startup, readiness, and liveness probes have distinct effects. Resource requests and limits, ready replica count, and data compatibility are complementary rollout safeguards." caption="Probe types serve different purposes; resource settings and rollout compatibility are separate safety checks." />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-18-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "question-1",
+      prompt: "A Pod is replaced and receives a new IP. Which design should continue working without relying on the old address?",
+      options: [
+        "Clients connect to a stable Service endpoint that selects matching ready Pods.",
+        "Clients keep retrying the old Pod IP until it returns.",
+        "The Deployment stores application data in the Pod's writable layer.",
+      ],
+      correctIndex: 0,
+      explanation: "Pods are replaceable and their addresses change; a Service supplies stable discovery and routes to selected Pods.",
+    },
+    {
+      id: "question-2",
+      prompt: "A temporary dependency slowdown makes an application unable to serve requests, but its process can recover. Which probe should normally stop traffic to it without restarting it?",
+      options: [
+        "Liveness probe",
+        "Readiness probe",
+        "Startup probe",
+      ],
+      correctIndex: 1,
+      explanation: "Readiness controls whether a Pod receives Service traffic. Liveness is for restarting an unrecoverable container condition.",
+    },
+    {
+      id: "question-3",
+      prompt: "A single-replica service is receiving a rolling update with a database change that the old version cannot use. What is true?",
+      options: [
+        "A rolling update guarantees zero downtime and safe rollback.",
+        "Readiness alone makes the incompatible database change safe.",
+        "The rollout can still disrupt service; compatibility and rollback steps must be planned and verified.",
+      ],
+      correctIndex: 2,
+      explanation: "Rolling updates reduce disruption under suitable replication and readiness, but do not guarantee zero downtime or compatibility.",
+    },
+  ]}
+/>

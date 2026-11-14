@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Independent rollout safeguards</title>
+  <desc id="desc">Startup, readiness, and liveness probes have different effects; resource settings and compatibility also inform rollout safety.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Independent rollout safeguards</text>
+  <path d="M137 200 L390 270" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M377 200 L420 270" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M617 200 L540 270" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M840 200 L570 270" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="35" y="105" width="205" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="137" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="137" dy="0">Startup probe</tspan>
+  </text>
+  <text x="137" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">allow slow initialization</text>
+  <rect x="275" y="105" width="205" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="377" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="377" dy="0">Readiness probe</tspan>
+  </text>
+  <text x="377" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">gate Service traffic</text>
+  <rect x="515" y="105" width="205" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="617" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="617" dy="0">Liveness probe</tspan>
+  </text>
+  <text x="617" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">restart unrecoverable process</text>
+  <rect x="755" y="105" width="170" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="840" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="840" dy="0">Resources</tspan>
+  </text>
+  <text x="840" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">requests + limits</text>
+  <rect x="275" y="270" width="410" height="78" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="302" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Safe rollout</tspan>
+  </text>
+  <text x="480" y="331" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">ready replicas + compatible data</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">These controls are complementary checks, not a single probe sequence.</text>
+  </svg>

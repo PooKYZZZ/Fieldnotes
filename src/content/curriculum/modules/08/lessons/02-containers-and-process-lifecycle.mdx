@@ -1,0 +1,19 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M08-L02";
+export const lessonTitle = "Containers and process lifecycle";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A container is a configured runtime instance, not a lightweight virtual machine: it normally shares the host kernel.
+The container's main process is PID 1 in its process namespace. It must handle termination signals and child
+processes correctly; otherwise `docker stop` can be delayed until forced termination. Prefer a small, non-root
+process and grant only the capabilities it needs.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module08/lesson-02.svg"
+    alt="A container starts a process from an image; its exit status and restart policy govern lifecycle behavior."
+    caption="A container runs an image command, exits with a status, and may be restarted according to its policy."
+  />
+</ConceptSection>

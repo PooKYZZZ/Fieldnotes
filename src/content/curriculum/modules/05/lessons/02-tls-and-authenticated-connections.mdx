@@ -1,0 +1,25 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M05-L02";
+export const lessonTitle = "TLS and authenticated connections";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+TLS protects a connection's confidentiality and integrity and authenticates the server when the client validates its
+certificate for the intended name and trust chain. Encryption alone does not decide whether the caller is allowed to
+use an application feature. A browser lock icon is not proof of correct authorization, safe data handling or secure
+backend services.
+
+```diagram
+name lookup → TCP connection → TLS certificate/handshake → HTTP request
+     │               │                    │                       │
+     └─ DNS answer   └─ socket path       └─ secure channel       └─ app behavior
+```
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module05/lesson-02.svg"
+    alt="When certificate validation succeeds for the intended name and trust chain, TLS can authenticate the server and protect data in transit."
+    caption="Successful certificate validation authenticates the server; the negotiated TLS channel protects data before application behavior is evaluated."
+  />
+</ConceptSection>

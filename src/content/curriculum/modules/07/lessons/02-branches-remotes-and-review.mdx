@@ -1,0 +1,21 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M07-L02";
+export const lessonTitle = "Branches, remotes, and review";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A branch name points to a commit and moves as new commits are added. A remote-tracking branch such as
+`origin/main` is your local record of a remote branch, updated by fetch. Review a change with `git log`,
+`git diff base...HEAD` and relevant tests instead of assuming that similarly named branches contain the same files.
+
+A good pull request describes behavior, risk, test evidence and operational considerations. Resolve conflicts by
+understanding both versions; choosing one side blindly can delete correct functionality.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module07/lesson-02.svg"
+    alt="Branches organize local history; remotes exchange commits and review provides a checkpoint before integration."
+    caption="Local branches and remote commits form the collaboration path; review checks a proposed change before integration."
+  />
+</ConceptSection>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Manage a secret across its lifecycle</title>
+  <desc id="desc">Owner, scope, and expiry govern a secret kept in protected storage; runtime use must avoid disclosure, and exposure triggers revocation or rotation.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Manage a secret across its lifecycle</text>
+  <path d="M240 152 L275 152" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M480 152 L515 152" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M720 152 L755 152" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="35" y="105" width="205" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="137" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="137" dy="0">Ownership</tspan>
+  </text>
+  <text x="137" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">scope + expiry</text>
+  <rect x="275" y="105" width="205" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="377" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="377" dy="0">Protected store</tspan>
+  </text>
+  <text x="377" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">controlled access</text>
+  <rect x="515" y="105" width="205" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="617" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="617" dy="0">Runtime use</tspan>
+  </text>
+  <text x="617" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">redact logs</text>
+  <rect x="755" y="105" width="170" height="95" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="840" y="145" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="840" dy="0">Exposure</tspan>
+  </text>
+  <text x="840" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">rotate or revoke</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">Keep credentials out of images and logs; revoke exposed values even after file cleanup.</text>
+  </svg>

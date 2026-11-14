@@ -1,0 +1,23 @@
+export const lessonId = "M16-L02";
+export const lessonTitle = "Metrics and distributions";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Metrics summarize numerical behavior over time. A counter accumulates events such as total requests; a gauge can
+rise and fall, such as current queue depth; a histogram groups observations such as request duration into buckets.
+Use stable labels such as route template and status class. Unique request IDs, user IDs or raw URLs create
+high-cardinality series and can overwhelm a time-series database.
+
+| Signal | Question it helps answer |
+| --- | --- |
+| Structured error log | What did this request report? |
+| Request/error counter | Is the issue isolated or increasing? |
+| Latency histogram | Is the tail of response time getting worse? |
+| Trace spans | Which service or operation consumed the time? |
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module16/lesson-02.svg"
+    alt="Counters, gauges, and histograms represent different measurements in parallel; use stable labels and avoid unique IDs or raw URLs that create high-cardinality series."
+    caption="Counter for request totals, gauge for queue depth, and histogram for latency buckets are complementary metrics. Use stable labels; avoid unique IDs and raw URLs."
+  />
+</ConceptSection>

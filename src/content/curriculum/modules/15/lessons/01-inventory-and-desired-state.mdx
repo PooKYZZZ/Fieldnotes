@@ -1,0 +1,16 @@
+export const lessonId = "M15-L01";
+export const lessonTitle = "Inventory and desired state";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+An inventory names managed hosts and groups, and a playbook maps tasks to those hosts. Variables select values such
+as package versions or service ports. A module describes an operation in a way Ansible can usually inspect; for
+example, a package module can compare installed state before acting. A raw shell command may succeed but leave
+Ansible without enough information to know whether anything changed.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module15/lesson-01.svg"
+    alt="Inventory and variables select hosts and desired tasks; Ansible modules inspect current state and make changes needed to converge the host."
+    caption="Inventory and variables → select hosts and tasks → module checks actual state → converge to desired state."
+  />
+</ConceptSection>

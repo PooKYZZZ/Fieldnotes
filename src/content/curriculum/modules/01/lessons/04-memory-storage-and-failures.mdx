@@ -1,0 +1,26 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M01-L04";
+export const lessonTitle = "Memory, storage, and failures";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+**What survives when a process exits or a computer reboots?** A process uses virtual memory: addresses in its own address space that the operating system and processor translate to physical memory. The address space can include code, data, stacks, shared mappings, and regions that are not currently resident in RAM. Figure 4 contrasts a process's virtual address space with physical memory and helps explain why virtual size is not the amount of RAM it currently occupies.
+
+RAM holds pages currently available to running work. Persistent storage holds files across a normal shutdown, but an application write can be buffered and may not yet be durable. Processes, their memory, and unsaved state do not survive a reboot. Files saved to persistent storage usually do, subject to successful writes, storage health, and the filesystem's guarantees.
+
+On Linux, `ps -o pid,rss,vsz,comm -p PID` reports RSS and VSZ in KiB in procps. RSS estimates resident physical memory for the process; shared pages can be counted in more than one process, and the displayed value is not a complete accounting of all memory attributable to a process. VSZ describes virtual address-space size, not RAM in use. These numbers are clues to compare over time, not verdicts about a memory leak.
+
+
+**Check:** A process shows a large VSZ but a much smaller RSS. What does each value describe, and what additional evidence would you collect before calling it a memory problem?
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module01/virtual-physical-memory-openstax.webp"
+    alt="Virtual address space and physical memory are shown as separate regions, with program and data addresses mapped to physical locations."
+    width={586}
+    height={418}
+    caption="Figure 4. Example mappings connect virtual addresses to locations in physical memory."
+    source={{ label: "OpenStax, Figure 6.6", url: "https://openstax.org/books/introduction-computer-science/pages/6-2-fundamental-os-concepts", license: "CC BY-NC-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/" }}
+  />
+</ConceptSection>

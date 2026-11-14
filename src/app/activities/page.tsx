@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ActivityDirectory } from "@/features/activities/activity-directory";
 import { activities, modules, troubleshooting } from "@/content";
 
@@ -20,27 +20,7 @@ export default function ActivitiesPage() {
         <a href="#troubleshooting">Troubleshooting scenarios <span>{troubleshooting.length}</span></a>
       </nav>
 
-      <ActivityDirectory activities={activities} modules={activityModules} />
-
-      <section id="troubleshooting" className="cross-module-section" aria-labelledby="troubleshooting-title">
-        <div className="activity-library-heading">
-          <div><p className="eyebrow">Practice across topics</p><h2 id="troubleshooting-title">Troubleshooting scenarios</h2><p>Use evidence to narrow a failure, test one change, and record how you know the fix worked.</p></div>
-          <span className="activity-result-count">{troubleshooting.length} scenarios</span>
-        </div>
-        <div className="troubleshooting-grid">
-          {troubleshooting.map((item) => <details id={`troubleshooting-${item.id.toLowerCase()}`} className="troubleshooting-card" key={item.id}>
-            <summary className="troubleshooting-summary"><span>{item.id}</span><strong>{item.title}</strong><ChevronDown size={17} aria-hidden="true" /></summary>
-            <div className="troubleshooting-body">
-              <p><strong>Observe</strong>{item.observation}</p>
-              <p><strong>Investigate</strong>{item.investigation}</p>
-              <p><strong>Safety boundary</strong>{item.constraint}</p>
-              <p><strong>Hint</strong>{item.hint}</p>
-              <p><strong>Evidence to record</strong>{item.completion}</p>
-              <a href="/progress">Record your reflection <ArrowRight size={14} /></a>
-            </div>
-          </details>)}
-        </div>
-      </section>
+      <ActivityDirectory activities={activities} modules={activityModules} troubleshooting={troubleshooting} />
     </>
   );
 }

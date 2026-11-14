@@ -27,11 +27,18 @@ export default function RoadmapPage() {
   });
   const roadmapModules = modules.map((module) => {
     const linkedActivities = activities.filter((activity) => activity.moduleId === module.id);
+    const primaryActivity = linkedActivities[0];
     const completedActivityCount = linkedActivities.filter((activity) =>
       recordByKey.get("activity:" + activity.id)?.status === "completed",
     ).length;
+    const completedLessonCount = progressAvailable
+      ? module.lessons.filter((lesson) => recordByKey.get("lesson:" + lesson.id)?.status === "completed").length
+      : 0;
     const status = progressAvailable
       ? recordByKey.get("module:M" + String(module.id).padStart(2, "0"))?.status ?? "not_started"
+      : undefined;
+    const activityStatus = progressAvailable && primaryActivity
+      ? recordByKey.get("activity:" + primaryActivity.id)?.status ?? "not_started"
       : undefined;
 
     return {
@@ -41,11 +48,14 @@ export default function RoadmapPage() {
         phase: module.phase,
         level: module.level,
         intro: module.intro,
+        activityId: module.activityId,
         lessons: module.lessons.map(({ id, title }) => ({ id, title })),
       },
       status,
       activityCount: linkedActivities.length,
       completedActivityCount,
+      activityStatus,
+      completedLessonCount,
     };
   });
 
@@ -64,7 +74,7 @@ export default function RoadmapPage() {
         </a>
       </header>
       <div className="callout-blue">
-        <strong>How to move forward:</strong> Start by explaining a concept from memory, build the small lab, then reproduce it and diagnose one deliberate failure. Mark work complete when you can show evidence that fits your goal.
+        <strong>How to move forward:</strong> Choose a lesson, connect the idea to a practical task, and save the evidence that fits your goal. Mark learning complete when you are ready; the roadmap keeps lesson, activity, and module status separate.
       </div>
       <RoadmapExplorer modules={roadmapModules} phases={phases} progressAvailable={progressAvailable} />
     </>

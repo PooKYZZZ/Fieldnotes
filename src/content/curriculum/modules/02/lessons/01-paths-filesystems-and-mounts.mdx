@@ -1,0 +1,19 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M02-L01";
+export const lessonTitle = "Paths, filesystems, and mounts";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Linux presents one directory tree rooted at `/`. A mounted disk or network filesystem appears at a directory in
+that tree, so the path does not reveal which device stores the bytes. An absolute path starts at `/`; a relative path
+starts from the process's current working directory. `pwd` answers where a shell is operating, while `find` and
+`stat` help inspect files and metadata.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module02/lesson-01.svg"
+    alt="A path resolves through the directory tree; a mount point connects that tree to a filesystem backed by a device or other storage."
+    caption="A path is resolved through directories to a mount point and its backing filesystem."
+  />
+</ConceptSection>

@@ -1,0 +1,47 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M03-L04";
+export const lessonTitle = "SSH and safe administration";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+An SSH connection depends on several independent checks: network reachability, server policy, user authentication,
+and permission to use the requested key or file. Change server settings only with a second session available and a
+known rollback path. Apply OS updates through the distribution's package manager and verify service health after
+changes.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module03/lesson-04.svg"
+    alt="SSH authenticates a client to a remote host; perform only authorized, scoped administrative actions."
+    caption="SSH connects an authenticated client to a host, where any administrative action must remain authorized and scoped."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-03-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "permissions-identity",
+      prompt: "A service cannot read a configuration file that your shell can read. Which distinction matters first?",
+      options: ["Whether the file has a familiar name.", "The identity and access path used by the service process.", "Whether your own shell has administrator access."],
+      correctIndex: 1,
+      explanation: "The service may run under a different account, so inspect that identity and its directory/file permissions.",
+    },
+    {
+      id: "service-state",
+      prompt: "A systemd unit is enabled and active. What does that establish?",
+      options: ["It is configured for boot and currently active, but not necessarily answering correctly.", "The application is healthy and serving all requests.", "The process will never exit or restart."],
+      correctIndex: 0,
+      explanation: "Enabled is boot configuration; active is current manager state. A separate application-level check is needed.",
+    },
+    {
+      id: "ssh-scope",
+      prompt: "You need to administer a remote host over SSH. Which practice fits safe administration?",
+      options: ["Use any available account and inspect unrelated users’ files.", "Disable host identity checks to avoid connection delays.", "Confirm authorization and target, authenticate through the approved path, and keep actions scoped."],
+      correctIndex: 2,
+      explanation: "SSH is a connection mechanism, not authorization to perform arbitrary actions; verify the host and scope work to approved tasks.",
+    },
+  ]}
+/>

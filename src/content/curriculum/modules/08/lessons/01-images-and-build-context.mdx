@@ -1,0 +1,24 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M08-L01";
+export const lessonTitle = "Images and build context";
+
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+An image contains a filesystem and metadata used to start a container. Dockerfile instructions create reusable
+layers, and the build context is the set of files available to the build. A broad context can accidentally copy
+credentials, local databases or generated folders into an image layer. A `.dockerignore` narrows that input; build
+logs and the resulting image should still be reviewed for unintended content.
+
+A tag such as `status-api:dev` is a human-friendly name that may later refer to a different image. For a release,
+record the immutable image digest or another verifiable artifact identifier. Reproducibility also depends on pinned
+dependencies, base-image updates and the build process.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module08/lesson-01.svg"
+    alt="Docker sends a selected build context to the builder, which applies Dockerfile instructions to produce an image."
+    caption="A selected build context and Dockerfile instructions produce an image from ordered build steps."
+  />
+</ConceptSection>

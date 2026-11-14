@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { activities, glossary, libraryDocuments, majorProjects, modules, officialResources, projectMilestones, smallProjects, troubleshooting } from "@/content";
@@ -51,31 +51,102 @@ describe("learning content integrity", () => {
     }
   });
 
-  it("gives every module a question, recall explanation, and valid objective anchors", () => {
+  it("gives every module valid lesson links, selected local figures, and an interactive practice check", () => {
+    const knowledgeCheckIds = new Set<string>();
+    const module01FigureLessons = new Set(["M01-L01", "M01-L02", "M01-L03", "M01-L04", "M01-L06"]);
     for (const learningModule of modules) {
       expect(learningModule.learningQuestion.trim(), "M" + learningModule.id).not.toBe("");
       expect(learningModule.recallQuestion.trim(), "M" + learningModule.id).not.toBe("");
       expect(learningModule.recallAnswer.trim(), "M" + learningModule.id).not.toBe("");
 
-      const prefix = "#module-" + String(learningModule.id).padStart(2, "0") + "-";
-      const sectionIds = new Set(
-        learningModule.explanation
-          .split(/\r?\n/)
-          .filter((line) => line.startsWith("### "))
-          .map((line) => prefix + line.slice(4).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")),
-      );
+      const expectedLessons = new Map(learningModule.lessons.map((lesson) => [lesson.id, lesson.title]));
       for (const objective of learningModule.concepts) {
-        if (objective.href) expect(sectionIds.has(objective.href), "M" + learningModule.id + ": " + objective.label).toBe(true);
+        if (objective.href) {
+          expect(expectedLessons.has(objective.href.slice("#lesson-".length).toUpperCase()), "M" + learningModule.id + ": " + objective.label).toBe(true);
+        }
       }
+
+      const moduleDirectory = path.join(process.cwd(), "src", "content", "curriculum", "modules", String(learningModule.id).padStart(2, "0"), "lessons");
+      expect(existsSync(moduleDirectory), "M" + learningModule.id + " lesson directory").toBe(true);
+      const lessonFiles = readdirSync(moduleDirectory).filter((file) => file.endsWith(".mdx"));
+      expect(lessonFiles, "M" + learningModule.id + " MDX content count").toHaveLength(learningModule.lessons.length + Number(Boolean(learningModule.moduleReview)));
+      const foundLessonIds = new Set<string>();
+      const foundReviewIds = new Set<string>();
+      const moduleKnowledgeCheckIds: string[] = [];
+      for (const file of lessonFiles) {
+        const source = readFileSync(path.join(moduleDirectory, file), "utf8");
+        const lessonId = source.match(/^export const lessonId = "([^"]+)";$/m)?.[1];
+        const lessonTitle = source.match(/^export const lessonTitle = "([^"]+)";$/m)?.[1];
+        const reviewId = source.match(/^export const reviewId = "([^"]+)";$/m)?.[1];
+        const reviewTitle = source.match(/^export const reviewTitle = "([^"]+)";$/m)?.[1];
+        expect(Boolean(lessonId), file).not.toBe(Boolean(reviewId));
+        if (lessonId && lessonTitle) {
+          expect(foundLessonIds.has(lessonId), file).toBe(false);
+          foundLessonIds.add(lessonId);
+          expect(expectedLessons.get(lessonId), file).toBe(lessonTitle);
+          expect(source, file + " must not repeat the shared lesson title").not.toContain(`<h4>${lessonTitle}</h4>`);
+        } else {
+          expect(reviewId, file).toBe(learningModule.moduleReview?.id);
+          expect(reviewTitle, file).toBe(learningModule.moduleReview?.title);
+          expect(foundReviewIds.has(reviewId!), file).toBe(false);
+          foundReviewIds.add(reviewId!);
+        }
+        expect(source, file).toContain("<ConceptSection");
+        const figureBlocks = [...source.matchAll(/<TechnicalFigure\b[\s\S]*?\/>/g)].map((match) => match[0]);
+        const expectedFigureCount = reviewId ? 0 : learningModule.id === 1 ? Number(module01FigureLessons.has(lessonId!)) : 1;
+        expect(figureBlocks, file + " figures").toHaveLength(expectedFigureCount);
+        for (const figureBlock of figureBlocks) {
+          const diagramSource = figureBlock.match(/\bsrc="(\/diagrams\/[^"]+)"/)?.[1] ?? "";
+          expect(diagramSource, file + " local figure source").toBeTruthy();
+          expect(diagramSource.startsWith(`/diagrams/module${String(learningModule.id).padStart(2, "0")}/`), file).toBe(true);
+          expect(existsSync(path.join(process.cwd(), "public", diagramSource.slice(1))), diagramSource).toBe(true);
+          if (learningModule.id === 1) {
+            expect(figureBlock, file + " source attribution").toContain("source={{");
+            expect(figureBlock, file + " sequential caption").toMatch(/caption="Figure [1-5]\./);
+          }
+        }
+        const knowledgeChecks = [...source.matchAll(/<KnowledgeCheck\b[\s\S]*?\/>/g)].map((match) => match[0]);
+        for (const block of knowledgeChecks) {
+          const checkId = block.match(/\bid="([^"]+)"/)?.[1];
+          expect(checkId, file).toBeTruthy();
+          moduleKnowledgeCheckIds.push(checkId!);
+          expect([...block.matchAll(/\bprompt:/g)], file + " question count").toHaveLength(3);
+          expect([...block.matchAll(/\boptions:/g)], file + " option sets").toHaveLength(3);
+          expect([...block.matchAll(/\bcorrectIndex:/g)], file + " answer keys").toHaveLength(3);
+          expect([...block.matchAll(/\bexplanation:/g)], file + " rationales").toHaveLength(3);
+        }
+      }
+      expect(foundLessonIds, "M" + learningModule.id + " lesson IDs").toEqual(new Set(expectedLessons.keys()));
+      expect(foundReviewIds, "M" + learningModule.id + " review IDs").toEqual(new Set(learningModule.moduleReview ? [learningModule.moduleReview.id] : []));
+      expect(moduleKnowledgeCheckIds, "M" + learningModule.id + " practice check").toHaveLength(1);
+      expect(knowledgeCheckIds.has(moduleKnowledgeCheckIds[0]), "knowledge check IDs must be unique").toBe(false);
+      knowledgeCheckIds.add(moduleKnowledgeCheckIds[0]);
     }
+    expect(existsSync(path.join(process.cwd(), "public", "diagrams", "module01", "ATTRIBUTION.md"))).toBe(true);
+    expect(knowledgeCheckIds.size).toBe(modules.length);
+  });
+
+  it("validates Module 23 typed metadata against its MDX lessons and recovery activity", () => {
+    const learningModule = modules.find((item) => item.id === 23);
+    const activity = activities.find((item) => item.id === "A23");
+    expect(learningModule).toMatchObject({ id: 23, activityId: "A23" });
+    expect(learningModule?.overview).toContain("An incident response begins with establishing user impact");
+    expect(learningModule?.lessons.map(({ id }) => id)).toEqual(["M23-L01", "M23-L02", "M23-L03"]);
+    expect(learningModule?.lessons.map(({ title }) => title)).toEqual(learningModule?.concepts.map(({ label }) => label));
+    expect(activity?.title).toContain("Recovery drill");
+    expect(activity?.environment).toContain("Do not stop or modify Fieldnotes");
+    expect(activity?.steps).toContain("RESTORE_START");
+    expect(activity?.verification).toContain("full service recovery test");
   });
 
   it("keeps the Module 01 lesson explanation in a scannable concept sequence", () => {
-    const lesson = modules.find((item) => item.id === 1)?.explanation ?? "";
-    expect(lesson).toContain("### From program to process");
-    expect(lesson).toContain("### User space and the kernel");
-    expect(lesson).toContain("### Memory, storage, and failures");
-    expect(lesson).toContain("### Virtual machines and containers");
+    const learningModule = modules.find((item) => item.id === 1);
+    expect(learningModule?.lessons).toHaveLength(6);
+    expect(learningModule?.moduleReview).toEqual({ id: "M01-R01", title: "Trace one simple failure" });
+    expect(learningModule?.lessons.map((lesson) => lesson.title)).toContain("From program to process");
+    expect(learningModule?.lessons.map((lesson) => lesson.title)).toContain("User space and the kernel");
+    expect(learningModule?.lessons.map((lesson) => lesson.title)).toContain("Memory, storage, and failures");
+    expect(learningModule?.lessons.map((lesson) => lesson.title)).toContain("Virtual machines and containers");
   });
 
   it("ships every referenced source PDF and uses secure official links", () => {

@@ -1,0 +1,44 @@
+export const lessonId = "M11-L03";
+export const lessonTitle = "Smoke tests and rollback";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A smoke test exercises one narrow but meaningful user path after release. A TCP connection or `/health` response
+can confirm process availability, while a request through the actual proxy may confirm routing and application
+behavior. Keep the known-good artifact and a documented restore procedure available. Define who decides to roll
+back and how to verify recovery; a restart is not a rollback.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module11/lesson-03.svg"
+    alt="After deployment, a meaningful user-path smoke test determines whether to keep the release or, on failure, restore and verify the prior artifact."
+    caption="Deploy → smoke test user path → if it passes, keep the release; if it fails, restore the prior version and verify."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-11-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "An image passed tests in CI. How should it move through staging and production?",
+      options: ["Rebuild it independently in each environment.", "Promote the same identified artifact and record its revision or digest.", "Deploy whichever image currently has the `latest` tag."],
+      correctIndex: 1,
+      explanation: "Promoting the tested artifact preserves the link between CI evidence and deployed bytes. A revision and digest improve traceability.",
+    },
+    {
+      id: "q2",
+      prompt: "A release adds a database field while old code may still run during rollout. Which sequence is safer?",
+      options: ["Add a compatible field, deploy code supporting both shapes, migrate usage, then remove the old field later.", "Rename the old field and immediately deploy only the new code.", "Delete the old field before checking whether deployed code reads it."],
+      correctIndex: 0,
+      explanation: "An expand/contract migration allows old and new code to coexist, but must still be tested against the application’s real data operations.",
+    },
+    {
+      id: "q3",
+      prompt: "After release, `/health` responds but users cannot complete the main request through the proxy. What should the smoke check do?",
+      options: ["Accept the health response as full proof.", "Exercise one meaningful user path through the actual proxy and application.", "Restart the host without checking the deployed version."],
+      correctIndex: 1,
+      explanation: "A health response can show process availability. A user-path request through the real route checks more of the service behavior; restarting is not rollback.",
+    }
+  ]}
+/>

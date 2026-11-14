@@ -1,0 +1,50 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M06-L03";
+export const lessonTitle = "Testing and failure handling";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Keep decision logic testable with normal, empty, malformed and missing inputs. A useful operational tool says which
+check failed and exits with an appropriate nonzero status. A dry-run mode can show the intended change before a
+privileged action runs. Document dependencies and the command to run tests so another machine can reproduce the
+result.
+
+For a small project, a few focused tests of parsing and failure handling provide more value than adding a framework
+or wrapper for every command.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module06/lesson-03.svg"
+    alt="Tests compare observed behavior with expectations, including failure cases, before a change is trusted."
+    caption="Check expected behavior and failure cases, then use the observed results to verify the change."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-06-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "failure-handling",
+      prompt: "A maintenance script treats “no grep matches” as an expected case. What should its author do?",
+      options: ["Handle that expected nonzero result explicitly rather than treating every nonzero status identically.", "Ignore all command failures so the script keeps running.", "Assume `pipefail` automatically handles every expected outcome."],
+      correctIndex: 0,
+      explanation: "`pipefail` exposes pipeline failure, but expected cases such as no matches still need deliberate handling.",
+    },
+    {
+      id: "python-safety",
+      prompt: "A Python utility makes a network request using input from a file. Which approach is sound?",
+      options: ["Build and execute a shell command string from the input.", "Validate the input, use a timeout, and handle command or network failures explicitly.", "Catch every exception and discard it without reporting."],
+      correctIndex: 1,
+      explanation: "Structured validation, timeouts, and explicit failure handling make operations safer and results clearer.",
+    },
+    {
+      id: "repro-tests",
+      prompt: "A script parses configuration and makes a decision. What provides useful evidence before relying on a change?",
+      options: ["Only a successful run with one manually chosen input.", "A larger feature set without repeatable checks.", "Tests for parsing and decision logic, including representative failure cases."],
+      correctIndex: 2,
+      explanation: "Tests around parsing and decisions exercise expected and failing behavior, making changes more reproducible.",
+    },
+  ]}
+/>

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" role="img" aria-labelledby="title description">
+  <title id="title">Correlating logs, metrics and traces for one request</title>
+  <desc id="description">A request crosses two services. Structured logs record event details, metrics aggregate counts and latency with stable labels, and trace spans show work across boundaries. An opaque trace or request identifier helps connect the signals without placing unique user identifiers in metric labels.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#4c7d9b"/></marker>
+  </defs>
+  <rect width="1000" height="540" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">Three signals answer different questions</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">Keep context consistent so an operator can move from a trend to one event and across service boundaries.</text>
+
+  <rect x="35" y="117" width="189" height="112" rx="13" fill="#fff" stroke="#9abbb1" stroke-width="2"/>
+  <text x="55" y="151" fill="#315e58" font-family="Arial,sans-serif" font-size="15" font-weight="700">Incoming request</text>
+  <text x="55" y="181" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">opaque request ID</text>
+  <text x="55" y="204" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">trace context (if used)</text>
+  <path d="M224 173h59" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <rect x="293" y="117" width="208" height="112" rx="13" fill="#e8f1ed" stroke="#8eafa5" stroke-width="2"/>
+  <text x="314" y="151" fill="#315e58" font-family="Arial,sans-serif" font-size="15" font-weight="700">Service A</text>
+  <text x="314" y="180" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">route + status + duration</text>
+  <text x="314" y="203" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">log fields; no secret/body</text>
+  <path d="M501 173h64" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <rect x="575" y="117" width="208" height="112" rx="13" fill="#e8f1ed" stroke="#8eafa5" stroke-width="2"/>
+  <text x="596" y="151" fill="#315e58" font-family="Arial,sans-serif" font-size="15" font-weight="700">Service B</text>
+  <text x="596" y="180" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">database / dependency work</text>
+  <text x="596" y="203" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">same trace context</text>
+  <path d="M783 173h64" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="855" y="117" width="110" height="112" rx="13" fill="#fff" stroke="#9abbb1" stroke-width="2"/>
+  <text x="872" y="155" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Response</text>
+  <text x="872" y="184" fill="#4f6264" font-family="Arial,sans-serif" font-size="12">success /</text>
+  <text x="872" y="204" fill="#4f6264" font-family="Arial,sans-serif" font-size="12">failure</text>
+
+  <path d="M397 229v50M679 229v50" fill="none" stroke="#82928f" stroke-width="2" stroke-dasharray="5 5"/>
+  <rect x="36" y="295" width="284" height="146" rx="14" fill="#fff" stroke="#9abbb1" stroke-width="2"/>
+  <text x="58" y="329" fill="#315e58" font-family="Arial,sans-serif" font-size="16" font-weight="700">Logs · what happened?</text>
+  <text x="58" y="361" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">One event's fields and error details</text>
+  <text x="58" y="387" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">Search by opaque request / trace ID</text>
+  <text x="58" y="415" fill="#6b5141" font-family="Arial,sans-serif" font-size="12">omit credentials and personal data</text>
+
+  <rect x="358" y="295" width="284" height="146" rx="14" fill="#fff" stroke="#bdc9d1" stroke-width="2"/>
+  <text x="380" y="329" fill="#536c7c" font-family="Arial,sans-serif" font-size="16" font-weight="700">Metrics · how widespread?</text>
+  <text x="380" y="361" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">request rate · error rate · latency</text>
+  <text x="380" y="387" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">stable labels: route + status class</text>
+  <text x="380" y="415" fill="#6b5141" font-family="Arial,sans-serif" font-size="12">avoid unique IDs as metric labels</text>
+
+  <rect x="680" y="295" width="284" height="146" rx="14" fill="#fff" stroke="#c8b997" stroke-width="2"/>
+  <text x="702" y="329" fill="#725b3b" font-family="Arial,sans-serif" font-size="16" font-weight="700">Traces · where did time go?</text>
+  <text x="702" y="361" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">spans connect work across services</text>
+  <rect x="702" y="381" width="225" height="13" rx="6" fill="#e4eee9"/>
+  <rect x="702" y="381" width="117" height="13" rx="6" fill="#7ca296"/>
+  <rect x="819" y="381" width="108" height="13" rx="6" fill="#b5c7d1"/>
+  <text x="702" y="420" fill="#607573" font-family="Arial,sans-serif" font-size="12">instrument when a cross-service question exists</text>
+
+  <rect x="36" y="463" width="928" height="48" rx="11" fill="#e8f1ed"/>
+  <text x="56" y="493" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Correlate signals; keep each signal's limits and data costs visible.</text>
+</svg>

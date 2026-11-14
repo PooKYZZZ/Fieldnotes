@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="title description">
+  <title id="title">Docker image, container, writable layer and volume boundaries</title>
+  <desc id="description">A Dockerfile and selected build context create an image. Running it creates a container with a replaceable writable layer. A mounted volume has a separate lifecycle, and a published host port forwards traffic to a container port.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker></defs>
+  <rect width="960" height="520" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">Build once; keep runtime state on its own lifecycle</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">Image, container, storage and network publishing are related pieces with different boundaries.</text>
+
+  <rect x="36" y="112" width="218" height="138" rx="14" fill="#fff" stroke="#abc4bb" stroke-width="2"/>
+  <text x="58" y="145" fill="#315e58" font-family="Arial,sans-serif" font-size="16" font-weight="700">Build inputs</text>
+  <text x="58" y="176" fill="#4f6264" font-family="Arial,sans-serif" font-size="14">Dockerfile</text>
+  <text x="58" y="199" fill="#4f6264" font-family="Arial,sans-serif" font-size="14">selected build context</text>
+  <text x="58" y="226" fill="#6b797a" font-family="Arial,sans-serif" font-size="12">.dockerignore excludes files</text>
+
+  <path d="M254 182h59" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="264" y="164" fill="#456c65" font-family="Arial,sans-serif" font-size="12">build</text>
+
+  <rect x="324" y="112" width="230" height="138" rx="14" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="346" y="145" fill="#315e58" font-family="Arial,sans-serif" font-size="16" font-weight="700">Image · immutable layers</text>
+  <rect x="348" y="165" width="182" height="22" rx="5" fill="#e7f0ec"/>
+  <rect x="348" y="192" width="182" height="22" rx="5" fill="#dbe9e4"/>
+  <rect x="348" y="219" width="182" height="18" rx="5" fill="#c9ded6"/>
+  <text x="361" y="181" fill="#43655e" font-family="Arial,sans-serif" font-size="11">base + runtime</text>
+  <text x="361" y="208" fill="#43655e" font-family="Arial,sans-serif" font-size="11">application + dependencies</text>
+  <text x="361" y="233" fill="#43655e" font-family="Arial,sans-serif" font-size="10">tag can move; digest identifies content</text>
+
+  <path d="M554 182h56" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="562" y="164" fill="#456c65" font-family="Arial,sans-serif" font-size="12">docker run</text>
+
+  <rect x="621" y="98" width="302" height="264" rx="17" fill="#e9f1ee" stroke="#71978c" stroke-width="2"/>
+  <text x="643" y="129" fill="#315e58" font-family="Arial,sans-serif" font-size="17" font-weight="700">Container · host kernel boundary</text>
+  <rect x="645" y="150" width="254" height="53" rx="10" fill="#fff" stroke="#a7beb6"/>
+  <text x="665" y="173" fill="#29494a" font-family="Arial,sans-serif" font-size="14" font-weight="700">PID 1 · application process</text>
+  <text x="665" y="192" fill="#5c7371" font-family="Arial,sans-serif" font-size="12">namespaces and resource controls</text>
+  <rect x="645" y="217" width="254" height="53" rx="10" fill="#fff6e8" stroke="#dec49e"/>
+  <text x="665" y="240" fill="#75583a" font-family="Arial,sans-serif" font-size="14" font-weight="700">Writable container layer</text>
+  <text x="665" y="259" fill="#7a654e" font-family="Arial,sans-serif" font-size="12">removed with this container</text>
+  <rect x="645" y="284" width="254" height="53" rx="10" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="665" y="307" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Mounted volume · /data</text>
+  <text x="665" y="326" fill="#5c7371" font-family="Arial,sans-serif" font-size="12">separate lifecycle; still needs backup</text>
+
+  <rect x="36" y="292" width="518" height="70" rx="12" fill="#fff" stroke="#d6dfdc"/>
+  <text x="57" y="320" fill="#365f6c" font-family="Arial,sans-serif" font-size="14" font-weight="700">Published port · host:8080 → container:3000</text>
+  <text x="57" y="343" fill="#5c7371" font-family="Arial,sans-serif" font-size="13">EXPOSE is metadata; publishing and firewall rules are separate choices.</text>
+  <path d="M554 327h57" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+
+  <rect x="36" y="394" width="887" height="80" rx="12" fill="#fff" stroke="#d6dfdc"/>
+  <text x="57" y="425" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Replace the container</text>
+  <text x="57" y="451" fill="#5c7371" font-family="Arial,sans-serif" font-size="14">The image can start a new instance; the writable layer is new, while the mounted volume can remain.</text>
+  <text x="36" y="501" fill="#607573" font-family="Arial,sans-serif" font-size="12">A surviving volume is not a backup, and a container is not a virtual machine with its own kernel.</text>
+</svg>

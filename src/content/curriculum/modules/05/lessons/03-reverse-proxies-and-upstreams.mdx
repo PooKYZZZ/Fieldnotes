@@ -1,0 +1,50 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M05-L03";
+export const lessonTitle = "Reverse proxies and upstreams";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+NGINX can accept client traffic, terminate TLS, choose an upstream, add or forward headers, and enforce timeouts.
+The API still owns application behavior and authorization. The proxy should trust forwarding headers only from
+known proxy hops; otherwise a caller may spoof client or scheme metadata. Test the API directly and through NGINX
+to separate binding, routing, proxy and application failures.
+
+For a reproducible check, use `curl -i http://127.0.0.1:8000/health` against the API and compare it with the
+configured proxy route. Record the exact status and response body; do not infer a network response from a log entry.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module05/lesson-03.svg"
+    alt="A reverse proxy accepts a client request and routes it to an upstream service, returning the resulting response."
+    caption="A reverse proxy receives client traffic, selects an upstream, and relays the response."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-05-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "http-proxy",
+      prompt: "A reverse proxy returns an error while forwarding a request. Which path best describes the roles to inspect?",
+      options: ["Client request, proxy routing decision, and selected upstream service.", "TLS certificate, local shell history, and package lockfile.", "Only the browser cache, because proxies do not contact upstreams."],
+      correctIndex: 0,
+      explanation: "A reverse proxy receives client traffic, chooses an upstream, and relays its response; each stage can fail.",
+    },
+    {
+      id: "http-semantics",
+      prompt: "Which items are parts of an HTTP exchange?",
+      options: ["A route table entry and a filesystem mount.", "A request method and a response status with content.", "A process PID and its parent PID."],
+      correctIndex: 1,
+      explanation: "HTTP requests carry a method and message data; responses include status and content.",
+    },
+    {
+      id: "tls-proof",
+      prompt: "A TLS connection is established. Which statement is most precise?",
+      options: ["The application’s business operation must have succeeded.", "The server’s API dependencies are all healthy.", "If the client validates the peer’s certificate for the intended name and trust chain, the channel is protected; application success remains separate."],
+      correctIndex: 2,
+      explanation: "TLS negotiates cryptographic protection. Server authentication depends on successful client certificate validation for the intended name and trusted chain, and neither condition proves application success.",
+    },
+  ]}
+/>

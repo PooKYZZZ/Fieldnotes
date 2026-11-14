@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, BookOpenCheck, FlaskConical, Search, ShieldCheck } from "lucide-react";
-import type { ActivityRecord, ModuleRecord } from "@/content/catalog";
+import { ArrowRight, ArrowUpRight, BookOpenCheck, ChevronDown, Search } from "lucide-react";
+import type { ActivityRecord, ModuleRecord, TroubleshootingRecord } from "@/content/catalog";
 import { formatStatus, type ProgressRecord, type ProgressStatus } from "@/features/progress/model";
 
 type ActivityModule = Pick<ModuleRecord, "id" | "title" | "phase">;
@@ -28,7 +28,15 @@ function phaseForActivity(activity: ActivityRecord, moduleById: Map<number, Acti
   return moduleById.get(activity.moduleId)?.phase;
 }
 
-export function ActivityDirectory({ activities, modules }: { activities: ActivityRecord[]; modules: ActivityModule[] }) {
+export function ActivityDirectory({
+  activities,
+  modules,
+  troubleshooting,
+}: {
+  activities: ActivityRecord[];
+  modules: ActivityModule[];
+  troubleshooting: TroubleshootingRecord[];
+}) {
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState<(typeof phaseFilters)[number]["value"]>("all");
   const [status, setStatus] = useState<(typeof statusFilters)[number]["value"]>("all");
@@ -70,18 +78,13 @@ export function ActivityDirectory({ activities, modules }: { activities: Activit
     };
   }, [loadProgress]);
 
+  const normalizedQuery = query.trim().toLocaleLowerCase();
   const moduleById = useMemo(() => new Map(modules.map((module) => [module.id, module])), [modules]);
   const progressByActivity = useMemo(() => new Map(records.map((record) => [record.itemId, record])), [records]);
   const phaseCounts = useMemo(() => new Map(phaseFilters.slice(1).map(({ value }) => [
     value,
     activities.filter((activity) => phaseForActivity(activity, moduleById) === value).length,
   ])), [activities, moduleById]);
-  const counts = useMemo(() => ({
-    total: activities.length,
-    modules: new Set(activities.map((activity) => activity.moduleId)).size,
-    active: records.filter((record) => record.status === "in_progress").length,
-    review: records.filter((record) => record.status === "needs_review").length,
-  }), [activities, records]);
   const resumableActivity = useMemo(() => {
     if (!loaded || loadError) return undefined;
     const saved = records
@@ -92,28 +95,44 @@ export function ActivityDirectory({ activities, modules }: { activities: Activit
     return activity && saved ? { activity, status: saved.status } : undefined;
   }, [activities, loadError, loaded, records]);
 
-  const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    return activities.filter((activity) => {
-      const activityPhase = phaseForActivity(activity, moduleById);
-      const matchesPhase = phase === "all" || activityPhase === phase;
-      const savedStatus = progressByActivity.get(activity.id)?.status ?? "not_started";
-      const matchesStatus = !loaded || loadError || status === "all" || savedStatus === status;
-      const moduleTitle = moduleById.get(activity.moduleId)?.title ?? "";
-      const searchText = `${activity.id} ${activity.title} ${activity.challenge} ${activity.build} ${moduleTitle}`.toLocaleLowerCase();
-      return matchesPhase && matchesStatus && (!normalizedQuery || searchText.includes(normalizedQuery));
-    });
-  }, [activities, loadError, loaded, moduleById, phase, progressByActivity, query, status]);
+  const filteredActivities = useMemo(() => activities.filter((activity) => {
+    const activityPhase = phaseForActivity(activity, moduleById);
+    const matchesPhase = phase === "all" || activityPhase === phase;
+    const savedStatus = progressByActivity.get(activity.id)?.status ?? "not_started";
+    const matchesStatus = !loaded || loadError || status === "all" || savedStatus === status;
+    const moduleTitle = moduleById.get(activity.moduleId)?.title ?? "";
+    const searchText = `${activity.id} ${activity.title} ${activity.challenge} ${activity.build} ${moduleTitle}`.toLocaleLowerCase();
+    return matchesPhase && matchesStatus && (!normalizedQuery || searchText.includes(normalizedQuery));
+  }), [activities, loadError, loaded, moduleById, normalizedQuery, phase, progressByActivity, status]);
 
-  const notStarted = loaded && !loadError ? activities.filter((activity) => !progressByActivity.has(activity.id)).length : undefined;
+  const filteredTroubleshooting = useMemo(() => troubleshooting.filter((item) => {
+    const searchText = `${item.id} ${item.title} ${item.observation} ${item.investigation} ${item.constraint} ${item.hint} ${item.completion}`.toLocaleLowerCase();
+    return !normalizedQuery || searchText.includes(normalizedQuery);
+  }), [normalizedQuery, troubleshooting]);
+
+  function clearFilters() {
+    setQuery("");
+    setPhase("all");
+    setStatus("all");
+  }
 
   return (
     <>
-      <div className="activity-library-summary" aria-label="Activity library summary">
-        <div><FlaskConical size={18} /><strong>{counts.total}</strong><span>hands-on activities</span></div>
-        <div><BookOpenCheck size={18} /><strong>{counts.modules}</strong><span>modules with practice</span></div>
-        <div><span className="activity-summary-dot activity-summary-dot--active" /><strong>{counts.active}</strong><span>in progress</span></div>
-        <div><span className="activity-summary-dot activity-summary-dot--review" /><strong>{counts.review}</strong><span>need review</span></div>
+      <div className="activity-catalog-search">
+        <div className="activity-search search-wrap">
+          <Search size={17} aria-hidden="true" />
+          <input
+            className="form-input"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search by topic, technology, or skill"
+            aria-label="Search by topic, technology, or skill"
+          />
+        </div>
+        <p className="activity-search-results" aria-live="polite">
+          {filteredActivities.length} module {filteredActivities.length === 1 ? "activity" : "activities"} · {filteredTroubleshooting.length} troubleshooting {filteredTroubleshooting.length === 1 ? "scenario" : "scenarios"}
+        </p>
       </div>
 
       {resumableActivity && <section className="continue-practice-card" aria-labelledby="continue-practice-title">
@@ -125,76 +144,70 @@ export function ActivityDirectory({ activities, modules }: { activities: Activit
         <Link className="button button-primary" href={`/activities/${resumableActivity.activity.id}`}>Continue activity <ArrowRight size={14} aria-hidden="true" /></Link>
       </section>}
 
-      <div className="activity-workspace">
-        <section className="activity-library" aria-labelledby="activity-library-title">
-          <div className="activity-library-heading">
-            <div><p className="eyebrow">Practice library</p><h2 id="activity-library-title">Module activities</h2><p>Choose a lab, build task, or verification challenge. Each one links back to its learning module.</p></div>
-            <span className="activity-result-count">{filtered.length} of {activities.length}</span>
+      <section id="activity-library" className="activity-library activity-library--catalog" aria-labelledby="activity-library-title">
+        <div className="activity-library-heading">
+          <div><p className="eyebrow">Practice library</p><h2 id="activity-library-title">Module activities</h2><p>Choose a lab, build task, or verification challenge. Each one links back to its learning module.</p></div>
+          <span className="activity-result-count">{filteredActivities.length} of {activities.length}</span>
+        </div>
+
+        <div className="activity-filter-panel">
+          <div className="activity-filter-row" role="group" aria-label="Filter activities by phase">
+            {phaseFilters.map(({ value, label }) => <button className="activity-phase-filter" type="button" key={value} aria-pressed={phase === value} onClick={() => setPhase(value)}>
+              {label}{value !== "all" && <span>{phaseCounts.get(value) ?? 0}</span>}
+            </button>)}
           </div>
+          <label className="activity-status-filter">Saved progress
+            <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} disabled={!loaded || loadError}>
+              {statusFilters.map((filter) => <option key={filter.value} value={filter.value}>{filter.label}</option>)}
+            </select>
+          </label>
+        </div>
 
-          <div className="activity-filter-panel">
-            <div className="activity-search search-wrap">
-              <Search size={17} aria-hidden="true" />
-              <input className="form-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search activities or skills" aria-label="Search activities or skills" />
-            </div>
-            <div className="activity-filter-row" role="group" aria-label="Filter activities by phase">
-              {phaseFilters.map(({ value, label }) => <button className="activity-phase-filter" type="button" key={value} aria-pressed={phase === value} onClick={() => setPhase(value)}>
-                {label}{value !== "all" && <span>{phaseCounts.get(value) ?? 0}</span>}
-              </button>)}
-            </div>
-            <label className="activity-status-filter">Saved progress
-              <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} disabled={!loaded || loadError}>
-                {statusFilters.map((filter) => <option key={filter.value} value={filter.value}>{filter.label}</option>)}
-              </select>
-            </label>
+        {loadError && <p className="activity-load-message" role="status">Saved activity states could not be loaded. Search and phase filters still work.</p>}
+        {!loadError && !loaded && <p className="activity-load-message" role="status">Loading your saved activity progress…</p>}
+
+        {filteredActivities.length ? <div className="practice-grid">
+          {filteredActivities.map((activity) => {
+            const courseModule = moduleById.get(activity.moduleId);
+            const saved = progressByActivity.get(activity.id);
+            const savedStatus = saved?.status ?? "not_started";
+            const label = loadError ? "Progress unavailable" : !loaded ? "Loading progress" : formatStatus(savedStatus);
+            return <Link className="practice-card" data-phase={courseModule?.phase ?? "Foundations"} href={`/activities/${activity.id}`} key={activity.id}>
+              <div className="practice-card-meta"><span>{activity.id} <i aria-hidden="true">·</i> Module {String(activity.moduleId).padStart(2, "0")}</span><span className={`practice-status${loaded && !loadError ? ` practice-status--${savedStatus}` : ""}`}>{label}</span></div>
+              <h3>{activity.title}</h3>
+              <p className="practice-card-challenge">{activity.challenge}</p>
+              <div className="practice-card-footer"><span>{courseModule?.phase ?? "Roadmap activity"}</span><span>Open activity <ArrowUpRight size={15} aria-hidden="true" /></span></div>
+            </Link>;
+          })}
+        </div> : (
+          <div className="practice-empty" role="status">
+            <BookOpenCheck size={24} aria-hidden="true" />
+            <h3>No activities match these filters.</h3>
+            <p>Clear the search or filters to see more activities.</p>
+            <button className="button button-outline" type="button" onClick={clearFilters}>Clear filters</button>
           </div>
+        )}
+      </section>
 
-          {loadError && <p className="activity-load-message" role="status">Saved activity states could not be loaded. Search and phase filters still work.</p>}
-          {!loadError && !loaded && <p className="activity-load-message" role="status">Loading your saved activity progress…</p>}
-
-          {filtered.length ? <div className="practice-grid">
-            {filtered.map((activity) => {
-              const courseModule = moduleById.get(activity.moduleId);
-              const saved = progressByActivity.get(activity.id);
-              const savedStatus = saved?.status ?? "not_started";
-              const label = loadError ? "Progress unavailable" : !loaded ? "Loading progress" : formatStatus(savedStatus);
-              return <Link className="practice-card" data-phase={courseModule?.phase ?? "Foundations"} href={`/activities/${activity.id}`} key={activity.id}>
-                <div className="practice-card-meta"><span>{activity.id} <i aria-hidden="true">·</i> Module {String(activity.moduleId).padStart(2, "0")}</span><span className={`practice-status${loaded && !loadError ? ` practice-status--${savedStatus}` : ""}`}>{label}</span></div>
-                <h3>{activity.title}</h3>
-                <p className="practice-card-challenge">{activity.challenge}</p>
-                <p className="practice-card-outcome"><strong>Build:</strong> {activity.build}</p>
-                <div className="practice-card-footer"><span>{courseModule?.phase ?? "Roadmap activity"}</span><span>Open activity <ArrowUpRight size={15} aria-hidden="true" /></span></div>
-              </Link>;
-            })}
-          </div> : (
-            <div className="practice-empty" role="status">
-              <BookOpenCheck size={24} aria-hidden="true" />
-              <h3>No activities match these filters.</h3>
-              <p>Clear the search or choose another phase or progress state.</p>
-              <button className="button button-outline" type="button" onClick={() => { setQuery(""); setPhase("all"); setStatus("all"); }}>Clear filters</button>
+      <section id="troubleshooting" className="cross-module-section" aria-labelledby="troubleshooting-title">
+        <div className="activity-library-heading">
+          <div><p className="eyebrow">Practice across topics</p><h2 id="troubleshooting-title">Troubleshooting scenarios</h2><p>Use evidence to narrow a failure, test one change, and record how you know the fix worked.</p></div>
+          <span className="activity-result-count">{filteredTroubleshooting.length} of {troubleshooting.length}</span>
+        </div>
+        {filteredTroubleshooting.length ? <div className="troubleshooting-grid">
+          {filteredTroubleshooting.map((item) => <details id={`troubleshooting-${item.id.toLowerCase()}`} className="troubleshooting-card" key={item.id}>
+            <summary className="troubleshooting-summary"><span>{item.id}</span><strong>{item.title}</strong><ChevronDown size={17} aria-hidden="true" /></summary>
+            <div className="troubleshooting-body">
+              <p><strong>Observe</strong>{item.observation}</p>
+              <p><strong>Investigate</strong>{item.investigation}</p>
+              <p><strong>Safety boundary</strong>{item.constraint}</p>
+              <p><strong>Hint</strong>{item.hint}</p>
+              <p><strong>Evidence to record</strong>{item.completion}</p>
+              <Link href="/progress">Record your reflection <ArrowRight size={14} /></Link>
             </div>
-          )}
-        </section>
-
-        <aside className="activity-guide-rail" aria-label="How to use activities">
-          <section className="practice-loop-card">
-            <p className="eyebrow">A repeatable practice loop</p>
-            <h2>Work from evidence</h2>
-            <ol>
-              <li><span>01</span><div><strong>Predict</strong><p>Write down what you expect before changing anything.</p></div></li>
-              <li><span>02</span><div><strong>Build</strong><p>Complete the smallest practical version of the task.</p></div></li>
-              <li><span>03</span><div><strong>Verify</strong><p>Capture the result and one controlled failure.</p></div></li>
-              <li><span>04</span><div><strong>Reflect</strong><p>Note what you can repeat without step-by-step help.</p></div></li>
-            </ol>
-          </section>
-          <section className="practice-safety-card">
-            <ShieldCheck size={18} aria-hidden="true" />
-            <div><h3>Keep labs safe</h3><p>Use systems you own or disposable labs. Sanitize screenshots and logs before saving evidence.</p></div>
-          </section>
-          <Link className="practice-guide-link" href="/library/04_Activities_and_Practice.pdf" target="_blank" rel="noreferrer">Open the activities source PDF <ArrowRight size={15} /></Link>
-          {notStarted !== undefined && <p className="practice-progress-note">{notStarted} activities have no saved progress record yet.</p>}
-        </aside>
-      </div>
+          </details>)}
+        </div> : <p className="troubleshooting-empty" role="status">No troubleshooting scenarios match this search.</p>}
+      </section>
     </>
   );
 }

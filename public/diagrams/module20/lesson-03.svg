@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Federated deployment identity</title>
+  <desc id="desc">A workflow token and narrowly scoped trust conditions are evaluated together before the cloud issues short-lived credentials.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Federated deployment identity</text>
+  <path d="M160 192 L430 245" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M800 192 L530 245" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M480 295 L480 315" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="35" y="100" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="160" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="160" dy="0">Workflow</tspan>
+  </text>
+  <text x="160" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">approved repository / ref</text>
+  <rect x="675" y="100" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="800" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="800" dy="0">Trust policy</tspan>
+  </text>
+  <text x="800" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">branch + environment</text>
+  <rect x="355" y="220" width="250" height="75" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="250" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Federation check</tspan>
+  </text>
+  <text x="480" y="278" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">validate token claims</text>
+  <rect x="355" y="315" width="250" height="55" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="340" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Cloud credentials</tspan>
+  </text>
+  <text x="480" y="358" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">short-lived + scoped</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">OIDC reduces long-lived key storage; trust policy and workflow security still matter.</text>
+  </svg>

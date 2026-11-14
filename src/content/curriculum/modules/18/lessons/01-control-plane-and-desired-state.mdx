@@ -1,0 +1,10 @@
+export const lessonId = "M18-L01";
+export const lessonTitle = "Control plane and desired state";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>The API server stores the declared objects; controllers compare desired state with observed state and take action to close the gap. A Deployment creates and manages ReplicaSets, which maintain the requested number of Pods. A Pod can be rescheduled or replaced, so do not depend on its IP or local writable layer as durable application state.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module18/lesson-01.svg" alt="A Deployment declares desired replicas through the API; controllers reconcile that state with observed Pods, whose state feeds the next reconciliation cycle." caption="Kubernetes controllers repeatedly compare declared state with observed Pods and act to close the gap." />
+</ConceptSection>
+

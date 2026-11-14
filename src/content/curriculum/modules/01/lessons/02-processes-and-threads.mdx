@@ -1,0 +1,26 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M01-L02";
+export const lessonTitle = "Processes and threads";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+**What can run independently, and what is shared?** A process is an isolation and resource boundary. A thread is an execution path within that process. Threads in one process share its address space and many resources, including open file descriptors, but each thread has its own execution state and stack.
+
+The scheduler chooses among runnable threads. A thread can be running on a CPU, ready to run, or blocked while waiting for an event such as input from a file or socket. A blocked thread is still part of a live process, but it is not continuously using CPU. Sharing memory lets threads exchange data quickly; it also means updates need coordination to avoid races. Figure 2 compares single-threaded and multithreaded processes: the threads use shared process code, data, and files while keeping separate stacks and execution state.
+
+Inspect the thread count for a process you own with `ps -o pid,nlwp,comm -p PID`, replacing `PID` with a value from the previous command. `nlwp` is the number of lightweight processes (threads) reported for that process by procps. It is a snapshot: short-lived threads can appear or exit between observations.
+
+
+**Check:** A service is idle while waiting for a response from a disk. Is the waiting thread necessarily consuming CPU? What could you inspect to distinguish waiting from active work?
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module01/process-threads-openstax.webp"
+    alt="A single-threaded process has one execution path; a multithreaded process has several, with separate registers and stacks for each thread."
+    width={1099}
+    height={628}
+    caption="Figure 2. Threads in one process share code, data, and files while keeping their own registers and stacks."
+    source={{ label: "OpenStax, Figure 6.19", url: "https://openstax.org/books/introduction-computer-science/pages/6-3-processes-and-concurrency", license: "CC BY-NC-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/" }}
+  />
+</ConceptSection>

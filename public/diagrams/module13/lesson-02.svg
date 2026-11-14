@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+<title id="title">Identity and authorization</title>
+<desc id="desc">Four separate control domains govern cloud resource actions, traffic reachability, guest operating system access, and application permissions.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6586a3"/></marker></defs>
+<rect width="960" height="360" rx="24" fill="#f4f7fb"/>
+<text x="40" y="48" fill="#15324b" font-family="Arial,sans-serif" font-size="22" font-weight="700">Identity and authorization</text>
+<rect x="50" y="130" width="195" height="90" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="147.5" y="171.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="147.5" dy="0">Azure RBAC Cloud</tspan><tspan x="147.5" dy="17">resource actions</tspan></text>
+<rect x="270" y="130" width="195" height="90" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="367.5" y="171.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="367.5" dy="0">Network rules</tspan><tspan x="367.5" dy="17">Traffic reachability</tspan></text>
+<rect x="490" y="130" width="195" height="90" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="587.5" y="171.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="587.5" dy="0">Guest OS account</tspan><tspan x="587.5" dy="17">Linux actions</tspan></text>
+<rect x="710" y="130" width="195" height="90" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="807.5" y="171.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="807.5" dy="0">Application role</tspan><tspan x="807.5" dy="17">Service actions</tspan></text>
+<text x="52" y="270" fill="#526579" font-family="Arial,sans-serif" font-size="14">Grant only the needed role and scope in each domain.</text>
+</svg>

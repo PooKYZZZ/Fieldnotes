@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Measure an SLI against an SLO</title>
+  <desc id="desc">Eligible events are classified to calculate an SLI; the SLI and the target over its named window are compared.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Measure an SLI against an SLO</text>
+  <path d="M260 146 L325 146" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M450 192 L480 275" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M575 316 L700 316" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M812 192 L812 275" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="35" y="100" width="225" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="147" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="147" dy="0">Eligible events</tspan>
+  </text>
+  <text x="147" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">defined population</text>
+  <rect x="325" y="100" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="450" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="450" dy="0">Classify success</tspan>
+  </text>
+  <text x="450" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">explicit criteria</text>
+  <rect x="355" y="275" width="250" height="82" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="309" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Observed SLI</tspan>
+  </text>
+  <text x="480" y="340" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">success / eligible</text>
+  <rect x="700" y="100" width="225" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="812" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="812" dy="0">SLO target</tspan>
+  </text>
+  <text x="812" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">goal + time window</text>
+  <rect x="700" y="275" width="225" height="82" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="812" y="309" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="812" dy="0">Comparison</tspan>
+  </text>
+  <text x="812" y="340" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">SLI against target</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">State eligibility, success rules, source, window, and exclusions alongside the ratio.</text>
+  </svg>

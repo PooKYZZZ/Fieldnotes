@@ -1,0 +1,44 @@
+export const lessonId = "M14-L03";
+export const lessonTitle = "Safe lifecycle and collaboration";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Start with a local or disposable provider. Keep the lock file, inspect the selected workspace and resource names, and
+back up state before any manual intervention. `destroy` can remove real objects and data; verify the plan and target
+workspace before approving it. For shared work, use a backend designed for remote state and locking rather than
+committing state to Git. Use variables for configuration and a secret mechanism for sensitive inputs.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module14/lesson-03.svg"
+    alt="Local disposable lifecycle practice is separate from team collaboration, which uses protected remote state, locking, and restricted access."
+    caption="Disposable local target → validate and plan → review workspace and effects → apply or destroy deliberately. For shared work, use protected remote state, locking, and restricted access."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-14-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "A Terraform plan proposes deleting a disk that contains test data. What should happen before apply?",
+      options: ["Review the target workspace and resource consequences, then reject or revise the unintended deletion.", "Apply because a plan is only a preview.", "Assume Terraform can always recreate the data after destroy."],
+      correctIndex: 0,
+      explanation: "A plan previews actions; it does not make them safe. Review creates, updates, destroys, workspace, and data implications immediately before apply.",
+    },
+    {
+      id: "q2",
+      prompt: "A teammate changes a cloud resource manually and Terraform reports drift. What is the sound next step?",
+      options: ["Edit the state file casually until the diff disappears.", "Inspect the plan and decide whether configuration or the live resource should be corrected.", "Delete the state file and let Terraform guess."],
+      correctIndex: 1,
+      explanation: "Drift is a mismatch between recorded/configured and live infrastructure. Understand the change and choose the desired source of truth before acting.",
+    },
+    {
+      id: "q3",
+      prompt: "You need to learn Terraform syntax without risking cloud charges. Which starting point fits the module guidance?",
+      options: ["Use the official local Docker exercises and a disposable target.", "Create a large production VM first.", "Commit state to a public repository for convenience."],
+      correctIndex: 0,
+      explanation: "Local or disposable exercises teach the workflow without unnecessary cloud spending. Protect state because it can contain sensitive values.",
+    }
+  ]}
+/>

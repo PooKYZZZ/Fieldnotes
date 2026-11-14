@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title description">
+  <title id="title">From DNS lookup to an HTTPS request</title>
+  <desc id="description">A client resolves a hostname, uses its route table to reach a default gateway, crosses host and network filters, and connects to a listener on the destination host. DNS success alone does not prove the HTTPS path works.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#4c7d9b"/></marker>
+    <marker id="arrow-back" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M10 0 0 4 10 8Z" fill="#79938c"/></marker>
+  </defs>
+  <rect width="1000" height="560" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">A browser request crosses several independent checks</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">Name resolution selects an address; routing, filtering, transport, TLS and the application still have to work.</text>
+
+  <rect x="30" y="108" width="236" height="300" rx="14" fill="#e8f1ed" stroke="#b9cec6" stroke-width="2"/>
+  <text x="49" y="137" fill="#456c65" font-family="Arial,sans-serif" font-size="13" font-weight="700">CLIENT NETWORK · 192.168.1.0/24</text>
+  <rect x="52" y="166" width="190" height="90" rx="12" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="69" y="193" fill="#29494a" font-family="Arial,sans-serif" font-size="16" font-weight="700">Browser / client</text>
+  <text x="69" y="218" fill="#5c7371" font-family="Arial,sans-serif" font-size="14">192.168.1.25</text>
+  <text x="69" y="241" fill="#5c7371" font-family="Arial,sans-serif" font-size="13">route table chooses next hop</text>
+  <rect x="52" y="288" width="190" height="83" rx="11" fill="#fff" stroke="#d4dfdb"/>
+  <text x="68" y="316" fill="#365f6c" font-family="Arial,sans-serif" font-size="14" font-weight="700">DNS resolver</text>
+  <text x="68" y="340" fill="#5c7371" font-family="Arial,sans-serif" font-size="13">api.example.test</text>
+  <text x="68" y="359" fill="#5c7371" font-family="Arial,sans-serif" font-size="13">→ 203.0.113.20</text>
+
+  <rect x="329" y="171" width="190" height="206" rx="14" fill="#fff" stroke="#c7a982" stroke-width="2"/>
+  <rect x="329" y="171" width="190" height="45" rx="14" fill="#f3eadb"/>
+  <path d="M329 200h190v16H329Z" fill="#f3eadb"/>
+  <text x="350" y="200" fill="#75583a" font-family="Arial,sans-serif" font-size="16" font-weight="700">Gateway / router</text>
+  <text x="350" y="250" fill="#4f6060" font-family="Arial,sans-serif" font-size="14">route forwarding</text>
+  <text x="350" y="277" fill="#4f6060" font-family="Arial,sans-serif" font-size="14">network filter rules</text>
+  <text x="350" y="304" fill="#4f6060" font-family="Arial,sans-serif" font-size="14">optional source NAT</text>
+  <text x="350" y="344" fill="#7a654e" font-family="Arial,sans-serif" font-size="12">NAT does not authorize</text>
+  <text x="350" y="362" fill="#7a654e" font-family="Arial,sans-serif" font-size="12">the application request</text>
+
+  <rect x="580" y="160" width="149" height="228" rx="18" fill="#edf1f5" stroke="#c7d0db" stroke-width="2"/>
+  <text x="612" y="193" fill="#586a7b" font-family="Arial,sans-serif" font-size="15" font-weight="700">WAN / Internet</text>
+  <circle cx="635" cy="267" r="27" fill="#fff" stroke="#b5c2cf" stroke-width="2"/>
+  <path d="M615 267h40M635 247c-11 12-11 28 0 40M635 247c11 12 11 28 0 40" fill="none" stroke="#6c8291" stroke-width="2"/>
+  <text x="603" y="323" fill="#5c6e78" font-family="Arial,sans-serif" font-size="13">routes between</text>
+  <text x="603" y="342" fill="#5c6e78" font-family="Arial,sans-serif" font-size="13">network prefixes</text>
+
+  <rect x="791" y="108" width="180" height="300" rx="14" fill="#e8f1ed" stroke="#b9cec6" stroke-width="2"/>
+  <text x="810" y="137" fill="#456c65" font-family="Arial,sans-serif" font-size="13" font-weight="700">DESTINATION HOST</text>
+  <rect x="811" y="169" width="140" height="77" rx="11" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="828" y="197" fill="#29494a" font-family="Arial,sans-serif" font-size="14" font-weight="700">203.0.113.20</text>
+  <text x="828" y="223" fill="#5c7371" font-family="Arial,sans-serif" font-size="13">host firewall</text>
+  <rect x="811" y="273" width="140" height="83" rx="11" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="828" y="302" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Listener :443</text>
+  <text x="828" y="327" fill="#5c7371" font-family="Arial,sans-serif" font-size="13">TLS → HTTP app</text>
+  <text x="828" y="346" fill="#5c7371" font-family="Arial,sans-serif" font-size="12">authentication is later</text>
+
+  <path d="M242 210h80" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="6 5" marker-end="url(#arrow-blue)"/>
+  <path d="M322 226H242" fill="none" stroke="#4c7d9b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-back)"/>
+  <text x="263" y="190" fill="#4c7d9b" font-family="Arial,sans-serif" font-size="12">DNS query / answer</text>
+  <path d="M242 270h79" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M519 270h54" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M729 270h55" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="246" y="253" fill="#315e58" font-family="Arial,sans-serif" font-size="12">HTTPS to IP:443</text>
+  <path d="M790 384H270" fill="none" stroke="#79938c" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-back)"/>
+  <text x="451" y="406" fill="#607573" font-family="Arial,sans-serif" font-size="12">response follows a permitted return path</text>
+
+  <rect x="30" y="440" width="941" height="79" rx="12" fill="#fff" stroke="#d6dfdc"/>
+  <text x="51" y="470" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Test in layers</text>
+  <text x="51" y="494" fill="#5c7371" font-family="Arial,sans-serif" font-size="14">DNS answer ≠ route ≠ allowed port ≠ TLS success ≠ healthy or authorized application.</text>
+</svg>

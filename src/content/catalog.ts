@@ -3,19 +3,12 @@ import path from "node:path";
 import matter from "gray-matter";
 import { z } from "zod";
 import { milestonesForProjects } from "@/content/project-milestones";
-import { curriculumPhaseNames } from "@/content/taxonomy";
+import { moduleDefinitions } from "@/content/curriculum/modules/definitions";
+import type { ModuleDefinition } from "@/content/module-definitions";
 
 export { milestonesForProjects, type ProjectMilestone } from "@/content/project-milestones";
 
 const curriculumDirectory = path.join(process.cwd(), "src", "content", "curriculum");
-const moduleMetadataSchema = z.object({
-  id: z.number().int().positive(),
-  phase: z.enum(curriculumPhaseNames),
-  level: z.string().min(1),
-  sourcePdf: z.string().regex(/^[A-Za-z0-9_-]+\.pdf$/),
-  activityId: z.string().regex(/^A\d{2}$/),
-});
-
 const activityMetadataSchema = z.object({
   id: z.string().regex(/^A\d{2}$/),
   moduleId: z.number().int().positive(),
@@ -29,30 +22,7 @@ const smallProjectMetadataSchema = identifiedMetadataSchema.extend({
 
 export type ActivityTaskKind = "challenge" | "lab" | "evidence" | "reflection";
 export type ActivityTask = { kind: ActivityTaskKind; title: string; content: string };
-export type LearningConcept = { label: string; href?: string };
-
-export type ModuleRecord = {
-  id: number;
-  title: string;
-  phase: (typeof curriculumPhaseNames)[number];
-  level: string;
-  prerequisites: string;
-  intro: string;
-  learningQuestion: string;
-  concepts: LearningConcept[];
-  explanation: string;
-  lessons: { id: string; title: string; content: string }[];
-  practice: string;
-  typicalMistakes: string;
-  miniLab: string;
-  readiness: string;
-  recallQuestion: string;
-  recallAnswer: string;
-  references: string;
-  related: string;
-  sourcePdf: string;
-  activityId: string;
-};
+export type ModuleRecord = ModuleDefinition;
 
 export type ModuleSummary = Pick<ModuleRecord, "id" | "title" | "phase" | "level" | "intro"> & {
   lessons: Pick<ModuleRecord["lessons"][number], "id" | "title">[];
@@ -147,39 +117,7 @@ function readMarkdownDirectory<T>(directory: string, parse: (filename: string, d
     .map((filename) => parse(filename, readDocument(directory, filename)));
 }
 
-export const modules: ModuleRecord[] = readMarkdownDirectory("modules", (filename, document) => {
-  const metadata = moduleMetadataSchema.parse(document.metadata);
-  const id = `M${String(metadata.id).padStart(2, "0")}`;
-  const explanation = requiredSection(document, filename, "Lesson");
-  const title = document.title.replace(/^Module\s+\d{2}:\s*/, "");
-  return {
-    ...metadata,
-    title,
-    intro: requiredSection(document, filename, "Introduction"),
-    prerequisites: requiredSection(document, filename, "Prerequisites"),
-    learningQuestion: requiredSection(document, filename, "Learning question"),
-    concepts: requiredSection(document, filename, "Learning objectives")
-      .split(/\r?\n/)
-      .map((line) => line.replace(/^\s*-\s+/, "").trim())
-      .filter(Boolean)
-      .map((objective) => {
-        const linkedObjective = objective.match(/^\[([^\]]+)\]\((#[a-z0-9-]+)\)$/i);
-        return linkedObjective
-          ? { label: linkedObjective[1].trim(), href: linkedObjective[2] }
-          : { label: objective };
-      }),
-    explanation,
-    lessons: [{ id: `${id}-L01`, title, content: explanation }],
-    practice: requiredSection(document, filename, "Guided practice"),
-    typicalMistakes: requiredSection(document, filename, "Common mistakes"),
-    miniLab: requiredSection(document, filename, "Mini-lab"),
-    readiness: requiredSection(document, filename, "Readiness check"),
-    recallQuestion: requiredSection(document, filename, "Recall question"),
-    recallAnswer: requiredSection(document, filename, "Recall explanation"),
-    references: requiredSection(document, filename, "References"),
-    related: requiredSection(document, filename, "Related content"),
-  };
-});
+export const modules: ModuleRecord[] = moduleDefinitions;
 
 export const activities: ActivityRecord[] = readMarkdownDirectory("activities", (filename, document) => {
   const metadata = activityMetadataSchema.parse(document.metadata);

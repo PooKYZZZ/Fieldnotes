@@ -1,0 +1,23 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M06-L01";
+export const lessonTitle = "Bash for small system workflows";
+
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Bash is useful when a task composes existing command-line tools. Variables, functions, tests and pipes can make a
+short procedure repeatable, but the shell expands values before invoking each program. Quote variables that should
+remain one argument, and pass untrusted input as data rather than building a command string from it.
+
+`set -o pipefail` helps a pipeline report a nonzero status from an earlier command. It is not a replacement for
+designing expected failure branches: commands such as `grep` commonly return a nonzero result when no match exists.
+Preview target files before changing them and prefer a read-only default.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module06/lesson-01.svg"
+    alt="A Bash workflow expands and passes arguments to commands; explicit status checks make the result observable."
+    caption="Bash applies quoting and expansion to command inputs, runs a sequence, and exposes status for checking."
+  />
+</ConceptSection>

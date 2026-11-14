@@ -1,0 +1,48 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M08-L03";
+export const lessonTitle = "Persistence, networking, and exposure";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+The writable container layer is tied to that container and is lost when the container is removed. A named volume or
+bind mount puts state outside that layer, so you must also back up and restore it deliberately. Container
+`localhost` is the container's own loopback interface. Other services should use the intended container network,
+while `-p host:container` publishes a port to the host. `EXPOSE` is image metadata; it does not publish a host port
+or open a firewall.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module08/lesson-03.svg"
+    alt="A Docker build creates an image; running it creates a container with a replaceable writable layer, while a mounted volume has a separate lifecycle."
+    caption="Figure 1. Image layers, container writable state, published ports and mounted storage have different boundaries and lifecycles."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-08-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "container-state",
+      prompt: "An application writes important state into a container’s writable layer. What happens when that container is replaced?",
+      options: ["That state can disappear; use an explicit volume or external service for persistence.", "The state is automatically committed to the image.", "The state is copied to every other container on the network."],
+      correctIndex: 0,
+      explanation: "A container writable layer belongs to that container instance and should not be treated as durable application storage.",
+    },
+    {
+      id: "localhost",
+      prompt: "A process inside a container connects to `localhost`. Which host does that address refer to?",
+      options: ["The Docker host in every configuration.", "The container itself.", "Any neighboring container on the same network."],
+      correctIndex: 1,
+      explanation: "Inside a container, localhost refers to that container’s own network namespace.",
+    },
+    {
+      id: "port-publish",
+      prompt: "What does Docker port publishing do?",
+      options: ["It makes the image tag immutable.", "It mounts a persistent volume into the container.", "It connects host-side traffic to a container port."],
+      correctIndex: 2,
+      explanation: "Published ports map host-side traffic to a container port; this is separate from image identity and storage.",
+    },
+  ]}
+/>

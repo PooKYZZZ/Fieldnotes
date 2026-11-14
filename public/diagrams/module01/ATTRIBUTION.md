@@ -1,0 +1,13 @@
+# Module 01 image attribution
+
+These image files are local copies used in Module 01. Each is kept unmodified. Attribution and license links are also shown with the figure in the lesson.
+
+| Local file | Image credit and source | License |
+| --- | --- | --- |
+| `process-lifecycle-openstax.webp` | OpenStax, Rice University, Figure 6.20, *Introduction to Computer Science*, [Processes and Concurrency](https://openstax.org/books/introduction-computer-science/pages/6-3-processes-and-concurrency). [Downloaded image](https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/ee17261bb8393c8b7491f1d9d7b30ef1b9efbd9a). | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
+| `process-threads-openstax.webp` | OpenStax, Rice University, Figure 6.19, *Introduction to Computer Science*, [Processes and Concurrency](https://openstax.org/books/introduction-computer-science/pages/6-3-processes-and-concurrency). [Downloaded image](https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/ae95aa60f4a50aa44f9540f285789f000545ac8b). | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
+| `user-kernel-hardware-openstax.webp` | OpenStax, Rice University, Figure 6.3, *Introduction to Computer Science*, [What Is an Operating System?](https://openstax.org/books/introduction-computer-science/pages/6-1-what-is-an-operating-system). [Downloaded image](https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/6ac41d0abd50e45b936c52dad9fbc42763e6fe47). | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
+| `virtual-physical-memory-openstax.webp` | OpenStax, Rice University, Figure 6.6, *Introduction to Computer Science*, [Fundamental OS Concepts](https://openstax.org/books/introduction-computer-science/pages/6-2-fundamental-os-concepts). [Downloaded image](https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/0f32a49f5acddb151d790f3de2bd1c500be0c703). | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
+| `vm-vs-container-wikimedia.jpg` | Drinkler, “Docker vs VM visualised,” [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Dockervsvm.jpg). [Downloaded image](https://upload.wikimedia.org/wikipedia/commons/f/f9/Dockervsvm.jpg). | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |
+
+OpenStax's CC BY-NC-SA license is noncommercial. The Wikimedia image uses CC BY-SA. Keep these license terms and credits with any redistributed copy. This project uses the images for personal, noncommercial study.

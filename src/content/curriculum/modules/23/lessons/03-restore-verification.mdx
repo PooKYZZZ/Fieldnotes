@@ -1,0 +1,60 @@
+export const lessonId = "M23-L03";
+export const lessonTitle = "Restore into isolation and verify recovery";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <h4>Restore without risking the source</h4>
+    <p>Choose a known-good backup and restore it to a clean, isolated destination. Preserve the original backup and the damaged source so the result can be checked and the exercise repeated. Keep the restored copy separate from valuable or live data.</p>
+    <h4>Verify more than the command exit code</h4>
+    <p>Check the database integrity result and expected synthetic identifiers first. Then test the application’s read path and required configuration when the exercise includes an application. Record which checks passed, their timestamps, the newest data point recovered, and the time the tested service became usable.</p>
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module23/restore-verification.svg"
+    alt="A preserved backup is checked, restored to an isolated target, validated for integrity and expected records, then tested through the application read path."
+    caption="Artifact integrity, database integrity, expected records, and application behavior are separate checks. Original Fieldnotes diagram."
+  />
+</ConceptSection>
+
+<Callout title="Do not equate recovery actions" tone="note">
+  Restart returns a process to execution. Rollback changes a release. Restore recovers data or system state from a saved copy. Failover redirects work to another target. A real recovery plan may combine these actions, but evidence for one does not prove the others.
+</Callout>
+
+<KnowledgeCheck
+  id="module-23-recovery-check"
+  title="Check your recovery reasoning"
+  questions={[
+    {
+      id: "rpo-rto",
+      prompt: "A drill restores service in 12 minutes, but the restored copy is 40 minutes older than the incident. Which statement is correct?",
+      options: [
+        "The observed recovery duration is 12 minutes and the recovered data point is 40 minutes behind the incident.",
+        "The RPO is 12 minutes and the RTO is 40 minutes.",
+        "Both targets are met because the service returned.",
+      ],
+      correctIndex: 0,
+      explanation: "RTO concerns elapsed recovery time; RPO concerns the data-loss interval. Whether either target was met depends on the targets chosen before the drill.",
+    },
+    {
+      id: "backup-proof",
+      prompt: "A scheduled backup reports success. What is the strongest next check before relying on it?",
+      options: [
+        "Restart the source service and assume the backup is usable.",
+        "Restore a copy to an isolated target and verify integrity and expected application behavior.",
+        "Rename the backup file so it cannot be overwritten.",
+      ],
+      correctIndex: 1,
+      explanation: "A restore test checks whether the artifact can be used. File existence or a successful job message does not prove recoverability.",
+    },
+    {
+      id: "scope-of-proof",
+      prompt: "A synthetic SQLite restore passes an integrity check and contains the expected rows. What has the drill not established?",
+      options: [
+        "That the restored database file contains the checked rows.",
+        "That the database integrity check passed for the restored file.",
+        "That the full API service, configuration, dependencies, and RTO were restored successfully.",
+      ],
+      correctIndex: 2,
+      explanation: "The exercise verifies a database artifact and selected rows. Full service recovery needs tests of the application and its required dependencies, timed through the agreed usable-service point.",
+    },
+  ]}
+/>

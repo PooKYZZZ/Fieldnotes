@@ -1,0 +1,47 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M02-L04";
+export const lessonTitle = "Exit status and package managers";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Commands normally return status `0` for success and nonzero for a failure or special condition. Terminal text is
+useful, but scripts should also check status before acting on output. Package managers track installed versions,
+dependencies and repository origin. Copying a binary into a directory does not update that inventory, so the system
+cannot reliably upgrade, verify or remove it later.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module02/lesson-04.svg"
+    alt="A command reports success or failure through its exit status; package managers use that result while tracking installed software."
+    caption="Command outcomes produce exit statuses, which help verify package manager operations and installed state."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-02-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "mount-path",
+      prompt: "A file path exists in the directory tree, but its expected data is absent. What should you verify?",
+      options: ["That the shell expanded the filename as a wildcard.", "Whether the expected filesystem is mounted at the relevant mount point.", "That all package indexes are current."],
+      correctIndex: 1,
+      explanation: "A path can resolve through the directory tree while the expected filesystem is not mounted, exposing a different underlying directory.",
+    },
+    {
+      id: "stderr-pipe",
+      prompt: "You run a command through a pipeline and want to preserve its diagnostic errors separately. What is the key distinction?",
+      options: ["Standard error is always sent through a pipe with standard output.", "A pipe connects the first command’s standard input to its standard error.", "Standard output and standard error are separate streams unless explicitly redirected."],
+      correctIndex: 2,
+      explanation: "Pipelines normally pass standard output to the next command’s standard input; standard error remains separate unless redirected.",
+    },
+    {
+      id: "safe-package-change",
+      prompt: "A package command fails, and you want to know whether installation succeeded. What is the most useful first evidence?",
+      options: ["Inspect the command’s exit status and package state before retrying or changing repositories.", "Delete the package database and rerun the command.", "Treat any printed output as proof of success."],
+      correctIndex: 0,
+      explanation: "Exit status reports the command outcome, and checking package state helps determine what actually changed.",
+    },
+  ]}
+/>

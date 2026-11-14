@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Metrics collection and consumers</title>
+  <desc id="desc">A service exposes metrics to Prometheus, which stores time series; Grafana panels and alert rules consume those series independently.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Metrics collection and consumers</text>
+  <path d="M240 196 L285 196" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M490 175 L605 121" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M490 215 L605 271" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="35" y="150" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="137" y="179" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="137" dy="0">Service</tspan>
+  <tspan x="137" dy="21">metrics endpoint</tspan>
+  </text>
+  <text x="137" y="225" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">instrumented signals</text>
+  <rect x="285" y="150" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="387" y="189" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="387" dy="0">Prometheus</tspan>
+  </text>
+  <text x="387" y="225" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">scrape and store</text>
+  <rect x="605" y="75" width="285" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="747" y="114" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="747" dy="0">Grafana panels</tspan>
+  </text>
+  <text x="747" y="150" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">query stored series</text>
+  <rect x="605" y="225" width="285" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="747" y="264" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="747" dy="0">Alert rules</tspan>
+  </text>
+  <text x="747" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">evaluate and notify</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">Prometheus stores samples; dashboards and alert rules are separate consumers.</text>
+  </svg>

@@ -24,13 +24,18 @@ export function ProgressEditor({
   title = "Progress note",
   showComfort = false,
   wide = false,
+  variant = "full",
 }: {
   itemType: ProgressInput["itemType"];
   itemId: string;
   title?: string;
   showComfort?: boolean;
   wide?: boolean;
+  variant?: "full" | "module-summary" | "lesson-status";
 }) {
+  const isModuleSummary = variant === "module-summary";
+  const isLessonStatus = variant === "lesson-status";
+  const isCompact = isModuleSummary || isLessonStatus;
   const [form, setForm] = useState<ProgressInput>(() => blankRecord(itemType, itemId));
   const [updatedAt, setUpdatedAt] = useState<number>();
   const [message, setMessage] = useState("");
@@ -117,17 +122,30 @@ export function ProgressEditor({
   }
 
   return (
-    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
+    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
       <h2 id={`editor-title-${itemId}`}>{title}</h2>
-      <p className="editor-intro">Reading does not change this item’s status. Choose the status and independence level that reflect your work; the app does not verify mastery. This record is saved in this Fieldnotes workspace.</p>
+      <p className="editor-intro">{isLessonStatus
+        ? "Lesson completion is learner-reported and does not indicate mastery."
+        : isModuleSummary
+          ? "Mark your module progress and add a short reflection if useful. This is a self-report, not a mastery check. Saved in this Fieldnotes workspace."
+        : "Reading does not change this item’s status. Choose the status and independence level that reflect your work; the app does not verify mastery. This record is saved in this Fieldnotes workspace."}</p>
       <form onSubmit={submit}>
+        {isLessonStatus ? (
+          <div className="progress-lesson-status-control">
+            <Button className="button button-primary" type="button" disabled={loading || loadFailed} onClick={() => update("status", form.status === "completed" ? "in_progress" : "completed")}>
+              {form.status === "completed" ? "Mark as in progress" : "Mark lesson complete"}
+            </Button>
+            <span className="field-hint">{formatStatus(form.status)}</span>
+          </div>
+        ) : (
         <div className="form-field">
           <label htmlFor={`status-${itemId}`}>Status</label>
           <select id={`status-${itemId}`} className="form-select" value={form.status} onChange={(event) => update("status", event.target.value as ProgressInput["status"])}>
             {progressStatuses.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
           </select>
         </div>
-        {showComfort && (
+        )}
+        {!isCompact && showComfort && (
           <div className="form-field">
             <label htmlFor={`comfort-${itemId}`}>How independently can you do this?</label>
             <select id={`comfort-${itemId}`} className="form-select" value={form.comfort ?? ""} onChange={(event) => update("comfort", event.target.value ? event.target.value as ProgressInput["comfort"] : null)}>
@@ -137,6 +155,15 @@ export function ProgressEditor({
             <span className="field-hint">Self-assessment only: Familiar = recognize it; Guided = build with references; Independent = reproduce and diagnose it. The app does not verify competence.</span>
           </div>
         )}
+        {isCompact ? (
+          isModuleSummary ? (
+          <div className="form-field progress-summary-reflection">
+            <label htmlFor={`notes-${itemId}`}>Reflection <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
+            <Textarea id={`notes-${itemId}`} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="What did you learn or want to revisit?" />
+          </div>
+          ) : null
+        ) : (
+          <>
         <div className="progress-long-fields">
           <div className="form-field">
             <label htmlFor={`notes-${itemId}`}>Learning note</label>
@@ -154,10 +181,12 @@ export function ProgressEditor({
           <label htmlFor={`repository-${itemId}`}>Repository or project URL <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
           <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
         </div>
+          </>
+        )}
         <div className="form-footer progress-form-footer">
           <span className="field-hint">{loading ? "Loading saved progress…" : updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet"}</span>
           <Button className="button button-primary" type="submit" disabled={saving || loading || loadFailed}>
-            <Save size={15} aria-hidden="true" />{saving ? "Saving…" : "Save learning record"}
+            <Save size={15} aria-hidden="true" />{saving ? "Saving…" : isModuleSummary ? "Save module progress" : "Save learning record"}
           </Button>
         </div>
         {loadFailed && <Button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} /> Retry loading</Button>}

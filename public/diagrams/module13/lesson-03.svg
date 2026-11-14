@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+<title id="title">Cost limits and cleanup</title>
+<desc id="desc">Budgets and quotas provide different controls and are not universal charge shutoffs. Compute, storage, addresses, logs, and transfer can incur charges independently; inventory resources and verify cleanup.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6586a3"/></marker></defs>
+<rect width="960" height="360" rx="24" fill="#f4f7fb"/>
+<text x="40" y="48" fill="#15324b" font-family="Arial,sans-serif" font-size="22" font-weight="700">Cost limits and cleanup</text>
+<rect x="55" y="110" width="235" height="62" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="172.5" y="137.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="172.5" dy="0">Budget alerts on</tspan><tspan x="172.5" dy="17">spend</tspan></text>
+<rect x="335" y="110" width="235" height="62" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="452.5" y="137.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="452.5" dy="0">Quota limits some</tspan><tspan x="452.5" dy="17">usage</tspan></text>
+<rect x="625" y="90" width="270" height="58" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="760.0" y="115.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="760.0" dy="0">Compute runtime and</tspan><tspan x="760.0" dy="17">size</tspan></text>
+<rect x="625" y="165" width="270" height="58" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="760.0" y="190.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="760.0" dy="0">Disks, addresses,</tspan><tspan x="760.0" dy="17">logs</tspan></text>
+<rect x="625" y="240" width="270" height="58" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="760.0" y="265.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="760.0" dy="0">Transfer and other</tspan><tspan x="760.0" dy="17">services</tspan></text>
+<rect x="335" y="245" width="235" height="58" rx="14" fill="#f2e8cf" stroke="#7794ad" stroke-width="2"/>
+<text x="452.5" y="270.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="452.5" dy="0">Inventory and verify</tspan><tspan x="452.5" dy="17">cleanup</tspan></text>
+<text x="55" y="210" fill="#526579" font-family="Arial,sans-serif" font-size="14">Alerts and quotas do not guarantee charges stop.</text>
+</svg>

@@ -1,0 +1,43 @@
+export const lessonId = "M13-L03";
+export const lessonTitle = "Cost limits and cleanup";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Budgets, alerts and quotas answer different questions. A budget can notify you about spend, while a quota may limit
+resource usage; neither should be assumed to stop all charges automatically. Review actual resources after each lab,
+including disks, addresses, logs and snapshots, and verify billing terms before relying on student credits.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module13/lesson-03.svg"
+    alt="Budgets and quotas are distinct controls, while compute, storage, addresses, logs, and transfer can incur separate charges; cleanup requires an inventory."
+    caption="Budget alerts and quotas are separate tools, not universal shutoffs. Compute, disks, addresses, logs, and transfer may incur charges independently; inventory and verify cleanup."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-13-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "A public IP is assigned, but clients cannot reach the web app. Which investigation best isolates the network path?",
+      options: ["Check the route, NSG, guest firewall, and whether the app listens on the expected address and port.", "Assume the public IP proves a listener is active.", "Grant the caller Azure VM management permissions."],
+      correctIndex: 0,
+      explanation: "A public IP only makes an address routable. Rules, guest firewall, and the listening service each affect whether traffic succeeds.",
+    },
+    {
+      id: "q2",
+      prompt: "A user can create a VM in Azure but has no shell account inside it. Is that contradictory?",
+      options: ["Yes. Azure RBAC always creates a Linux account.", "No. Cloud resource permissions and guest OS authentication are separate identity systems.", "Yes. Opening SSH automatically grants API access too."],
+      correctIndex: 1,
+      explanation: "Azure RBAC governs control-plane operations. Guest OS accounts and application roles are separately configured.",
+    },
+    {
+      id: "q3",
+      prompt: "A budget alert is configured for a cloud lab. What should you still do at cleanup?",
+      options: ["Review actual resources such as disks, addresses, logs, and snapshots, and verify billing terms.", "Assume the alert will stop all charges.", "Delete only the VM and ignore its dependencies."],
+      correctIndex: 0,
+      explanation: "Budgets provide visibility, not guaranteed shutoff. Check all remaining resources and their possible charges.",
+    }
+  ]}
+/>

@@ -1,0 +1,17 @@
+export const lessonId = "M11-L02";
+export const lessonTitle = "Safe release and compatibility";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Before changing a service, check health, persistent data, configuration and external dependencies. A code rollback
+may not undo a database schema migration or a message already sent to another system. Backward-compatible
+expand/contract changes allow old and new code to coexist during a rollout: add a compatible field, deploy code that
+supports both shapes, migrate usage, then remove the old field in a later release. This is a pattern, not a guarantee;
+test it against the application's real data operations.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module11/lesson-02.svg"
+    alt="An expand-and-contract migration adds a compatible field, supports both shapes, migrates usage, and removes the old field later after checking side effects."
+    caption="Add a compatible field → support both shapes → migrate usage → remove the old field later → check side effects."
+  />
+</ConceptSection>

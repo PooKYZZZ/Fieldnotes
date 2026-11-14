@@ -1,0 +1,27 @@
+export const lessonId = "M23-L02";
+export const lessonTitle = "Use backups to reason about RPO and RTO";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <h4>A backup is a recovery input</h4>
+    <p>A completed backup job shows that a process ran. It does not by itself show that the artifact is complete, readable, consistent, available to the recovery team, or usable by the application. A restore drill tests those assumptions against a separate target.</p>
+    <p><strong>Recovery Point Objective (RPO)</strong> is the maximum data-loss interval the plan is designed to tolerate. <strong>Recovery Time Objective (RTO)</strong> is the target duration for restoring the required service. Both are requirements to compare with measured results; neither is a performance claim until the relevant recovery path has been tested.</p>
+    <p>Protect backup copies from the same failure and credentials that can affect the source. A checksum can detect byte changes, while a database integrity check and an application read test answer different questions.</p>
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module23/recovery-timeline.svg"
+    alt="Timeline connecting the latest recoverable backup point, an incident, the data-loss interval measured by RPO, and service restoration time measured by RTO."
+    caption="Targets are compared with observed recovery data and time. Original Fieldnotes diagram."
+  />
+</ConceptSection>
+
+<CommandExample
+  title="Fingerprint a disposable backup"
+  language="bash"
+  command={'sha256sum "$LAB_DIR/backup.sqlite"'}
+  explanation="Run this only after Activity A23 creates the synthetic backup in its temporary lab directory. Save the checksum for comparison after the restore; it does not prove that the database or application can use the file."
+/>
+
+<Callout title="State the scope of every result" tone="note">
+  A SQLite-file restore can verify a database artifact and selected records. It cannot, by itself, prove that an API, its configuration, credentials, network dependencies, or full service recovery meet an RTO.
+</Callout>

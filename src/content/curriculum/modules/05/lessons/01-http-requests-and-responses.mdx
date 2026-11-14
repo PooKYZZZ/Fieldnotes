@@ -1,0 +1,29 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M05-L01";
+export const lessonTitle = "HTTP requests and responses";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+HTTP is a request/response protocol. A request names a method and target and can include headers and a body; the
+response includes a status code, headers and optional content. Methods communicate intent, so a retry is not always
+safe for an operation that changes state. Status codes describe the result at the HTTP layer, not the complete
+health of all services behind it.
+
+| Evidence | Likely layer to inspect next |
+| --- | --- |
+| No connection or timeout | Route, listener, firewall, or overloaded upstream |
+| TLS certificate/handshake error | Certificate name, trust chain, expiry, and TLS configuration |
+| HTTP 404 | The contacted HTTP server did not find that target at the selected route |
+| HTTP 502 from a proxy | Proxy-to-upstream connection or response; inspect both logs |
+
+These are starting hypotheses, not diagnoses. A proxy can return a status on behalf of another component, so compare
+direct and proxied requests when the environment allows it.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module05/lesson-01.svg"
+    alt="An HTTP request carries a method and other message data; the server returns a status and response content."
+    caption="An HTTP client sends a request and receives a response with status and content."
+  />
+</ConceptSection>

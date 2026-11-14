@@ -1,0 +1,16 @@
+export const lessonId = "M15-L02";
+export const lessonTitle = "Modules, handlers, and idempotency";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Idempotency means that repeating the same operation against the same inputs converges without continually changing
+the host. It is not a promise that every task is harmless to repeat; custom shell commands can still append duplicate
+data or restart a service on every run. Handlers run when notified by a changed task, which is useful for a service
+restart after its configuration changes.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module15/lesson-02.svg"
+    alt="A module compares the host with desired state; a relevant configuration change can notify a handler, and an idempotent second run makes no unintended repeated change."
+    caption="Desired state is compared with the host; a changed configuration can notify a handler, while a converged repeat run should not keep changing the system."
+  />
+</ConceptSection>

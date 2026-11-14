@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, BookOpenCheck, Compass, GraduationCap, LayoutDashboard, LibraryBig, Map, Menu, Rocket, X } from "lucide-react";
@@ -21,6 +21,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [compactViewport, setCompactViewport] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const wasMenuOpen = useRef(false);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 860px)");
@@ -31,6 +34,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (menuOpen && compactViewport) {
+      sidebarRef.current?.querySelector<HTMLElement>("a[href], button:not([disabled])")?.focus();
+    } else if (!menuOpen && wasMenuOpen.current && compactViewport) {
+      menuButtonRef.current?.focus();
+    }
+    wasMenuOpen.current = menuOpen;
+  }, [compactViewport, menuOpen]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -38,6 +50,26 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
+
+  function keepFocusInMobileNavigation(event: ReactKeyboardEvent<HTMLElement>) {
+    if (!menuOpen || !compactViewport || event.key !== "Tab") return;
+    const focusable = [...event.currentTarget.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')]
+      .filter((element) => element.getClientRects().length > 0);
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) {
+      event.preventDefault();
+      return;
+    }
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   const renderLinks = (items: typeof navigation) => items.map(({ label, shortLabel, href, icon: Icon }) => {
     const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
@@ -56,9 +88,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <aside
+        ref={sidebarRef}
         className={`sidebar${menuOpen ? " open" : ""}`}
         aria-label="Main navigation"
         inert={compactViewport && !menuOpen}
+        onKeyDown={keepFocusInMobileNavigation}
       >
         <Link className="brand" href="/" onClick={() => setMenuOpen(false)} aria-label="DevOps Fieldnotes home">
           <span className="brand-mark"><Compass size={22} aria-hidden="true" /></span>
@@ -81,6 +115,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="workspace">
         <header className="topbar" aria-label="Mobile navigation">
           <button
+            ref={menuButtonRef}
             type="button"
             className="mobile-menu-button"
             aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}

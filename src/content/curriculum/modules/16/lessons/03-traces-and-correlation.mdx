@@ -1,0 +1,46 @@
+export const lessonId = "M16-L03";
+export const lessonTitle = "Traces and correlation";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A trace groups spans that represent work across service boundaries. Trace context must be propagated intentionally;
+it does not automatically prove causality if identifiers are missing or reused. Start with a request ID in logs and a
+few stable metrics, then add distributed tracing when there is a concrete cross-service question to answer.
+
+For example, a log row with `request_id`, `route`, `status` and `duration_ms` can be compared with a time-series
+increase in server errors. The ID should be random or opaque and should not encode a user identity or secret.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module16/lesson-03.svg"
+    alt="Trace context connects spans across services so correlated evidence can help locate slow operations."
+    caption="Trace context → service A span → service B span → correlated evidence → locate a slow operation."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-16-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "One request fails and you need its reported error details. Which signal is the best first place to look?",
+      options: ["A structured log with an opaque request ID and status fields.", "A global uptime percentage alone.", "A latency histogram without request context."],
+      correctIndex: 0,
+      explanation: "Structured logs describe individual events. An opaque request ID helps locate related entries without encoding identity or secrets.",
+    },
+    {
+      id: "q2",
+      prompt: "The error rate may be rising across the service. Which signal best shows the trend?",
+      options: ["A request/error counter or rate over time.", "One detailed log line.", "A unique metric series for every user ID."],
+      correctIndex: 0,
+      explanation: "Metrics summarize behavior over time. Stable labels such as route template and status class help avoid high-cardinality series.",
+    },
+    {
+      id: "q3",
+      prompt: "A request is slow across several services, and logs plus metrics do not show where time is spent. What could help?",
+      options: ["Add trace spans with context propagated across the service boundaries.", "Use raw user IDs as metric labels.", "Log all request bodies to every service."],
+      correctIndex: 0,
+      explanation: "A distributed trace connects spans across operations and can locate time spent. Propagate context intentionally and avoid sensitive or high-cardinality data.",
+    }
+  ]}
+/>

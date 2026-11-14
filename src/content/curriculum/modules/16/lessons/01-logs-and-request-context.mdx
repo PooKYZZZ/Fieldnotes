@@ -1,0 +1,16 @@
+export const lessonId = "M16-L01";
+export const lessonTitle = "Logs and request context";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A structured log records an event with fields such as time, severity, service, operation and outcome. Use consistent
+timestamps and a request or trace identifier so related events can be found across services. Do not log passwords,
+access tokens, full request bodies or other sensitive values merely because they are available. Logs answer what a
+specific operation reported, but one noisy error does not show how widespread the problem is.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module16/lesson-01.svg"
+    alt="A request produces structured event records with an opaque identifier for correlating service events; passwords, tokens, and sensitive data stay out of logs."
+    caption="Request event → structured log fields → opaque request ID → correlate service events. Exclude passwords, tokens, and sensitive request data."
+  />
+</ConceptSection>

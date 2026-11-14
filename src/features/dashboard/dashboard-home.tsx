@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProgressRecord } from "@/features/progress/model";
-import { summarizeModuleProgress } from "@/features/progress/module-progress";
 import { curriculumPhaseNames } from "@/content/taxonomy";
 import { buildDashboardModel, type DashboardActivity, type DashboardMajorProject, type DashboardModule, type DashboardSmallProject } from "@/features/dashboard/model";
 import { ContinueLearningPanel, DashboardSidebar } from "@/features/dashboard/dashboard-panels";
@@ -57,17 +56,17 @@ export function DashboardHome({
     () => buildDashboardModel(modules, activities, majorProjects, smallProjects, records),
     [modules, activities, majorProjects, smallProjects, records],
   );
-  const currentModuleProgress = useMemo(() => {
+  const currentActivityModule = model.currentActivity
+    ? modules.find((module) => module.id === model.currentActivity?.moduleId)
+    : undefined;
+  const currentActivityModuleStatus = currentActivityModule
+    ? model.statusByModule.get(`M${String(currentActivityModule.id).padStart(2, "0")}`) ?? "not_started"
+    : undefined;
+  const currentModuleActivityStatus = useMemo(() => {
     if (!model.currentModule) return undefined;
-    const linkedActivities = activities.filter((activity) => activity.moduleId === model.currentModule?.id);
-    const linkedActivityIds = new Set(linkedActivities.map((activity) => activity.id));
-    const completedActivities = records.filter((record) =>
-      record.itemType === "activity"
-      && record.status === "completed"
-      && linkedActivityIds.has(record.itemId),
-    ).length;
-    return summarizeModuleProgress(model.currentModuleStatus, linkedActivities.length, completedActivities);
-  }, [activities, model.currentModule, model.currentModuleStatus, records]);
+    const status = records.find((record) => record.itemType === "activity" && record.itemId === model.currentModule?.activityId)?.status;
+    return status ?? "not_started";
+  }, [model.currentModule, records]);
   const phaseCounts = useMemo(() => curriculumPhaseNames.map((phase) => {
     const phaseModules = modules.filter((module) => module.phase === phase);
     return {
@@ -90,15 +89,21 @@ export function DashboardHome({
       </header>
 
       <div className="dashboard-layout">
-        <main className="dashboard-center" aria-label="Learning dashboard">
+        <section className="dashboard-center" aria-label="Learning dashboard">
           <ContinueLearningPanel
             loaded={loaded}
             loadError={loadError}
             currentModule={model.currentModule}
             currentModuleStatus={model.currentModuleStatus}
+            currentLesson={model.currentLesson}
+            currentLessonStatus={model.currentLessonStatus}
+            lessonProgress={model.currentModule ? model.lessonProgressByModule.get(`M${String(model.currentModule.id).padStart(2, "0")}`) : undefined}
             currentActivity={model.currentActivity}
             currentActivityStatus={model.currentActivityStatus}
-            currentModuleProgress={currentModuleProgress}
+            currentActivityModule={currentActivityModule}
+            currentActivityModuleStatus={currentActivityModuleStatus}
+            currentActivityLessonProgress={currentActivityModule ? model.lessonProgressByModule.get(`M${String(currentActivityModule.id).padStart(2, "0")}`) : undefined}
+            currentModuleActivityStatus={currentModuleActivityStatus}
             totalModules={modules.length}
             onRetry={retryProgress}
           />
@@ -111,12 +116,13 @@ export function DashboardHome({
             loadError={loadError}
             onRetry={retryProgress}
           />
-        </main>
+        </section>
         <DashboardSidebar
           model={model}
           loaded={loaded}
           loadError={loadError}
           totalModules={modules.length}
+          totalLessons={model.totalLessons}
           phaseCounts={phaseCounts}
         />
       </div>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Workload management and Service discovery</title>
+  <desc id="desc">A Deployment manages a ReplicaSet that maintains Pods. A Service selector independently identifies matching ready Pods and offers stable discovery.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Workload management and Service discovery</text>
+  <path d="M240 156 L275 156" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M480 156 L515 156" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M615 202 L485 275" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="35" y="110" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="137" y="149" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="137" dy="0">Deployment</tspan>
+  </text>
+  <text x="137" y="185" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">rollout history</text>
+  <rect x="275" y="110" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="377" y="149" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="377" dy="0">ReplicaSet</tspan>
+  </text>
+  <text x="377" y="185" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">maintains replica count</text>
+  <rect x="515" y="110" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="617" y="149" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="617" dy="0">Ready Pods</tspan>
+  </text>
+  <text x="617" y="185" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">replaceable instances</text>
+  <rect x="300" y="275" width="360" height="82" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="309" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Service</tspan>
+  </text>
+  <text x="480" y="340" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">stable endpoint + selector</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">The Service selects ready Pods; it is not the next controller in the Deployment chain.</text>
+  </svg>

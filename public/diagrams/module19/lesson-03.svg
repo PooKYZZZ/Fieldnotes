@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Verify both sides of a security control</title>
+  <desc id="desc">An allowed request and a denied request test complementary outcomes; retain evidence and assess remaining risk.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Verify both sides of a security control</text>
+  <path d="M170 200 L430 265" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M790 200 L530 265" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="45" y="110" width="250" height="90" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="170" y="148" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="170" dy="0">Intended access</tspan>
+  </text>
+  <text x="170" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">allowed case</text>
+  <rect x="665" y="110" width="250" height="90" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="790" y="148" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="790" dy="0">Unwanted access</tspan>
+  </text>
+  <text x="790" y="183" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">denied case</text>
+  <rect x="355" y="265" width="250" height="90" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="303" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Review evidence</tspan>
+  </text>
+  <text x="480" y="338" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">configuration + results</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">A passing test shows expected behavior for tested cases; document residual risk.</text>
+  </svg>

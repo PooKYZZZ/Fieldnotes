@@ -1,0 +1,20 @@
+export const lessonId = "M09-L02";
+export const lessonTitle = "Readiness and health checks";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Starting containers in order does not make a dependency ready. A database may have a running process but still be
+recovering, applying initialization or refusing connections. A health check can report a meaningful local condition;
+the application should also retry transient connections with a bounded delay and a clear error path. Avoid a fixed
+sleep that is too short on a slow host and wasteful on a fast one.
+
+Compose can wait for a dependency health condition when configured to do so, but that does not replace runtime
+retry logic: dependencies can fail after startup. Choose a health test that checks the capability the next service
+actually needs, not just that a PID exists.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module09/lesson-02.svg"
+    alt="The database starts, a meaningful health check reports readiness, the application retries with a bound, and it proceeds when the dependency is ready."
+    caption="Database process starts → meaningful health check → bounded application retries → proceed when ready."
+  />
+</ConceptSection>

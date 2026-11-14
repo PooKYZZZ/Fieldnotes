@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title description">
+  <title id="title">Typical Azure virtual machine resource relationships</title>
+  <desc id="description">A subscription contains a resource group used for management and lifecycle. A virtual machine has an operating system disk and connects through a network interface to a subnet in a virtual network. Network security rules and an optional public IP are separate resources with their own settings and lifecycle.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker>
+  </defs>
+  <rect width="1000" height="560" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">One VM is a set of related resources</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">The resource group helps manage lifecycle; it is not a network or security boundary.</text>
+
+  <rect x="32" y="104" width="936" height="390" rx="18" fill="#eaf1ed" stroke="#9db8ae" stroke-width="2" stroke-dasharray="9 6"/>
+  <text x="56" y="137" fill="#456c65" font-family="Arial,sans-serif" font-size="15" font-weight="700">SUBSCRIPTION · RESOURCE GROUP</text>
+  <text x="56" y="159" fill="#617573" font-family="Arial,sans-serif" font-size="12">management scope and lifecycle grouping</text>
+
+  <rect x="66" y="208" width="228" height="180" rx="15" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <rect x="66" y="208" width="228" height="46" rx="15" fill="#dcebe5"/>
+  <path d="M66 239h228v15H66Z" fill="#dcebe5"/>
+  <text x="88" y="238" fill="#315e58" font-family="Arial,sans-serif" font-size="16" font-weight="700">Virtual machine</text>
+  <text x="88" y="285" fill="#4f6264" font-family="Arial,sans-serif" font-size="14">compute while allocated</text>
+  <text x="88" y="313" fill="#4f6264" font-family="Arial,sans-serif" font-size="14">guest OS + your software</text>
+  <text x="88" y="351" fill="#657675" font-family="Arial,sans-serif" font-size="12">stop/deallocate changes compute state</text>
+
+  <rect x="66" y="414" width="228" height="53" rx="10" fill="#fff" stroke="#c4d2cc"/>
+  <text x="86" y="437" fill="#315e58" font-family="Arial,sans-serif" font-size="13" font-weight="700">Managed OS / data disks</text>
+  <text x="86" y="456" fill="#617573" font-family="Arial,sans-serif" font-size="11">storage can remain after VM stops</text>
+  <path d="M180 388v20" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="370" y="219" width="185" height="144" rx="14" fill="#fff" stroke="#8eafa5" stroke-width="2"/>
+  <text x="391" y="251" fill="#315e58" font-family="Arial,sans-serif" font-size="15" font-weight="700">Network interface</text>
+  <text x="391" y="281" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">connects the VM</text>
+  <text x="391" y="303" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">to a subnet</text>
+  <text x="391" y="335" fill="#617573" font-family="Arial,sans-serif" font-size="11">addresses + association</text>
+  <path d="M294 296h68" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="626" y="183" width="300" height="231" rx="15" fill="#fff" stroke="#92aaa2" stroke-width="2"/>
+  <rect x="647" y="205" width="258" height="49" rx="10" fill="#e8f1ed"/>
+  <text x="666" y="235" fill="#315e58" font-family="Arial,sans-serif" font-size="15" font-weight="700">Virtual network</text>
+  <rect x="647" y="271" width="258" height="65" rx="10" fill="#f7faf8" stroke="#d0ded8"/>
+  <text x="666" y="298" fill="#456c65" font-family="Arial,sans-serif" font-size="14" font-weight="700">Subnet</text>
+  <text x="666" y="320" fill="#617573" font-family="Arial,sans-serif" font-size="12">address range + network controls</text>
+  <rect x="647" y="349" width="122" height="43" rx="9" fill="#fff6e8" stroke="#dec49e"/>
+  <text x="660" y="376" fill="#75583a" font-family="Arial,sans-serif" font-size="12" font-weight="700">NSG rules</text>
+  <rect x="782" y="349" width="123" height="43" rx="9" fill="#edf1f5" stroke="#c7d0db"/>
+  <text x="795" y="376" fill="#536c7c" font-family="Arial,sans-serif" font-size="12" font-weight="700">Optional public IP</text>
+  <path d="M555 290h63" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M555 310h215" fill="none" stroke="#82928f" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+  <text x="561" y="277" fill="#607573" font-family="Arial,sans-serif" font-size="11">NIC attaches to subnet</text>
+
+  <rect x="32" y="512" width="936" height="32" rx="9" fill="#fff"/>
+  <text x="48" y="533" fill="#607573" font-family="Arial,sans-serif" font-size="12">Inventory dependencies and verify current region/SKU pricing; disks, addresses and network resources may have separate lifecycles.</text>
+</svg>

@@ -1,0 +1,10 @@
+export const lessonId = "M19-L01";
+export const lessonTitle = "Assets, trust boundaries, and threats";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Start with what needs protection: credentials, user data, service availability, deployment authority and backups. Draw the request path and mark where trust changes: browser to proxy, proxy to API, API to database, and CI runner to deployment target. For each boundary ask what could be spoofed, exposed, changed or made unavailable. A useful threat model describes a plausible path and a testable mitigation, not just a list of products.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module19/lesson-01.svg" alt="Threat modeling starts with assets, marks trust boundaries, traces plausible attack paths, and selects mitigations that can be tested." caption="Map an asset to its trust boundary and a plausible path of harm, then select a testable mitigation." />
+</ConceptSection>
+

@@ -1,0 +1,48 @@
+export const lessonId = "M12-L03";
+export const lessonTitle = "Cost-aware experiments";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Before a lab, list its resources, region, size, expected runtime and cleanup procedure. Check the current calculator,
+offer conditions and account billing status. Stopping or deallocating a VM can stop some compute charges, but disks,
+public IPs, storage and other resources may still incur charges. Budgets and alerts provide visibility; they are not
+universal hard spending caps. For early practice, use a local VM or container when that teaches the same concept.
+Student offers, eligibility, credits, and service pricing can change. Check the current official offer and the
+subscription's billing state before planning a cloud lab. A budget or alert helps you notice spend, but may not stop
+every charge. You can learn the resource-dependency and ownership concepts with a diagram and local VM first; do not
+create a paid resource unless you have deliberately reviewed the current price and accepted the possible cost.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module12/lesson-03.svg"
+    alt="Plan the lab and check current pricing, then deallocate the VM and inventory remaining billable resources before verifying cleanup."
+    caption="Inventory resources → check live price → deallocate compute → find retained resources → verify cleanup."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-12-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "You run a VM and manage its guest operating system. Which responsibility boundary best describes this IaaS arrangement?",
+      options: ["The provider manages physical hardware; you still handle guest OS patching and configuration.", "The provider automatically patches your guest and secures your application.", "You manage the provider’s physical data center hardware."],
+      correctIndex: 0,
+      explanation: "IaaS delegates physical infrastructure operation, while guest OS maintenance and many security choices remain with the customer.",
+    },
+    {
+      id: "q2",
+      prompt: "A VM is deleted, but its managed disk and public IP remain. What should you conclude?",
+      options: ["All dependent resources are automatically deleted with the VM.", "The dependency inventory and cleanup plan must account for resources with independent lifecycles.", "A stopped VM would have deleted them automatically."],
+      correctIndex: 1,
+      explanation: "VM dependencies can have separate lifecycles and charges. Inventory the graph and verify each resource is cleaned up.",
+    },
+    {
+      id: "q3",
+      prompt: "You deallocate a VM after a lab. What is the safest assumption about cost?",
+      options: ["All charges in its resource group have stopped.", "Some compute charges may stop, while disks, addresses, storage, or other services may still cost money.", "Budgets will automatically shut down every billable resource."],
+      correctIndex: 1,
+      explanation: "Deallocation may reduce compute charges, but other resources have separate pricing. Budgets and alerts are not universal spending caps.",
+    }
+  ]}
+/>

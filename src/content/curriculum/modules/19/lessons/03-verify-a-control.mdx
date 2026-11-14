@@ -1,0 +1,49 @@
+export const lessonId = "M19-L03";
+export const lessonTitle = "Verify a control";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Choose a single control and test both expected access and denied access in a disposable environment. Save the configuration and sanitized result, then identify residual risk. A scanner can find known patterns within its coverage, but a clean report does not prove that authorization, network boundaries, recovery or operator access are correct.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module19/lesson-03.svg" alt="Test intended access and denied access as separate cases, then retain evidence and identify residual risk." caption="Verify both allowed and denied behavior; record the result and remaining risk." />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-19-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "question-1",
+      prompt: "A demo API runs on the internet. What is a useful first step in threat modeling?",
+      options: [
+        "List assets, trust boundaries, plausible abuse paths, and mitigations that can be tested.",
+        "Install a scanner and treat a clean report as proof of security.",
+        "Add security products before identifying what the system exposes.",
+      ],
+      correctIndex: 0,
+      explanation: "A threat model connects what matters to a plausible path across a boundary and a mitigation that can be verified.",
+    },
+    {
+      id: "question-2",
+      prompt: "A database port is not needed by external users. Which change most directly reduces exposure?",
+      options: [
+        "Rename the port in documentation.",
+        "Restrict or close the listener and verify intended access still works while unwanted access is denied.",
+        "Assume the container boundary prevents network access.",
+      ],
+      correctIndex: 1,
+      explanation: "Remove unnecessary access paths, then test both expected and denied behavior in a disposable environment.",
+    },
+    {
+      id: "question-3",
+      prompt: "A scanner reports no findings. What does that result establish?",
+      options: [
+        "All authorization, recovery, and operator-access risks are eliminated.",
+        "The application has no vulnerabilities.",
+        "No covered known pattern was found by that scan; other controls and residual risks still need review.",
+      ],
+      correctIndex: 2,
+      explanation: "A scanner only speaks to its coverage and cannot prove that authorization, network boundaries, recovery, or operator access are correct.",
+    },
+  ]}
+/>

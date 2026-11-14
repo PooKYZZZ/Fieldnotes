@@ -2,7 +2,7 @@
 
 Fieldnotes is a self-hosted, local-first learning workspace for one learner's DevOps journey. It turns the supplied learning materials into a navigable curriculum with practical work and a persistent progress notebook.
 
-> **Current scope:** a single-user local MVP. There is no sign-in, cloud sync, remote hosting, or access-control layer. Docker Compose binds to loopback by default.
+> **Current scope:** a single-learner MVP. There is no app-level sign-in, cloud sync, or multi-user support. Docker Compose binds to loopback by default. An optional Cloudflare Tunnel route can provide remote access only when Cloudflare Access is configured to allow your identity.
 
 ## What it does today
 
@@ -41,6 +41,24 @@ docker compose ps
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Compose starts one app container and a persistent SQLite volume; it does not start PostgreSQL, Redis, or a reverse proxy.
 
 `docker compose down` stops and removes the container and network but **keeps** the `learning-data` volume. Do not use `docker compose down -v` unless you intend to permanently delete saved learning records.
+
+### Optional: use the existing CyberTrace Cloudflare Tunnel
+
+Fieldnotes has no built-in login. Protect the hostname with Cloudflare Access and allow only your own email before publishing a Tunnel route. Every authorized visit uses the same single-learner SQLite database and progress records; this does not create separate accounts.
+
+1. In Cloudflare Zero Trust, create a **Self-hosted** Access application for `learn.cybertracesystems.com`. Add an Allow policy for your email (for example, email one-time PIN) and confirm the policy before continuing. Cloudflare recommends creating the Access application before publishing the Tunnel route.
+2. Find the Docker network used by the existing `cloudflared` container with `docker network ls`. Add its exact name as `FIELDNOTES_TUNNEL_NETWORK` in your local `.env`. If `.env` already exists, add this line without replacing the file.
+3. Start Fieldnotes with the optional overlay:
+
+   ```powershell
+   docker compose -f compose.yaml -f compose.cloudflare.yaml up --build -d
+   ```
+
+   This keeps the existing loopback address and the `learning-data` volume. The overlay connects the app to the existing Tunnel network and gives it the internal name `fieldnotes-lms`.
+4. In Cloudflare Zero Trust, open **Networks → Tunnels**, select the existing CyberTrace tunnel, and add a **Published application** route for `learn.cybertracesystems.com` with service `http://fieldnotes-lms:3000`. In Additional application settings, enable **Protect with Access** and use the team name and audience tag from the Fieldnotes Access app. Cloudflare creates the DNS route for the hostname.
+5. Open `https://learn.cybertracesystems.com` in a private browser window. Confirm that Cloudflare Access prompts for authentication, that an unauthorized identity is denied, and that your allowed identity reaches the LMS.
+
+The host machine and Docker services must remain running for the site to be available. Do not publish the route without the Access application and a restrictive Allow policy. To return the app to local-only networking, start it again with `docker compose up --build -d`; the named data volume is retained.
 
 ## Local development
 
@@ -91,7 +109,7 @@ The same test suite is run by [GitHub Actions CI](.github/workflows/ci.yml), whi
 | `APP_BIND_ADDRESS` | `127.0.0.1` | Compose host bind address; keep loopback for this MVP |
 | `DATABASE_PATH` | `.data/lms.sqlite` locally; `/data/lms.sqlite` in Compose | SQLite file used by the app |
 
-Compose stores the database in its named `learning-data` volume. Local development and Compose use different databases by default. The progress API validates writes and imports, but the app has no user authentication; the loopback bind is an important security boundary. Saved notes are plain text, and exported JSON is not encrypted.
+Compose stores the database in its named `learning-data` volume. Local development and Compose use different databases by default. The progress API validates writes and imports, but the app has no user authentication; the loopback bind is the default security boundary. If the optional Tunnel route is configured, Cloudflare Access is the external authentication boundary. Saved notes are plain text, and exported JSON is not encrypted.
 
 ## Project documentation
 

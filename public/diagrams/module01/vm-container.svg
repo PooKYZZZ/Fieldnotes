@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 355" role="img" aria-labelledby="title desc">
+  <title id="title">Virtual machine and Linux container boundaries</title>
+  <desc id="desc">Each VM has a guest operating system and kernel above virtual hardware presented by the hypervisor. Linux containers isolate application processes in user space while sharing the host Linux kernel and hardware.</desc>
+  <metadata>Original Fieldnotes instructional diagram, created for Module 01. Conceptual comparison created for Fieldnotes; real implementations vary.</metadata>
+  <rect width="920" height="355" rx="18" fill="#f5f8f6"/>
+  <rect x="30" y="28" width="420" height="300" rx="15" fill="#fff" stroke="#9eb8b0" stroke-width="2"/>
+  <rect x="470" y="28" width="420" height="300" rx="15" fill="#fff" stroke="#9eb8b0" stroke-width="2"/>
+  <text x="240" y="58" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#29494a">Virtual machines</text>
+  <text x="680" y="58" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#29494a">Linux containers</text>
+  <g font-family="system-ui,sans-serif" text-anchor="middle">
+    <rect x="55" y="77" width="173" height="46" rx="8" fill="#edf3f7" stroke="#92a9b5"/><text x="141" y="97" font-size="12" font-weight="700" fill="#29494a">Guest OS + kernel A</text><text x="141" y="114" font-size="10" fill="#536a68">VM 1</text>
+    <rect x="252" y="77" width="173" height="46" rx="8" fill="#edf3f7" stroke="#92a9b5"/><text x="338" y="97" font-size="12" font-weight="700" fill="#29494a">Guest OS + kernel B</text><text x="338" y="114" font-size="10" fill="#536a68">VM 2</text>
+    <rect x="55" y="131" width="370" height="39" rx="8" fill="#e8f1ed" stroke="#8ba99d"/><text x="240" y="156" font-size="12" font-weight="700" fill="#29494a">Virtual hardware</text>
+    <rect x="55" y="178" width="370" height="39" rx="8" fill="#edf3f7" stroke="#92a9b5"/><text x="240" y="203" font-size="12" font-weight="700" fill="#29494a">Hypervisor</text>
+    <rect x="55" y="225" width="370" height="39" rx="8" fill="#f3eee4" stroke="#bca985"/><text x="240" y="250" font-size="12" font-weight="700" fill="#604f37">Host hardware</text>
+    <text x="240" y="294" font-size="11" fill="#637774">Each guest OS runs its own kernel.</text>
+    <rect x="495" y="77" width="173" height="46" rx="8" fill="#e8f1ed" stroke="#8ba99d"/><text x="581" y="97" font-size="12" font-weight="700" fill="#29494a">App + user space A</text><text x="581" y="114" font-size="10" fill="#536a68">container</text>
+    <rect x="692" y="77" width="173" height="46" rx="8" fill="#e8f1ed" stroke="#8ba99d"/><text x="778" y="97" font-size="12" font-weight="700" fill="#29494a">App + user space B</text><text x="778" y="114" font-size="10" fill="#536a68">container</text>
+    <rect x="495" y="156" width="370" height="55" rx="8" fill="#edf3f7" stroke="#92a9b5"/><text x="680" y="180" font-size="12" font-weight="700" fill="#29494a">Shared host Linux kernel</text><text x="680" y="198" font-size="10" fill="#536a68">process and resource isolation</text>
+    <rect x="495" y="225" width="370" height="39" rx="8" fill="#f3eee4" stroke="#bca985"/><text x="680" y="250" font-size="12" font-weight="700" fill="#604f37">Host hardware</text>
+    <text x="680" y="294" font-size="11" fill="#637774">Containers isolate processes; they share the host kernel.</text>
+  </g>
+</svg>

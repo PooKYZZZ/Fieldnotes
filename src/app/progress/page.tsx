@@ -3,6 +3,7 @@ import { NotebookPen, ShieldCheck } from "lucide-react";
 import { ProgressBackup } from "@/features/progress/progress-backup";
 import { ProgressNotebook, type NotebookItem } from "@/features/progress/progress-notebook";
 import { activities, majorProjects, modules, projectMilestones, smallProjects } from "@/content";
+import { moduleDefinitions } from "@/content/curriculum/modules/definitions";
 
 export const metadata: Metadata = { title: "Progress notebook" };
 
@@ -13,6 +14,12 @@ export default function ProgressPage() {
       const href = `/modules/${String(item.id).padStart(2, "0")}`;
       return { itemType: "module" as const, itemId, label: `Module ${String(item.id).padStart(2, "0")} · ${item.title}`, href, editHref: `${href}#progress-editor-${itemId}`, kind: "Module" };
     }),
+    ...moduleDefinitions.flatMap((module) => module.lessons.map((lesson, index) => {
+      const moduleId = String(module.id).padStart(2, "0");
+      const lessonNumber = String(index + 1).padStart(2, "0");
+      const href = `/modules/${moduleId}/lessons/${lesson.id.toLowerCase()}`;
+      return { itemType: "lesson" as const, itemId: lesson.id, label: `Module ${moduleId} · Lesson ${lessonNumber} · ${lesson.title}`, href, kind: "Lesson" };
+    })),
     ...activities.map((item) => {
       const href = `/activities/${item.id}`;
       return { itemType: "activity" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#progress-editor-${item.id}`, kind: "Activity" };

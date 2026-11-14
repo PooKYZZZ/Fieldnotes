@@ -1,0 +1,31 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M06-L02";
+export const lessonTitle = "Python for structured operations";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Python is generally easier to maintain when a task parses structured data, validates several inputs or needs explicit
+error handling. A virtual environment separates a project's packages from the system interpreter. Use the standard
+library where it is enough, and make process and network boundaries explicit with timeouts and checked outcomes.
+
+```python
+import subprocess
+
+result = subprocess.run(
+    ["df", "-h", "/"], check=True, capture_output=True, text=True, timeout=5
+)
+print(result.stdout)
+```
+
+An argument list avoids shell parsing, `check=True` reports a failed command, and the timeout prevents a stuck
+process from waiting forever. Catch only errors the program can handle usefully; do not suppress an exception just
+to make the script appear successful.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module06/lesson-02.svg"
+    alt="Python can parse structured input, validate its shape, and produce an operation result while handling errors."
+    caption="A structured operation parses input, validates it, and produces an output with errors handled."
+  />
+</ConceptSection>

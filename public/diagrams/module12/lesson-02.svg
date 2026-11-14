@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+<title id="title">Azure resource dependencies</title>
+<desc id="desc">The VM has separately managed disk, network interface, and optional public IP dependencies. The network interface attaches to a subnet governed by network security rules; dependent resources can have separate lifecycles.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6586a3"/></marker></defs>
+<rect width="960" height="360" rx="24" fill="#f4f7fb"/>
+<text x="40" y="48" fill="#15324b" font-family="Arial,sans-serif" font-size="22" font-weight="700">Azure resource dependencies</text>
+<path d="M420 148 L245 197" fill="none" stroke="#6586a3" stroke-width="3"/>
+<path d="M480 148 L480 197" fill="none" stroke="#6586a3" stroke-width="3"/>
+<path d="M540 148 L715 197" fill="none" stroke="#6586a3" stroke-width="3"/>
+<path d="M480 263 L480 282" fill="none" stroke="#6586a3" stroke-width="3"/>
+<rect x="395" y="90" width="170" height="58" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="480.0" y="124.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="480.0" dy="0">Virtual machine</tspan></text>
+<rect x="90" y="205" width="170" height="58" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="175.0" y="239.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="175.0" dy="0">Managed disk</tspan></text>
+<rect x="395" y="205" width="170" height="58" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="480.0" y="239.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="480.0" dy="0">Network interface</tspan></text>
+<rect x="700" y="205" width="170" height="58" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="785.0" y="239.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="785.0" dy="0">Optional public IP</tspan></text>
+<rect x="395" y="290" width="170" height="52" rx="14" fill="#f2e8cf" stroke="#7794ad" stroke-width="2"/>
+<text x="480.0" y="321.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="480.0" dy="0">Subnet and NSG</tspan></text>
+<text x="50" y="100" fill="#526579" font-family="Arial,sans-serif" font-size="14">Resource dependencies</text>
+</svg>

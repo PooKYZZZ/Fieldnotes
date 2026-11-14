@@ -66,15 +66,25 @@ docker compose ps
 docker compose logs -f app
 ```
 
-The app is exposed on `127.0.0.1:${APP_PORT:-3000}` and stores data in the named `learning-data` volume. `docker compose down` removes the container and network but retains that volume. Do not use `docker compose down -v` unless permanent deletion of learning records is intended. The MVP is not designed for LAN or public exposure; changing the bind address requires a separate authentication, access-control, backup, and deployment design.
+The app is exposed on `127.0.0.1:${APP_PORT:-3000}` and stores data in the named `learning-data` volume. `docker compose down` removes the container and network but retains that volume. Do not use `docker compose down -v` unless permanent deletion of learning records is intended.
+
+An optional `compose.cloudflare.yaml` overlay connects the app to an existing CyberTrace Cloudflare Tunnel network. The app remains bound to loopback on the host and is reachable through the Tunnel by the internal Docker alias `fieldnotes-lms:3000`. Set `FIELDNOTES_TUNNEL_NETWORK` in the local `.env` to the existing `cloudflared` ingress network name, then run:
+
+```powershell
+docker compose -f compose.yaml -f compose.cloudflare.yaml up --build -d
+```
+
+Before adding the Tunnel's `learn.cybertracesystems.com` published-application route, create a Cloudflare Access Self-hosted application for that hostname and an Allow policy restricted to the learner's identity. Enable **Protect with Access** on the route with that application's team name and audience tag so `cloudflared` also validates Access tokens at the origin. The app has no internal authentication, no per-user records, and no multi-user data isolation: all Access-authorized sessions use the same SQLite learning records. Do not publish a public route without that Access policy. To remove the additional network attachment, apply the base Compose file again with `docker compose up --build -d`; the named data volume remains intact.
 
 ## Changing curriculum and application behavior
 
 ### Curriculum content
 
-- Edit the appropriate Markdown file under `src/content/curriculum/`; keep stable IDs and relationships intact.
-- Before changing frontmatter fields or required section names, inspect `src/content/catalog.ts` and `src/content/content.test.ts`. Update the parser and meaningful tests together when the content schema changes.
+- Edit module metadata and overviews in `src/content/curriculum/modules/definitions.ts`, and lesson explanations in the corresponding `src/content/curriculum/modules/NN/lessons/*.mdx` files. Keep stable module IDs, lesson IDs, titles, and links aligned. Use practice-only `KnowledgeCheck` components to verify module concepts; they must not claim mastery or create saved records.
+- Edit activities, troubleshooting, projects, and other existing Markdown content under `src/content/curriculum/` in their current source files. Before changing frontmatter fields or required section names, inspect `src/content/catalog.ts` and `src/content/content.test.ts`; update the parser and meaningful tests together when those schemas change.
 - Keep module explanations, activity steps, verification, reflection, and references consistent. Do not add unsupported claims or imply that opening or checking an item verifies mastery.
+- All 24 modules use typed metadata and lesson-sized MDX. Use registered components in `src/mdx-components.tsx` for responsive layouts, reviewed local diagrams, command examples, callouts, and interactive knowledge checks. Knowledge-check state is practice-only and does not replace the saved learning record.
+- MDX can execute JavaScript. Only reviewed repository content may use this pipeline; never render learner uploads, remote documents, or other untrusted MDX on the server. Keep static diagrams under `public/diagrams/` and cite authoritative sources in the lesson.
 
 ### Progress storage
 
@@ -96,7 +106,7 @@ The app is exposed on `127.0.0.1:${APP_PORT:-3000}` and stores data in the named
 3. For Next.js changes, consult the installed version's matching guide under `node_modules/next/dist/docs/` and heed deprecations. The Next.js-managed section in `AGENTS.md` is preserved intentionally.
 4. Add or update tests for changed behavior, run the relevant checks, and inspect the final diff. Update docs when setup, architecture, behavior, or commands change.
 5. Keep credentials, personal data, private network details, and real learner notes out of source, tests, screenshots, logs, and exported fixtures. Treat JSON progress exports as unencrypted personal data.
-6. Do not expose the unauthenticated MVP to a LAN, tunnel, or public host; do not change production data or deploy without explicit authorization. Preserve the local SQLite volume during routine development.
+6. Keep the MVP bound to loopback by default. Any Cloudflare Tunnel exposure must use the optional overlay and a Cloudflare Access policy restricted to the intended learner; do not expose an unprotected route. Do not change production data or deploy without explicit authorization. Preserve the local SQLite volume during routine development.
 
 ## Troubleshooting
 

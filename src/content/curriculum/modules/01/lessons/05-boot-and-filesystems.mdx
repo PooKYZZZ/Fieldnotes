@@ -1,0 +1,17 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+
+export const lessonId = "M01-L05";
+export const lessonTitle = "Boot and filesystems";
+
+<ConceptSection layout="reading">
+  <div className="learning-concept-copy">
+**How does a Linux computer reach the point where a service can start?** On a typical Linux system, firmware initializes the machine and selects a boot path. A bootloader may load the kernel and an initial RAM filesystem (initramfs); the kernel initializes core facilities and finds the root filesystem. The init system then starts configured services. Systems differ: firmware, bootloader, initramfs, distribution, and init system all affect the sequence.
+
+With systemd, the system manager follows configured units and dependencies during boot; the apparent sequence is not always a simple one-service-after-another line because some work happens in parallel. Once filesystems are mounted, Linux presents them in a single directory tree. A path such as `/var/log/service.log` is resolved through that tree even if the mounted filesystem is backed by another device.
+
+If a service cannot read a path, check that the service has started, the relevant filesystem is mounted, the path exists, and the service identity can traverse directories and read the file. Do not infer that a disk is broken from a single application-level `ENOENT` or permission error.
+
+
+**Check:** A service reports that a configuration file is missing. What would you check to distinguish a wrong path from an unmounted filesystem or a permissions problem?
+  </div>
+</ConceptSection>

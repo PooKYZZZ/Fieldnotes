@@ -1,0 +1,38 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+
+export const reviewId = "M01-R01";
+export const reviewTitle = "Trace one simple failure";
+
+<ConceptSection layout="reading">
+  <div className="learning-concept-copy">
+Suppose a process is visible but cannot read `/var/log/service.log`. The process exists, so startup succeeded. Next inspect the service identity, directory traversal permissions, file permissions, mount state, and exact error. The evidence may point to a path or access problem; restarting the VM would not explain which condition failed.
+  </div>
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-01-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "process-present",
+      prompt: "A process exists but cannot read `/var/log/service.log`. What is the best next step?",
+      options: ["Restart the VM to reset the process state.", "Check the process identity, path traversal and file permissions, mount state, and exact error.", "Assume the disk is damaged because the file read failed."],
+      correctIndex: 1,
+      explanation: "A live process can fail a read because of identity, path, permissions, mount state, or another reported error. Gather those clues before changing the system.",
+    },
+    {
+      id: "blocked-thread",
+      prompt: "A service thread is waiting for disk data. What should you infer about CPU use?",
+      options: ["The process must be continuously using a CPU.", "The process has exited because it is not running.", "The thread may be blocked and using little CPU while the process remains alive."],
+      correctIndex: 2,
+      explanation: "A blocked thread is waiting for an event; the process remains present without continuously executing.",
+    },
+    {
+      id: "memory-values",
+      prompt: "A process has a much larger VSZ than RSS. Which interpretation is accurate?",
+      options: ["VSZ describes virtual address-space size; RSS estimates resident physical memory, with shared-page accounting limits.", "VSZ is physical RAM and RSS is persistent disk storage.", "The difference alone proves a memory leak."],
+      correctIndex: 0,
+      explanation: "VSZ and RSS describe different aspects of memory. Their values are clues, not enough by themselves to diagnose a leak.",
+    },
+  ]}
+/>

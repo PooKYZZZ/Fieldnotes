@@ -1,0 +1,15 @@
+export const lessonId = "M12-L02";
+export const lessonTitle = "Azure resource dependencies";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Azure groups resources for lifecycle and governance. A VM depends on network interfaces, disks, network security
+rules and sometimes public addresses; deleting only the VM may leave billable resources. Learn the dependency
+graph before creating anything.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module12/lesson-02.svg"
+    alt="A VM has separate disk, network interface, and optional public IP dependencies; the interface attaches to a subnet governed by network security rules."
+    caption="The VM branches to its managed disk, network interface, and optional public IP. The network interface attaches to a subnet with security rules; these resources have separate lifecycles."
+  />
+</ConceptSection>

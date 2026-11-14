@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+<title id="title">State, dependencies, and drift</title>
+<desc id="desc">Terraform compares configuration and protected state with live resources. An out-of-band change creates drift; inspect it and decide whether configuration or the resource should change.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6586a3"/></marker></defs>
+<rect width="960" height="360" rx="24" fill="#f4f7fb"/>
+<text x="40" y="48" fill="#15324b" font-family="Arial,sans-serif" font-size="22" font-weight="700">State, dependencies, and drift</text>
+<path d="M255 146 L322 180" fill="none" stroke="#6586a3" stroke-width="3"/>
+<path d="M255 251 L322 212" fill="none" stroke="#6586a3" stroke-width="3"/>
+<path d="M535 180 L602 146" fill="none" stroke="#6586a3" stroke-width="3" marker-end="url(#arrow)"/>
+<path d="M535 212 L602 251" fill="none" stroke="#6586a3" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="50" y="115" width="205" height="62" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="152.5" y="142.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="152.5" dy="0">Configuration and</tspan><tspan x="152.5" dy="17">state</tspan></text>
+<rect x="50" y="220" width="205" height="62" rx="14" fill="#f4e0df" stroke="#7794ad" stroke-width="2"/>
+<text x="152.5" y="247.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="152.5" dy="0">Live resource</tspan><tspan x="152.5" dy="17">changes</tspan></text>
+<rect x="330" y="165" width="205" height="62" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="432.5" y="201.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="432.5" dy="0">Compare with plan</tspan></text>
+<rect x="610" y="115" width="270" height="62" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="745.0" y="134.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="745.0" dy="0">Update configuration</tspan><tspan x="745.0" dy="17">if change is</tspan><tspan x="745.0" dy="17">intended</tspan></text>
+<rect x="610" y="220" width="270" height="62" rx="14" fill="#f2e8cf" stroke="#7794ad" stroke-width="2"/>
+<text x="745.0" y="239.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="745.0" dy="0">Correct live</tspan><tspan x="745.0" dy="17">resource if change</tspan><tspan x="745.0" dy="17">is unwanted</tspan></text>
+</svg>

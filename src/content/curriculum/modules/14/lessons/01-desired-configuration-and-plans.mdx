@@ -1,0 +1,16 @@
+export const lessonId = "M14-L01";
+export const lessonTitle = "Desired configuration and plans";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Terraform configuration describes resources and relationships; a provider translates those declarations into API
+operations for a platform. `terraform init` installs provider dependencies, `validate` checks configuration shape,
+and `plan` compares the desired configuration with the current state and provider observations. Read each planned
+create, update and destroy. A plan is a preview, not a reservation: external changes can occur before apply.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module14/lesson-01.svg"
+    alt="Terraform combines desired configuration, protected state, and provider observations into a proposed plan for review before apply."
+    caption="Desired configuration + protected state + provider observations → proposed plan → review before apply."
+  />
+</ConceptSection>

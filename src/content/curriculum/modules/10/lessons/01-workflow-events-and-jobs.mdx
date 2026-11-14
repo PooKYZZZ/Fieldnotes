@@ -1,0 +1,16 @@
+export const lessonId = "M10-L01";
+export const lessonTitle = "Workflow events and jobs";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A workflow file declares events, jobs and steps. An event such as a pull request schedules a runner; steps execute
+commands or actions in that job's environment. Separate jobs can use different runners and do not automatically
+share files. Use artifacts when one job needs a specific output from another. Cache dependencies to reduce install
+time, but do not confuse a cache with a verified build artifact.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module10/lesson-01.svg"
+    alt="A pull request event selects a revision for a runner job, which performs checks and records its result or artifact."
+    caption="Pull request event → pinned revision → runner job → check results → recorded artifact."
+  />
+</ConceptSection>

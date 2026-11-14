@@ -1,0 +1,16 @@
+export const lessonId = "M12-L01";
+export const lessonTitle = "Cloud service models and responsibility";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Cloud providers expose virtual infrastructure through APIs and consoles. Infrastructure as a Service delegates
+physical hardware management to the provider but leaves you responsible for guest OS patching, configuration and
+many security choices. Managed PaaS shifts more operations to the provider, but the shared responsibility boundary
+depends on the service.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module12/lesson-01.svg"
+    alt="The provider operates physical hardware beneath alternative IaaS and managed PaaS models; customer and provider responsibilities differ by service."
+    caption="Provider hardware supports two alternative models: IaaS, where the customer manages the guest OS and configuration, and managed PaaS, where the provider operates more of the platform."
+  />
+</ConceptSection>

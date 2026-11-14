@@ -1,0 +1,28 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M07-L01";
+export const lessonTitle = "The working tree, index, and commits";
+
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Git keeps three states that are easy to confuse: files in the working tree, selected changes in the index, and
+committed snapshots in repository history. `git diff` shows unstaged edits; `git diff --cached` shows what the next
+commit will contain. Review both before committing, then inspect the saved commit with `git show`.
+
+```diagram
+edit files → inspect diff → stage selected paths → inspect staged diff → commit
+    │                                                          │
+    └── working tree                                            └── repository history
+```
+
+Untracked files are not in a commit. A stash is local working-state storage; pushing a branch does not upload a
+stash. A commit is not a backup until it is pushed to a remote you trust.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module07/lesson-01.svg"
+    alt="Git records changes through a working tree and staging index; a commit stores the selected snapshot in history."
+    caption="Git changes move from the working tree to the staging index, then into a commit snapshot."
+  />
+</ConceptSection>

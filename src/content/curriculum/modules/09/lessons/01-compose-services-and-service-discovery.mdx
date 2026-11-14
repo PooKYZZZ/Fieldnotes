@@ -1,0 +1,16 @@
+export const lessonId = "M09-L01";
+export const lessonTitle = "Compose services and service discovery";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A Compose project defines related services, networks, volumes and runtime settings. Services on a shared network
+can resolve each other by service name, so an API can connect to `db:5432` without publishing the database port to
+the host. Publish only the service ports that a host user needs to reach. A published port is a network boundary,
+not an authentication mechanism.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module09/lesson-01.svg"
+    alt="A host request travels through a published proxy port to the API on the private Compose network, which reaches the database by service name; the database separately stores files in a named volume."
+    caption="Host request → published proxy → private API → database by service name. The database connects separately to its named volume for persistent files."
+  />
+</ConceptSection>

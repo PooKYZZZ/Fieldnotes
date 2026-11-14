@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" role="img" aria-labelledby="title description">
+  <title id="title">A recovery drill measures data loss and service restoration</title>
+  <desc id="description">A verified backup is taken before an incident. Recovery point objective is measured from the latest recoverable point to the incident. Recovery time is measured from impact until service is restored. The backup is restored to an isolated target and application behavior is verified.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#4c7d9b"/></marker>
+  </defs>
+  <rect width="1000" height="540" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">A backup is evidence only after a restore drill</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">Recover into an isolated target; compare observed loss and elapsed recovery with your targets.</text>
+
+  <text x="52" y="124" fill="#607573" font-family="Arial,sans-serif" font-size="13" font-weight="700">SERVICE TIMELINE</text>
+  <path d="M80 182H917" fill="none" stroke="#93aaa2" stroke-width="4" marker-end="url(#arrow)"/>
+  <circle cx="132" cy="182" r="13" fill="#fff" stroke="#39776f" stroke-width="4"/>
+  <circle cx="401" cy="182" r="13" fill="#fff6e8" stroke="#b27d45" stroke-width="4"/>
+  <circle cx="692" cy="182" r="13" fill="#edf1f5" stroke="#6e8798" stroke-width="4"/>
+  <circle cx="888" cy="182" r="13" fill="#e4f0eb" stroke="#39776f" stroke-width="4"/>
+  <text x="80" y="214" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Verified backup</text>
+  <text x="80" y="236" fill="#607573" font-family="Arial,sans-serif" font-size="12">recoverable copy</text>
+  <text x="346" y="214" fill="#75583a" font-family="Arial,sans-serif" font-size="14" font-weight="700">Incident impact</text>
+  <text x="346" y="236" fill="#7a654e" font-family="Arial,sans-serif" font-size="12">preserve timeline + evidence</text>
+  <text x="650" y="214" fill="#536c7c" font-family="Arial,sans-serif" font-size="14" font-weight="700">Restore + verify</text>
+  <text x="650" y="236" fill="#64747c" font-family="Arial,sans-serif" font-size="12">isolated recovery target</text>
+  <text x="849" y="214" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Service restored</text>
+  <text x="849" y="236" fill="#607573" font-family="Arial,sans-serif" font-size="12">user path checked</text>
+
+  <path d="M143 278H390" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 6" marker-end="url(#arrow-blue)"/>
+  <rect x="203" y="259" width="126" height="34" rx="17" fill="#e4edf3"/>
+  <text x="229" y="281" fill="#536c7c" font-family="Arial,sans-serif" font-size="14" font-weight="700">RPO window</text>
+  <text x="145" y="312" fill="#64747c" font-family="Arial,sans-serif" font-size="12">maximum acceptable data gap, measured in time</text>
+
+  <path d="M412 354H878" fill="none" stroke="#39776f" stroke-width="3" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+  <rect x="576" y="335" width="136" height="34" rx="17" fill="#dfece7"/>
+  <text x="604" y="357" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">RTO window</text>
+  <text x="421" y="389" fill="#607573" font-family="Arial,sans-serif" font-size="12">target time to restore service; record the observed duration</text>
+
+  <rect x="52" y="423" width="895" height="73" rx="12" fill="#fff" stroke="#d6dfdc"/>
+  <text x="73" y="453" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Drill evidence</text>
+  <text x="73" y="478" fill="#5c7371" font-family="Arial,sans-serif" font-size="13">backup ID · data point restored · checksum/record check · elapsed time · remaining gaps</text>
+</svg>

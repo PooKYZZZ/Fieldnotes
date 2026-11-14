@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Independent CI security gates</title>
+  <desc id="desc">Tests, dependency review, image scanning, and permission checks provide distinct evidence that is triaged before promotion.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Independent CI security gates</text>
+  <path d="M132 192 L420 265" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M372 192 L450 265" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M612 192 L500 265" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <path d="M840 192 L540 265" fill="none" stroke="#4c7d9b" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-blue)"/>
+  <rect x="30" y="100" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="132" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="132" dy="0">Tests</tspan>
+  </text>
+  <text x="132" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">behavior</text>
+  <rect x="270" y="100" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="372" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="372" dy="0">Dependency review</tspan>
+  </text>
+  <text x="372" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">known components</text>
+  <rect x="510" y="100" width="205" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="612" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="612" dy="0">Image scan</tspan>
+  </text>
+  <text x="612" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">known findings</text>
+  <rect x="750" y="100" width="180" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="840" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="840" dy="0">Permissions</tspan>
+  </text>
+  <text x="840" y="175" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">least privilege</text>
+  <rect x="355" y="265" width="250" height="82" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="299" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Promotion decision</tspan>
+  </text>
+  <text x="480" y="330" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">triage, block, or proceed</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">Gates run as complementary checks; a clean scan alone is not a security guarantee.</text>
+  </svg>

@@ -1,0 +1,49 @@
+export const lessonId = "M20-L03";
+export const lessonTitle = "Federated deployment identity";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Where the cloud and CI provider support it, OpenID Connect federation can exchange a short-lived workflow identity token for cloud credentials. Trust conditions should restrict the repository, branch, environment or workflow that may request the identity. Federation reduces the need to store a long-lived cloud key, but it does not make a workflow safe by itself: protect workflow edits, apply least privilege and audit each deployment.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module20/lesson-03.svg" alt="The workflow identity token and scoped repository, branch, or environment trust conditions are evaluated together before short-lived cloud credentials are issued." caption="OIDC federation validates the workflow identity against trust conditions before issuing short-lived scoped access." />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-20-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "question-1",
+      prompt: "A cloud token was pushed to a public repository and then removed in a later commit. What should happen first?",
+      options: [
+        "Rotate or revoke it, then investigate exposure and clean up the repository as appropriate.",
+        "Keep using it because the latest version no longer contains it.",
+        "Rename the file that held the token.",
+      ],
+      correctIndex: 0,
+      explanation: "The credential can remain in history, clones, logs, or caches; revoke or rotate the credential rather than relying on file deletion.",
+    },
+    {
+      id: "question-2",
+      prompt: "A deployment identity receives an insufficient-permission error. What is the safest next step?",
+      options: [
+        "Assign Owner so the deployment will work.",
+        "Identify the missing action and grant the narrowest permission needed.",
+        "Make the cloud resource publicly accessible.",
+      ],
+      correctIndex: 1,
+      explanation: "Authorization should be scoped to the required action; testing insufficient permissions helps avoid broad grants.",
+    },
+    {
+      id: "question-3",
+      prompt: "A CI provider and cloud support OIDC federation. Which setup reduces reliance on a long-lived cloud key?",
+      options: [
+        "Use any workflow token with broad cloud access.",
+        "Store a permanent key in the container image.",
+        "Restrict federation trust to the approved repository, branch, environment, or workflow and grant least privilege.",
+      ],
+      correctIndex: 2,
+      explanation: "Federation exchanges a short-lived workflow identity for scoped cloud access; tight trust conditions and workflow protections remain necessary.",
+    },
+  ]}
+/>

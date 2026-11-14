@@ -1,0 +1,18 @@
+export const lessonId = "M10-L02";
+export const lessonTitle = "Checks and artifacts";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Tests, lint, type checks, integration tests and container builds catch different failures. A green status applies to
+the revision and workflow that ran; it does not prove a later commit or deployed environment is correct. When a run
+fails, locate the first causal error and compare the exact commit, event and environment before rerunning.
+
+An artifact should have a clear name, retention policy and relationship to the source revision. Preserve useful
+reports while avoiding credentials, personal data and debug dumps that reveal secrets.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module10/lesson-02.svg"
+    alt="Tests, lint and type checks, integration checks, and a container build run as distinct checks whose results are associated with the tested revision."
+    caption="Independent checks—tests, lint and types, integration, and container build—converge on a report tied to the revision."
+  />
+</ConceptSection>

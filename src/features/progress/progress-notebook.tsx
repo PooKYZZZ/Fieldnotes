@@ -7,11 +7,12 @@ import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
 
 export type NotebookItem = { itemType: ProgressRecord["itemType"]; itemId: string; label: string; href: string; editHref?: string; editLabel?: string; kind: string };
-type ItemFilter = "all" | "module" | "activity" | "project" | "milestone";
+type ItemFilter = "all" | "module" | "lesson" | "activity" | "project" | "milestone";
 
 const itemFilters: { value: ItemFilter; label: string }[] = [
   { value: "all", label: "All types" },
   { value: "module", label: "Modules" },
+  { value: "lesson", label: "Lessons" },
   { value: "activity", label: "Activities" },
   { value: "project", label: "Projects" },
   { value: "milestone", label: "Milestones" },

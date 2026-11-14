@@ -1,0 +1,26 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M01-L01";
+export const lessonTitle = "From program to process";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+**What is different between an application on disk and one that is running?** A program is a file containing instructions and data. When you launch it, the operating system creates a process: a running instance with an identity, an address space, resources such as open files, and at least one thread of execution.
+
+On Linux, a shell commonly asks the kernel to create a child process and then execute a program in it. The `execve` system call replaces the calling process's program image with the new program; it does not itself create a new process. The kernel maps the program and its required data, prepares the initial state, and begins execution. The process has a process ID (PID); its parent process has a parent PID (PPID). Starting another copy of the same program normally creates another process with a different PID. As Figure 1 shows, a process can move between ready, running, and blocked states; being present does not mean it is using a CPU at that instant.
+
+Try `ps -eo pid,ppid,comm,state --sort=pid | head` in a Linux terminal. Pick a command you recognize and trace its PPID to its parent. A process can remain present while sleeping or waiting; its existence does not mean it is using a CPU at that instant.
+
+
+**Check:** If two terminal windows launch the same command, what would you inspect to tell whether they are two running instances?
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module01/process-lifecycle-openstax.webp"
+    alt="A simplified process lifecycle: creation leads to ready, then dispatch leads to running; interrupts return it to ready, while I/O or exceptions can block it."
+    width={903}
+    height={539}
+    caption="Figure 1. A simplified Unix/Linux process lifecycle; process-state names and exit handling vary across operating systems."
+    source={{ label: "OpenStax, Figure 6.20", url: "https://openstax.org/books/introduction-computer-science/pages/6-3-processes-and-concurrency", license: "CC BY-NC-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/" }}
+  />
+</ConceptSection>

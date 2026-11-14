@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 300" role="img" aria-labelledby="title desc">
+  <title id="title">A process containing two threads</title>
+  <desc id="desc">One process boundary contains shared virtual address space and file descriptors. Two threads share those resources but each has its own stack and execution state.</desc>
+  <metadata>Original Fieldnotes instructional diagram, created for Module 01. No external assets.</metadata>
+  <rect width="920" height="300" rx="18" fill="#f5f8f6"/>
+  <rect x="35" y="35" width="850" height="230" rx="16" fill="#fff" stroke="#7d9f94" stroke-width="2"/>
+  <text x="60" y="69" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#29494a">One process · PID 4312</text>
+  <g font-family="system-ui,sans-serif" text-anchor="middle">
+    <rect x="65" y="100" width="255" height="125" rx="12" fill="#e8f1ed" stroke="#9eb8b0" stroke-width="2"/>
+    <text x="192" y="133" font-size="15" font-weight="700" fill="#29494a">Shared process resources</text>
+    <text x="192" y="162" font-size="13" fill="#536a68">virtual address space</text><text x="192" y="184" font-size="13" fill="#536a68">open file descriptors</text><text x="192" y="206" font-size="12" fill="#647774">code · data · mappings</text>
+    <rect x="385" y="100" width="205" height="125" rx="12" fill="#edf3f7" stroke="#92a9b5" stroke-width="2"/>
+    <text x="487" y="133" font-size="15" font-weight="700" fill="#29494a">Thread 1</text><text x="487" y="162" font-size="13" fill="#536a68">own stack</text><text x="487" y="184" font-size="13" fill="#536a68">registers + state</text><text x="487" y="206" font-size="12" fill="#647774">TID 4312</text>
+    <rect x="640" y="100" width="205" height="125" rx="12" fill="#edf3f7" stroke="#92a9b5" stroke-width="2"/>
+    <text x="742" y="133" font-size="15" font-weight="700" fill="#29494a">Thread 2</text><text x="742" y="162" font-size="13" fill="#536a68">own stack</text><text x="742" y="184" font-size="13" fill="#536a68">registers + state</text><text x="742" y="206" font-size="12" fill="#647774">TID 4320</text>
+  </g>
+  <path d="M320 163h58M590 163h43" stroke="#52746d" stroke-width="2" stroke-dasharray="5 5"/>
+  <text x="460" y="284" font-family="system-ui,sans-serif" text-anchor="middle" font-size="12" fill="#637774">Shared memory enables communication; concurrent changes may need coordination.</text>
+</svg>

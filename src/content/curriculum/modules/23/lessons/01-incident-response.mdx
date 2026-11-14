@@ -1,0 +1,26 @@
+export const lessonId = "M23-L01";
+export const lessonTitle = "Triage incidents and preserve useful evidence";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <h4>Start with impact and evidence</h4>
+    <p>An incident is a situation to assess, not a reason to guess at a fix. Establish what users cannot do, which services and dependencies are affected, when symptoms began, and which facts are confirmed. Record timestamps with a time zone and preserve the logs or measurements needed to reconstruct the sequence.</p>
+    <p>NIST places incident response within broader cybersecurity risk management. Preparation, detection, response, and recovery inform one another; responders should use the organization’s approved roles, escalation path, and containment authority.</p>
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module23/incident-response.svg"
+    alt="A response path from signal and impact assessment through authorized containment and evidence preservation to verified recovery and review."
+    caption="Separate observed facts from hypotheses at each step. Original Fieldnotes diagram based on NIST SP 800-61 Rev. 3."
+  />
+</ConceptSection>
+
+<Callout title="Keep the exercise in its boundary" tone="safety">
+  Practice this workflow only with synthetic data in the disposable lab. For a real incident, follow the system owner’s runbook and escalation process; do not improvise containment or alter evidence.
+</Callout>
+
+<CommandExample
+  title="Record an evidence timestamp"
+  language="bash"
+  command={'date -u +"%Y-%m-%dT%H:%M:%SZ"'}
+  explanation="A timestamp gives later observations a common reference. In a real investigation, preserve the original evidence and record how it was collected."
+/>

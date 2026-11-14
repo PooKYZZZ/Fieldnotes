@@ -1,0 +1,16 @@
+export const lessonId = "M13-L02";
+export const lessonTitle = "Identity and authorization";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Azure RBAC governs actions on cloud resources; a Linux account governs actions inside the guest; application roles
+govern what a user can do through the service. These are different identities and trust boundaries. Use the smallest
+role and scope that completes the task, require MFA where supported, and avoid using an Owner account for ordinary
+deployment. A network allow rule is not user authentication.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module13/lesson-02.svg"
+    alt="Azure RBAC, network rules, guest OS accounts, and application roles are separate control domains with distinct permissions."
+    caption="Four separate domains: Azure RBAC for cloud actions, network rules for traffic reachability, guest OS accounts for Linux access, and application roles for service permissions."
+  />
+</ConceptSection>

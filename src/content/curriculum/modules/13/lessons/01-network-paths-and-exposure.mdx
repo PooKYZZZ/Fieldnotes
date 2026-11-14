@@ -1,0 +1,20 @@
+export const lessonId = "M13-L01";
+export const lessonTitle = "Network paths and exposure";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+A virtual network defines address space and subnets; a route table and security rules affect how packets travel.
+Network Security Groups filter traffic at Azure network interfaces or subnets. The guest operating system can also
+filter traffic, and the application must listen on the intended address and port. A public IP makes an address
+routable; it does not guarantee a listener or permit traffic through every filter.
+
+
+Test one layer at a time. For administrative access, restrict the allowed source range where feasible and avoid
+opening SSH to all internet addresses. Do not publish a database just because the application needs to reach it.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module13/lesson-01.svg"
+    alt="Traffic passes from the client source through the endpoint, network rule, guest firewall, and listening service port."
+    caption="Client source → public or private endpoint → network rule → guest firewall → listening service."
+  />
+</ConceptSection>

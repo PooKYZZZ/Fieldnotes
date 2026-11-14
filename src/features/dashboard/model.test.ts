@@ -8,13 +8,14 @@ function record(itemType: ProgressRecord["itemType"], itemId: string, status: Pr
 }
 
 describe("dashboard learning model", () => {
-  it("recommends the first real module without linking a prerequisite-blocked activity", () => {
+  it("recommends the first unfinished lesson without linking a prerequisite-blocked activity", () => {
     const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, []);
 
     expect(model.currentModule?.id).toBe(1);
     expect(model.currentModuleStatus).toBe("not_started");
     expect(model.completedModules).toBe(0);
-    expect(model.nextItems).toEqual([]);
+    expect(model.currentLesson).toMatchObject({ id: "M01-L01", moduleId: 1 });
+    expect(model.nextItems[0]).toMatchObject({ id: "M01-L01", href: "/modules/01/lessons/m01-l01" });
     expect(model.recentItems).toEqual([]);
   });
 
@@ -47,7 +48,7 @@ describe("dashboard learning model", () => {
     expect(model.currentModule?.id).toBe(3);
     expect(model.currentActivity?.id).toBe("A03");
     expect(model.currentActivityStatus).toBe("in_progress");
-    expect(model.nextItems[0]).toMatchObject({ href: "/activities/A03", type: "Challenge · Module 03" });
+    expect(model.nextItems.some((item) => item.href === "/activities/A03" && item.type === "Challenge · Module 03")).toBe(true);
   });
 
   it("uses explicit completion records and does not invent recent work", () => {
@@ -55,8 +56,31 @@ describe("dashboard learning model", () => {
     const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
 
     expect(model.completedModules).toBe(modules.length);
-    expect(model.currentModule).toBeUndefined();
+    expect(model.currentModule?.id).toBe(1);
+    expect(model.currentModuleStatus).toBe("completed");
+    expect(model.currentLesson?.id).toBe("M01-L01");
     expect(model.recentItems).toHaveLength(4);
     expect(model.recentItems.every((item) => item.detail === "Module marked complete")).toBe(true);
+  });
+
+  it("counts lesson records separately, resumes the active lesson, and keeps module and activity statuses independent", () => {
+    const records = [
+      record("module", "M01", "completed", 100),
+      record("activity", "A01", "needs_review", 200),
+      record("lesson", "M01-L01", "completed", 150),
+      record("lesson", "M01-L02", "in_progress", 300),
+    ];
+    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+
+    expect(model.currentLesson).toMatchObject({ id: "M01-L02", moduleId: 1 });
+    expect(model.currentLessonStatus).toBe("in_progress");
+    expect(model.currentModuleStatus).toBe("completed");
+    expect(model.currentActivity?.id).toBe("A01");
+    expect(model.currentActivityStatus).toBe("needs_review");
+    expect(model.completedLessons).toBe(1);
+    expect(model.totalLessons).toBe(modules.reduce((count, module) => count + module.lessons.length, 0));
+    expect(model.lessonProgressByModule.get("M01")).toMatchObject({ completed: 1, total: modules[0].lessons.length });
+    expect(model.nextItems[0]).toMatchObject({ id: "M01-L02", href: "/modules/01/lessons/m01-l02" });
+    expect(model.recentItems.some((item) => item.title === "From program to process" && item.href === "/modules/01/lessons/m01-l01")).toBe(true);
   });
 });

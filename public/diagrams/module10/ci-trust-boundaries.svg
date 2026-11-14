@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" role="img" aria-labelledby="title description">
+  <title id="title">A CI workflow tied to one revision and a separate deployment boundary</title>
+  <desc id="description">A pull request or push event identifies a commit. A runner checks out that revision, installs locked dependencies, runs tests and builds an artifact. Untrusted pull request checks receive limited permissions and no deployment secrets; a trusted deployment uses a protected environment and the built artifact.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#39776f"/></marker>
+    <marker id="arrow-muted" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0 10 4 0 8Z" fill="#82928f"/></marker>
+  </defs>
+  <rect width="1000" height="540" rx="18" fill="#f4f8f6"/>
+  <text x="34" y="42" fill="#29494a" font-family="Arial,sans-serif" font-size="23" font-weight="700">A passing check belongs to one revision and one workflow</text>
+  <text x="34" y="68" fill="#5c7371" font-family="Arial,sans-serif" font-size="15">CI evidence is useful when the tested commit, produced artifact and deployment are connected.</text>
+
+  <rect x="32" y="112" width="180" height="116" rx="14" fill="#fff" stroke="#adc4bb" stroke-width="2"/>
+  <text x="51" y="145" fill="#315e58" font-family="Arial,sans-serif" font-size="15" font-weight="700">Repository event</text>
+  <text x="51" y="174" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">pull request / push</text>
+  <text x="51" y="198" fill="#4f6264" font-family="Arial,sans-serif" font-size="13">commit SHA + ref</text>
+  <path d="M212 170h49" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <rect x="271" y="100" width="388" height="286" rx="16" fill="#e8f1ed" stroke="#84a69a" stroke-width="2"/>
+  <text x="293" y="132" fill="#315e58" font-family="Arial,sans-serif" font-size="17" font-weight="700">Isolated CI runner · one job environment</text>
+  <rect x="295" y="151" width="340" height="43" rx="9" fill="#fff" stroke="#bdd0c8"/>
+  <text x="313" y="178" fill="#29494a" font-family="Arial,sans-serif" font-size="14" font-weight="700">1 · Check out the event's revision</text>
+  <rect x="295" y="204" width="340" height="43" rx="9" fill="#fff" stroke="#bdd0c8"/>
+  <text x="313" y="231" fill="#29494a" font-family="Arial,sans-serif" font-size="14" font-weight="700">2 · Install locked dependencies</text>
+  <rect x="295" y="257" width="340" height="43" rx="9" fill="#fff" stroke="#bdd0c8"/>
+  <text x="313" y="284" fill="#29494a" font-family="Arial,sans-serif" font-size="14" font-weight="700">3 · Test · lint · typecheck · build</text>
+  <rect x="295" y="310" width="340" height="55" rx="9" fill="#f7fbf9" stroke="#bdd0c8"/>
+  <text x="313" y="334" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Result + reports + artifact digest</text>
+  <text x="313" y="353" fill="#607573" font-family="Arial,sans-serif" font-size="12">Each job needs artifacts to share files.</text>
+  <path d="M447 194v9M447 247v8M447 300v8" fill="none" stroke="#6e9286" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="32" y="284" width="180" height="102" rx="12" fill="#fff6e8" stroke="#dec49e"/>
+  <text x="51" y="313" fill="#75583a" font-family="Arial,sans-serif" font-size="14" font-weight="700">Untrusted contribution</text>
+  <text x="51" y="338" fill="#7a654e" font-family="Arial,sans-serif" font-size="12">minimum token access</text>
+  <text x="51" y="359" fill="#7a654e" font-family="Arial,sans-serif" font-size="12">no deployment secrets</text>
+  <path d="M122 228v48" fill="none" stroke="#82928f" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-muted)"/>
+  <path d="M212 337h50" fill="none" stroke="#82928f" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-muted)"/>
+
+  <path d="M659 337h55" fill="none" stroke="#39776f" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="725" y="130" width="243" height="254" rx="16" fill="#edf1f5" stroke="#bfcbd3" stroke-width="2"/>
+  <text x="748" y="163" fill="#536c7c" font-family="Arial,sans-serif" font-size="16" font-weight="700">Protected deployment</text>
+  <rect x="748" y="181" width="197" height="65" rx="10" fill="#fff" stroke="#c7d0db"/>
+  <text x="765" y="207" fill="#365f6c" font-family="Arial,sans-serif" font-size="13" font-weight="700">Trusted revision</text>
+  <text x="765" y="229" fill="#5f7078" font-family="Arial,sans-serif" font-size="12">approval + scoped credentials</text>
+  <rect x="748" y="259" width="197" height="52" rx="10" fill="#fff" stroke="#c7d0db"/>
+  <text x="765" y="291" fill="#365f6c" font-family="Arial,sans-serif" font-size="13" font-weight="700">Deploy tested artifact</text>
+  <path d="M846 247v9" fill="none" stroke="#82928f" stroke-width="2" marker-end="url(#arrow-muted)"/>
+  <text x="748" y="342" fill="#5f7078" font-family="Arial,sans-serif" font-size="12">Verify the deployed revision separately.</text>
+
+  <rect x="32" y="423" width="936" height="76" rx="12" fill="#fff" stroke="#d6dfdc"/>
+  <text x="53" y="454" fill="#315e58" font-family="Arial,sans-serif" font-size="14" font-weight="700">Green CI ≠ deployed health</text>
+  <text x="53" y="478" fill="#5c7371" font-family="Arial,sans-serif" font-size="14">A passing result applies to that commit and workflow; deployment, runtime behavior and security need their own evidence.</text>
+</svg>

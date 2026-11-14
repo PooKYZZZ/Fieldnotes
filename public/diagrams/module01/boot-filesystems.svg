@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 245" role="img" aria-labelledby="title desc">
+  <title id="title">Simplified Linux boot and filesystem path</title>
+  <desc id="desc">A typical Linux boot proceeds from firmware to a bootloader, kernel and initramfs, root filesystem, and system manager such as systemd, which starts configured services. Details vary.</desc>
+  <metadata>Original Fieldnotes instructional diagram, created for Module 01. No external assets.</metadata>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 8 4 0 8z" fill="#52746d"/></marker></defs>
+  <rect width="920" height="245" rx="18" fill="#f5f8f6"/>
+  <g font-family="system-ui,sans-serif" text-anchor="middle">
+    <rect x="28" y="76" width="142" height="82" rx="11" fill="#fff" stroke="#9eb8b0" stroke-width="2"/><text x="99" y="108" font-size="14" font-weight="700" fill="#29494a">Firmware</text><text x="99" y="132" font-size="12" fill="#536a68">initializes device</text>
+    <rect x="194" y="76" width="142" height="82" rx="11" fill="#fff" stroke="#9eb8b0" stroke-width="2"/><text x="265" y="108" font-size="14" font-weight="700" fill="#29494a">Bootloader</text><text x="265" y="132" font-size="12" fill="#536a68">selects boot entry</text>
+    <rect x="360" y="76" width="158" height="82" rx="11" fill="#eaf0f4" stroke="#92a9b5" stroke-width="2"/><text x="439" y="108" font-size="14" font-weight="700" fill="#29494a">Kernel + initramfs</text><text x="439" y="132" font-size="12" fill="#536a68">find root filesystem</text>
+    <rect x="542" y="76" width="150" height="82" rx="11" fill="#e8f1ed" stroke="#8ba99d" stroke-width="2"/><text x="617" y="108" font-size="14" font-weight="700" fill="#29494a">Root filesystem</text><text x="617" y="132" font-size="12" fill="#536a68">mounts as /</text>
+    <rect x="716" y="76" width="176" height="82" rx="11" fill="#e8f1ed" stroke="#8ba99d" stroke-width="2"/><text x="804" y="108" font-size="14" font-weight="700" fill="#29494a">System manager</text><text x="804" y="132" font-size="12" fill="#536a68">starts configured services</text>
+    <path d="M171 117h17M337 117h20M519 117h20M693 117h19" stroke="#52746d" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="460" y="198" font-size="12" fill="#637774">Typical path only: firmware, bootloader, init system, and ordering vary across Linux systems.</text>
+  </g>
+</svg>

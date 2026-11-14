@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 320" role="img" aria-labelledby="title desc">
+  <title id="title">Virtual memory, physical RAM, and persistent storage</title>
+  <desc id="desc">A process has virtual address regions mapped to resident RAM pages. The filesystem page cache also occupies RAM. File data is written to persistent storage after cache writeback or flush; process memory is not persistent.</desc>
+  <metadata>Original Fieldnotes instructional diagram, created for Module 01. No external assets.</metadata>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 8 4 0 8z" fill="#52746d"/></marker></defs>
+  <rect width="920" height="320" rx="18" fill="#f5f8f6"/>
+  <g font-family="system-ui,sans-serif" text-anchor="middle">
+    <text x="145" y="42" font-size="14" font-weight="700" fill="#29494a">Process address space</text>
+    <text x="455" y="42" font-size="14" font-weight="700" fill="#29494a">Physical RAM</text>
+    <text x="765" y="42" font-size="14" font-weight="700" fill="#29494a">Persistent storage</text>
+    <rect x="45" y="60" width="200" height="220" rx="12" fill="#fff" stroke="#9eb8b0" stroke-width="2"/>
+    <rect x="70" y="78" width="150" height="38" rx="6" fill="#e8f1ed"/><text x="145" y="102" font-size="12" fill="#29494a">code / data</text>
+    <rect x="70" y="123" width="150" height="38" rx="6" fill="#edf3f7"/><text x="145" y="147" font-size="12" fill="#29494a">mapped virtual pages</text>
+    <rect x="70" y="168" width="150" height="38" rx="6" fill="#f3eee4"/><text x="145" y="192" font-size="12" fill="#604f37">stack / heap</text>
+    <text x="145" y="244" font-size="11" fill="#637774">Virtual addresses, not a</text><text x="145" y="262" font-size="11" fill="#637774">measure of resident RAM</text>
+    <rect x="355" y="60" width="200" height="220" rx="12" fill="#fff" stroke="#9eb8b0" stroke-width="2"/>
+    <rect x="380" y="78" width="150" height="38" rx="6" fill="#e8f1ed"/><text x="455" y="102" font-size="12" fill="#29494a">resident process pages</text>
+    <rect x="380" y="123" width="150" height="38" rx="6" fill="#d9e9e3"/><text x="455" y="147" font-size="12" fill="#29494a">resident shared pages</text>
+    <rect x="380" y="177" width="150" height="57" rx="6" fill="#eaf0f4"/><text x="455" y="201" font-size="12" font-weight="700" fill="#29494a">filesystem page cache</text><text x="455" y="220" font-size="11" fill="#536a68">also occupies RAM</text>
+    <text x="455" y="260" font-size="11" fill="#637774">RSS is an estimate of</text><text x="455" y="276" font-size="11" fill="#637774">resident process memory</text>
+    <rect x="665" y="60" width="210" height="220" rx="12" fill="#fff" stroke="#9eb8b0" stroke-width="2"/>
+    <rect x="695" y="134" width="150" height="74" rx="8" fill="#e8f1ed"/><text x="770" y="166" font-size="13" font-weight="700" fill="#29494a">File data</text><text x="770" y="188" font-size="12" fill="#536a68">persistent medium</text>
+  </g>
+  <path d="M245 142h102" stroke="#52746d" stroke-width="2" marker-end="url(#arrow)"/><text x="296" y="128" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#52746d">mapping</text>
+  <path d="M555 205h103" stroke="#52746d" stroke-width="2" marker-end="url(#arrow)"/><text x="606" y="190" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#52746d">writeback / flush</text>
+  <text x="460" y="305" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" fill="#637774">Virtual size, resident memory, page cache, and durable file data describe different things.</text>
+</svg>

@@ -1,0 +1,18 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M04-L02";
+export const lessonTitle = "DNS and transport protocols";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+DNS resolves names to records such as addresses. A successful lookup tells you which answer a resolver returned;
+it does not create a connection. TCP performs connection setup and provides an ordered byte stream; UDP sends
+datagrams without TCP's delivery and ordering guarantees. The application protocol decides what the data means.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module04/lesson-02.svg"
+    alt="DNS maps a queried name to records; transport protocols then establish or carry communication to an address."
+    caption="Name resolution and transport are separate stages: DNS returns records, then a transport exchange carries traffic."
+  />
+</ConceptSection>

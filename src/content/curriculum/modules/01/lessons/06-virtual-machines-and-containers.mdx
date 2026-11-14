@@ -1,0 +1,26 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M01-L06";
+export const lessonTitle = "Virtual machines and containers";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+**What does each kind of isolation provide?** A virtual machine (VM) presents virtual hardware to a guest operating system. The guest boots and runs its own kernel; a hypervisor manages the virtual machine boundary. This is useful for practicing kernel and boot behavior or running a different operating system, with more resource overhead than a container in common setups.
+
+A container packages an application and its user-space dependencies while isolating processes and resources using operating-system mechanisms. On Linux, containers share the host kernel; a container is not a lightweight VM with its own guest kernel. This makes containers convenient for packaging and deployment, but kernel-level experiments and untrusted workloads need stronger isolation decisions than the word “container” alone implies. Figure 5 compares the usual software layers: a VM runs a guest operating system above a hypervisor, while a Linux container uses the host operating system and shares its kernel. The drawing is a simplified conceptual comparison, not a security guarantee.
+
+Choose a disposable VM for this module's process and system inspection. Use containers later to study packaging and deployment. Neither approach makes data disposable automatically: understand mounted volumes, snapshots, network access, and cleanup before a lab.
+
+
+**Check:** Which environment would you choose to experiment with booting a different kernel, and which would you choose to package an application with its dependencies? Explain the isolation boundary that matters.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module01/vm-vs-container-wikimedia.jpg"
+    alt="A side-by-side comparison shows virtual machines with separate guest operating systems above a hypervisor, and containers using a Docker engine on one host operating system."
+    width={1787}
+    height={1131}
+    caption="Figure 5. Simplified comparison of VM and Docker-container software layers; it does not represent every runtime or establish equivalent security boundaries."
+    source={{ label: "Drinkler, Docker vs VM visualised", url: "https://commons.wikimedia.org/wiki/File:Dockervsvm.jpg", license: "CC BY-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/" }}
+  />
+</ConceptSection>

@@ -1,0 +1,44 @@
+export const lessonId = "M09-L03";
+export const lessonTitle = "Configuration and persistent state";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Keep nonsecret defaults in versioned configuration and provide a nonsecret `.env.example`. Keep local credentials
+out of the repository and image build context. Environment variables are convenient but can be visible to the
+application process or diagnostic tooling, so use an appropriate secret mechanism when the threat model requires it.
+A named volume preserves database files across container replacement; it still needs tested backup and restore.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module09/lesson-03.svg"
+    alt="Versioned nonsecret defaults and a protected secret mechanism are separate inputs to the application; database files persist in a named volume with a tested backup and restore path."
+    caption="Nonsecret defaults and protected secrets independently configure the application. Separately, the named database volume has a tested backup and restore path."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-09-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "The API and database are on the same Compose network. Which address should the API normally use without exposing the database to the host?",
+      options: ["db:5432", "localhost:5432 on the host", "The database container IP copied at startup"],
+      correctIndex: 0,
+      explanation: "Compose service discovery lets containers on a shared network reach the database by service name. The database port need not be published to the host.",
+    },
+    {
+      id: "q2",
+      prompt: "The database container starts first, but connections fail while it initializes. What is the robust response?",
+      options: ["Add a fixed long sleep and remove retries.", "Use a meaningful health check and bounded application retries with a clear failure path.", "Treat the running process as proof that queries will work."],
+      correctIndex: 1,
+      explanation: "Startup order does not guarantee readiness. Health checks and runtime retries cover initialization and later dependency failures.",
+    },
+    {
+      id: "q3",
+      prompt: "A database container is recreated. Which setup best preserves its data and supports recovery?",
+      options: ["Store database files only in the container writable layer.", "Use a named volume and test backup and restore.", "Publish the database port and keep a copy of the password in the image."],
+      correctIndex: 1,
+      explanation: "A named volume survives container replacement; backups still need a tested restore procedure. Published ports and embedded credentials do not provide persistence or safety.",
+    }
+  ]}
+/>

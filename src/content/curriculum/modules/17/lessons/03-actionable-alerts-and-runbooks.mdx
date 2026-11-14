@@ -1,0 +1,49 @@
+export const lessonId = "M17-L03";
+export const lessonTitle = "Actionable alerts and runbooks";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Alert on sustained conditions where someone can take an action. A useful alert says which service is affected, the observed symptom, why it matters, and where to investigate. A threshold should be based on a user or operational objective, not chosen solely because a chart looks tidy. Test that the alert fires and clears, and include a concise runbook with verification and escalation steps. Too many low-value alerts train people to ignore them.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module17/lesson-03.svg" alt="A sustained condition produces an alert with the affected service and symptom, which directs the responder to a runbook action and recovery check." caption="An actionable alert names the service and symptom, points to a response, and is verified through firing and recovery." />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-17-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "question-1",
+      prompt: "Prometheus stops scraping a service, and its dashboard still shows the last successful value. What should the operator conclude?",
+      options: [
+        "The service is healthy because the value has not crossed a threshold.",
+        "The value is stale evidence; check scrape freshness and an independent application signal.",
+        "The service is down because every missed scrape proves user impact.",
+      ],
+      correctIndex: 1,
+      explanation: "A frozen sample is not current evidence. Show target or data freshness and use an application-level signal to assess service health.",
+    },
+    {
+      id: "question-2",
+      prompt: "A host CPU panel is normal, but users report failed requests. Which dashboard evidence best helps assess their experience?",
+      options: [
+        "Application success, error, and latency measures with a defined successful request.",
+        "The host's CPU and memory alone.",
+        "The number of dashboard panels currently visible.",
+      ],
+      correctIndex: 0,
+      explanation: "Host capacity can explain pressure but does not establish that a user journey works; pair it with application measurements.",
+    },
+    {
+      id: "question-3",
+      prompt: "An alert fires briefly during ordinary traffic variation and offers no next step. What is the best improvement?",
+      options: [
+        "Send the alert to more people so someone notices it.",
+        "Lower every threshold so the alert fires sooner.",
+        "Alert on a sustained, actionable condition and include the affected service, symptom, action, and runbook.",
+      ],
+      correctIndex: 2,
+      explanation: "Actionable alerts tie a sustained user or operational condition to an owner response and verification steps.",
+    },
+  ]}
+/>

@@ -1,17 +1,22 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, BookOpen, CheckCircle2, Clock3, FlaskConical, RefreshCw } from "lucide-react";
 import { formatStatus, type ProgressStatus } from "@/features/progress/model";
-import type { ModuleStepProgress } from "@/features/progress/module-progress";
-import type { DashboardActivity, DashboardModel, DashboardModule, DashboardNextItem, DashboardRecentItem } from "@/features/dashboard/model";
+import type { DashboardActivity, DashboardModel, DashboardModule, DashboardNextItem, DashboardRecentItem, ModuleStatus } from "@/features/dashboard/model";
 
 type ContinueLearningPanelProps = {
   loaded: boolean;
   loadError: boolean;
   currentModule?: DashboardModule;
   currentModuleStatus?: ProgressStatus;
+  currentLesson?: DashboardModule["lessons"][number] & { moduleId: number };
+  currentLessonStatus?: ProgressStatus;
+  lessonProgress?: { completed: number; total: number };
   currentActivity?: DashboardActivity;
   currentActivityStatus?: ProgressStatus;
-  currentModuleProgress?: ModuleStepProgress;
+  currentActivityModule?: DashboardModule;
+  currentActivityModuleStatus?: ModuleStatus;
+  currentActivityLessonProgress?: { completed: number; total: number };
+  currentModuleActivityStatus?: ProgressStatus;
   totalModules: number;
   onRetry: () => void;
 };
@@ -21,12 +26,19 @@ export function ContinueLearningPanel({
   loadError,
   currentModule,
   currentModuleStatus,
+  currentLesson,
+  currentLessonStatus,
+  lessonProgress,
   currentActivity,
   currentActivityStatus,
-  currentModuleProgress,
+  currentActivityModule,
+  currentActivityModuleStatus,
+  currentActivityLessonProgress,
+  currentModuleActivityStatus,
   totalModules,
   onRetry,
 }: ContinueLearningPanelProps) {
+  const activityModule = currentActivityModule ?? currentModule;
   return (
     <section className="continue-panel" aria-labelledby="continue-title">
       {!loaded ? (
@@ -38,25 +50,43 @@ export function ContinueLearningPanel({
           <p>Check the local app or database, then retry. Your saved records have not been cleared.</p>
           <button className="button button-outline" type="button" onClick={onRetry}><RefreshCw size={15} /> Try again</button>
         </div>
-      ) : currentActivity && currentModule ? (
+      ) : currentLesson && currentModule ? (
         <div className="continue-content">
           <div className="continue-main-copy">
-            <p className="continue-kicker">{currentActivityStatus === "needs_review" ? "Review your activity" : "Resume your activity"}<span aria-hidden="true">·</span> Module {String(currentModule.id).padStart(2, "0")}</p>
-            <h2 id="continue-title">{currentActivity.title}</h2>
-            <p className="continue-next-lesson">Activity for {currentModule.title}</p>
+            <p className="continue-kicker">{currentLessonStatus === "needs_review" ? "Review this lesson" : currentLessonStatus === "in_progress" ? "Resume your lesson" : "Next lesson"}<span aria-hidden="true">·</span> Module {String(currentLesson.moduleId).padStart(2, "0")}</p>
+            <h2 id="continue-title">{currentLesson.title}</h2>
+            <p className="continue-next-lesson">{currentModule.title}</p>
             <p className="continue-progress-copy">
-              {formatStatus(currentActivityStatus ?? "in_progress")} · {currentModuleProgress?.completedSteps ?? 0} of {currentModuleProgress?.totalSteps ?? 0} saved records marked complete
+              Lesson: {formatStatus(currentLessonStatus ?? "not_started")} · {lessonProgress?.completed ?? 0} of {lessonProgress?.total ?? currentModule.lessons.length} lesson records marked complete · Module: {formatStatus(currentModuleStatus ?? "not_started")}
             </p>
-            {currentModuleProgress && <div className="continue-progress-track" role="progressbar" aria-label="Current module saved-record completion" aria-valuemin={0} aria-valuemax={currentModuleProgress.totalSteps} aria-valuenow={currentModuleProgress.completedSteps} aria-valuetext={`${currentModuleProgress.completedSteps} of ${currentModuleProgress.totalSteps} saved records marked complete (${currentModuleProgress.percent}%).`}>
-              <span style={{ width: `${currentModuleProgress.percent}%` }} />
-            </div>}
+            <p className="continue-progress-copy">Activity {currentModule.activityId}: {formatStatus(currentModuleActivityStatus ?? "not_started")}{currentActivity?.id === currentModule.activityId && currentActivityStatus && <> · <Link href={`/activities/${currentActivity.id}`}>Continue activity</Link></>}</p>
+            {currentActivity && currentActivityStatus && currentActivity.id !== currentModule.activityId && <p className="continue-progress-copy">Activity {currentActivity.id}: {formatStatus(currentActivityStatus)} · <Link href={`/activities/${currentActivity.id}`}>Continue activity</Link></p>}
+          </div>
+          <div className="continue-actions">
+            <Link className="button button-continue" href={`/modules/${String(currentLesson.moduleId).padStart(2, "0")}/lessons/${currentLesson.id.toLowerCase()}`}>
+              {currentLessonStatus === "needs_review" ? "Review lesson" : currentLessonStatus === "in_progress" ? "Resume lesson" : "Open lesson"}
+              <ArrowRight size={16} />
+            </Link>
+            <Link className="continue-secondary" href={`/modules/${String(currentLesson.moduleId).padStart(2, "0")}`}>View module details</Link>
+          </div>
+        </div>
+      ) : currentActivity && activityModule ? (
+        <div className="continue-content">
+          <div className="continue-main-copy">
+            <p className="continue-kicker">{currentActivityStatus === "needs_review" ? "Review your activity" : "Resume your activity"}<span aria-hidden="true">·</span> Module {String(activityModule.id).padStart(2, "0")}</p>
+            <h2 id="continue-title">{currentActivity.title}</h2>
+            <p className="continue-next-lesson">Activity for {activityModule.title}</p>
+            <p className="continue-progress-copy">
+              Activity: {formatStatus(currentActivityStatus ?? "in_progress")} · Module: {formatStatus(currentActivityModuleStatus ?? currentModuleStatus ?? "not_started")}
+            </p>
+            <p className="continue-progress-copy">Lesson records: {currentActivityLessonProgress?.completed ?? 0} of {currentActivityLessonProgress?.total ?? activityModule.lessons.length} marked complete</p>
           </div>
           <div className="continue-actions">
             <Link className="button button-continue" href={`/activities/${currentActivity.id}`}>
               {currentActivityStatus === "needs_review" ? "Review activity" : "Resume activity"}
               <ArrowRight size={16} />
             </Link>
-            <Link className="continue-secondary" href={`/modules/${String(currentModule.id).padStart(2, "0")}`}>View module details</Link>
+            <Link className="continue-secondary" href={`/modules/${String(activityModule.id).padStart(2, "0")}`}>View module details</Link>
           </div>
         </div>
       ) : currentModule ? (
@@ -67,20 +97,20 @@ export function ContinueLearningPanel({
               <span aria-hidden="true">·</span> Module {String(currentModule.id).padStart(2, "0")}
             </p>
             <h2 id="continue-title">{currentModule.title}</h2>
-            <p className="continue-next-lesson">Lesson: {currentModule.lessons[0]?.title ?? currentModule.title}</p>
+            <p className="continue-next-lesson">{currentModule.lessons.length} {currentModule.lessons.length === 1 ? "lesson" : "lessons"} in this module</p>
             <p className="continue-progress-copy">
-              {formatStatus(currentModuleStatus ?? "not_started")} · {currentModuleProgress?.completedSteps ?? 0} of {currentModuleProgress?.totalSteps ?? 0} saved records marked complete
+              Lesson records: {lessonProgress?.completed ?? 0} of {lessonProgress?.total ?? currentModule.lessons.length} marked complete · Module: {formatStatus(currentModuleStatus ?? "not_started")}
             </p>
-            {currentModuleProgress && <div className="continue-progress-track" role="progressbar" aria-label="Current module saved-record completion" aria-valuemin={0} aria-valuemax={currentModuleProgress.totalSteps} aria-valuenow={currentModuleProgress.completedSteps} aria-valuetext={`${currentModuleProgress.completedSteps} of ${currentModuleProgress.totalSteps} saved records marked complete (${currentModuleProgress.percent}%).`}>
-              <span style={{ width: `${currentModuleProgress.percent}%` }} />
-            </div>}
+            <p className="continue-progress-copy">Activity {currentModule.activityId}: {formatStatus(currentModuleActivityStatus ?? "not_started")}</p>
           </div>
           <div className="continue-actions">
             <Link className="button button-continue" href={`/modules/${String(currentModule.id).padStart(2, "0")}`}>
-              {currentModuleStatus === "in_progress" ? "Resume lesson" : currentModuleStatus === "needs_review" ? "Review lesson" : "Start learning"}
+              {lessonProgress && lessonProgress.completed >= lessonProgress.total ? "Open module overview" : currentModuleStatus === "in_progress" ? "Resume lesson" : currentModuleStatus === "needs_review" ? "Review lesson" : "Start learning"}
               <ArrowRight size={16} />
             </Link>
-            <Link className="continue-secondary" href={`/modules/${String(currentModule.id).padStart(2, "0")}`}>View module details</Link>
+            <Link className="continue-secondary" href={lessonProgress && lessonProgress.completed >= lessonProgress.total ? "/progress" : `/modules/${String(currentModule.id).padStart(2, "0")}`}>
+              {lessonProgress && lessonProgress.completed >= lessonProgress.total ? "View progress notebook" : "View module details"}
+            </Link>
           </div>
         </div>
       ) : (
@@ -133,15 +163,18 @@ export function DashboardSidebar({
   loaded,
   loadError,
   totalModules,
+  totalLessons,
   phaseCounts,
 }: {
   model: DashboardModel;
   loaded: boolean;
   loadError: boolean;
   totalModules: number;
+  totalLessons: number;
   phaseCounts: PhaseCount[];
 }) {
   const completePercent = totalModules ? Math.round((model.completedModules / totalModules) * 100) : 0;
+  const lessonPercent = totalLessons ? Math.round((model.completedLessons / totalLessons) * 100) : 0;
   const activePhase = model.currentModule?.phase;
 
   return (
@@ -172,6 +205,8 @@ export function DashboardSidebar({
         {loaded && !loadError ? <>
           <div className="overall-count"><strong>{model.completedModules}</strong><span>of {totalModules} modules completed</span></div>
           <div className="overall-progress-track" role="progressbar" aria-label="Overall learning journey completion" aria-valuemin={0} aria-valuemax={totalModules} aria-valuenow={model.completedModules}><span style={{ width: `${completePercent}%` }} /></div>
+          <div className="overall-count"><strong>{model.completedLessons}</strong><span>of {totalLessons} lesson records marked complete</span></div>
+          <div className="overall-progress-track" role="progressbar" aria-label="Lesson records marked complete" aria-valuemin={0} aria-valuemax={totalLessons} aria-valuenow={model.completedLessons}><span style={{ width: `${lessonPercent}%` }} /></div>
           <div className="phase-progress-list">
             {phaseCounts.map(({ phase, total, completed }) => <div className="phase-progress-row" key={phase}>
               <span>{phase}</span><span>{completed}/{total}</span>

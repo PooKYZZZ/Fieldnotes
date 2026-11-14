@@ -1,0 +1,50 @@
+export const lessonId = "M24-L03";
+export const lessonTitle = "Architecture decisions and handover";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>An architecture decision record (ADR) captures context, considered choices, the selected option, consequences and review triggers. State operational assumptions, dependencies, cost boundaries, backup/restore procedures and rollback limits. The handover is complete when another learner can set up the system, identify its health, diagnose a controlled failure and clean up without undocumented access.</p>
+    <p>Security gates, reliability targets and recovery tests should be proportional to impact. A passing scanner or green pipeline contributes evidence; it does not replace a threat model or operational demonstration.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module24/lesson-03.svg" alt="An ADR records context, tradeoffs, and consequences; operational evidence and documented limits let another person reproduce the handover." caption="Capture decisions and operational limits so another person can set up, diagnose, recover, and clean up the system." />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-24-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "question-1",
+      prompt: "A small service has no scale or availability requirement that its current VM cannot meet. How should the team decide whether to add Kubernetes?",
+      options: [
+        "Add it because a larger stack looks more advanced.",
+        "Compare the requirement and failure risks against the added operational complexity; omit it if it solves no concrete need.",
+        "Use every cloud provider to avoid vendor risk.",
+      ],
+      correctIndex: 1,
+      explanation: "Tool choices should answer a concrete operational question; unnecessary platforms add complexity without meeting a need.",
+    },
+    {
+      id: "question-2",
+      prompt: "You need to explain how a release reached runtime. Which evidence chain is most useful?",
+      options: [
+        "A product logo and a green CI badge.",
+        "A scanner result by itself.",
+        "Reviewed commit, tests and build inputs, artifact identity, approved deployment, runtime health, telemetry, and recovery evidence.",
+      ],
+      correctIndex: 2,
+      explanation: "No single check proves the complete path; trace the change through artifact, deployment, operation, and recovery evidence.",
+    },
+    {
+      id: "question-3",
+      prompt: "What makes an architecture handover reproducible by another learner?",
+      options: [
+        "Documented assumptions, dependencies, cost boundaries, backup and rollback limits, plus steps to set up, check health, diagnose a controlled failure, and clean up.",
+        "A list of tools without operational instructions.",
+        "Undocumented access to the original author's accounts.",
+      ],
+      correctIndex: 0,
+      explanation: "A useful handover records decisions and operational limits and lets another person reproduce setup, diagnosis, and cleanup without undocumented access.",
+    },
+  ]}
+/>

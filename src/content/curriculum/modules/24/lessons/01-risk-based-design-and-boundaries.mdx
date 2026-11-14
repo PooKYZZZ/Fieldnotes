@@ -1,0 +1,10 @@
+export const lessonId = "M24-L01";
+export const lessonTitle = "Risk-based design and boundaries";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+    <p>Begin with the user need and likely failure or abuse cases. Map identities, data, build inputs and network paths; then choose controls that address those risks. A small service might need a test pipeline, a pinned container image, restricted deployment identity, backups and a useful health signal. Add another platform only when it solves a real requirement such as scale, isolation or availability that the current design cannot meet.</p>
+  </div>
+  <TechnicalFigure src="/diagrams/module24/lesson-01.svg" alt="Start from a user need, identify relevant assets and boundaries, choose controls for the risks, and keep the design proportional to concrete requirements." caption="Select controls and tools that address concrete risks and user requirements without unnecessary complexity." />
+</ConceptSection>
+

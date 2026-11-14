@@ -1,0 +1,19 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M03-L03";
+export const lessonTitle = "Logs and fault isolation";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+When a service fails, compare the unit state, recent journal, process and listening socket. For example,
+`systemctl status status-api.service` shows the unit state, `journalctl -u status-api.service --since "10 min ago"`
+narrows the log window, and `ss -ltn` shows TCP listeners. Then request the local health endpoint. This moves from
+process evidence toward application behavior without treating a restart as a diagnosis.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module03/lesson-03.svg"
+    alt="Use timestamps and related logs to narrow a symptom into a testable cause without treating correlation as proof."
+    caption="Correlate a symptom with timestamped logs, then test the suspected cause independently."
+  />
+</ConceptSection>

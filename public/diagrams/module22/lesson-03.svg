@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Reduce toil and learn from incidents</title>
+  <desc id="desc">Toil reduction and incident learning are related but distinct practices: understand recurring work before automation, and turn incident evidence into improvements.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#39776f"/></marker><marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4c7d9b"/></marker></defs>
+  <rect width="960" height="420" rx="20" fill="#f4f8f6"/>
+  <text x="32" y="42" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#29494a">Reduce toil and learn from incidents</text>
+  <path d="M290 151 L355 151" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M605 151 L670 151" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M460 316 L500 316" fill="none" stroke="#39776f" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="40" y="105" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="165" y="144" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="165" dy="0">Recurring toil</tspan>
+  </text>
+  <text x="165" y="180" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">repetitive human work</text>
+  <rect x="355" y="105" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="480" y="144" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="480" dy="0">Understand + measure</tspan>
+  </text>
+  <text x="480" y="180" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">failure modes / value</text>
+  <rect x="670" y="105" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="795" y="144" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="795" dy="0">Safe automation</tspan>
+  </text>
+  <text x="795" y="180" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">check for new risks</text>
+  <rect x="210" y="270" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="335" y="309" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="335" dy="0">Incident evidence</tspan>
+  </text>
+  <text x="335" y="345" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">timeline + conditions</text>
+  <rect x="500" y="270" width="250" height="92" rx="14" fill="#eaf2ee" stroke="#9db8ae" stroke-width="2"/>
+  <text x="625" y="309" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#29494a">
+  <tspan x="625" dy="0">Improvement actions</tspan>
+  </text>
+  <text x="625" y="345" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#526669">no blame, reduce recurrence</text>
+  <text x="32" y="392" font-family="Arial,sans-serif" font-size="14" fill="#41595f">Automate measured, understood toil; use incident reviews to improve the system without blame.</text>
+  </svg>

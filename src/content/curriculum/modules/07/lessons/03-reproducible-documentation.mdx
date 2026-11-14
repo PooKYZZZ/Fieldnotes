@@ -1,0 +1,46 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M07-L03";
+export const lessonTitle = "Reproducible documentation";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Write setup instructions from a clean checkout: prerequisites, commands, configuration source, expected output and
+cleanup. Include a safe failure-recovery path. Use example values rather than credentials or private environment
+files, and state limitations so readers do not mistake a local demonstration for production evidence.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module07/lesson-03.svg"
+    alt="Documenting versions, prerequisites, and commands lets another person repeat the same procedure and compare results."
+    caption="Reproducible documentation records versions and inputs so another operator can repeat and verify the procedure."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-07-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "git-staging",
+      prompt: "You edited three files but want a commit containing only one. Which Git area helps select that snapshot?",
+      options: ["The staging index.", "The remote branch alone.", "The worktree directory name."],
+      correctIndex: 0,
+      explanation: "The index holds the selected changes that will be recorded in the next commit.",
+    },
+    {
+      id: "remote-backup",
+      prompt: "Why should you not treat a Git remote as a backup of every local file?",
+      options: ["Remote branches automatically include every untracked file.", "A remote exchanges repository history; uncommitted or untracked local files are not necessarily included.", "A remote is simply another name for the staging index."],
+      correctIndex: 1,
+      explanation: "Only committed history is pushed; local modifications and untracked files may not be present remotely.",
+    },
+    {
+      id: "review-docs",
+      prompt: "A runbook must help someone reproduce a deployment. Which details are most useful?",
+      options: ["Only screenshots of the successful result.", "Machine-specific secrets and a list of unrelated ideas.", "Prerequisites, setup, configuration sources, expected behavior, and recovery steps."],
+      correctIndex: 2,
+      explanation: "Reproducible documentation records what another person needs to perform and verify the procedure without exposing secrets.",
+    },
+  ]}
+/>

@@ -1,0 +1,19 @@
+import { ConceptSection } from "@/features/learning/components/concept-section";
+import { TechnicalFigure } from "@/features/learning/components/technical-figure";
+
+export const lessonId = "M03-L01";
+export const lessonTitle = "Identity and file permissions";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+Linux processes run with a user ID and group IDs. For a file, owner, group and other permission bits control read,
+write and execute access. On a directory, execute means a process may traverse the path; listing names also
+requires read permission. A service account limits what a compromised or malfunctioning service can change.
+`sudo` elevates a command temporarily, so use it only for the operation that needs administrative rights.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module03/lesson-01.svg"
+    alt="The process identity is evaluated against file ownership and permission bits to determine access."
+    caption="File access depends on the process identity, file owner and mode, and the resulting permission decision."
+  />
+</ConceptSection>

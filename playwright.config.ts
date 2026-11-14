@@ -11,7 +11,7 @@ process.on("exit", () => rmSync(testDataDirectory, { recursive: true, force: tru
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  outputDir: "test-results/e2e-artifacts",
+  outputDir: process.env.PLAYWRIGHT_OUTPUT_DIR ?? "test-results/e2e-artifacts",
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

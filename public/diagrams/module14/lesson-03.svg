@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+<title id="title">Safe lifecycle and collaboration</title>
+<desc id="desc">Use a disposable target for local lifecycle practice, with workspace and plan review before apply or destroy. Shared collaboration separately requires protected remote state, locking, and restricted access.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6586a3"/></marker></defs>
+<rect width="960" height="360" rx="24" fill="#f4f7fb"/>
+<text x="40" y="48" fill="#15324b" font-family="Arial,sans-serif" font-size="22" font-weight="700">Safe lifecycle and collaboration</text>
+<path d="M215 151 L242 151" fill="none" stroke="#6586a3" stroke-width="3" marker-end="url(#arrow)"/>
+<path d="M420 151 L447 151" fill="none" stroke="#6586a3" stroke-width="3" marker-end="url(#arrow)"/>
+<path d="M625 151 L652 151" fill="none" stroke="#6586a3" stroke-width="3" marker-end="url(#arrow)"/>
+<path d="M380 276 L517 276" fill="none" stroke="#6586a3" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="45" y="120" width="170" height="62" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="130.0" y="147.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="130.0" dy="0">Disposable local</tspan><tspan x="130.0" dy="17">target</tspan></text>
+<rect x="250" y="120" width="170" height="62" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="335.0" y="156.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="335.0" dy="0">Validate and plan</tspan></text>
+<rect x="455" y="120" width="170" height="62" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="540.0" y="147.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="540.0" dy="0">Review workspace and</tspan><tspan x="540.0" dy="17">effects</tspan></text>
+<rect x="660" y="120" width="170" height="62" rx="14" fill="#f4e0df" stroke="#7794ad" stroke-width="2"/>
+<text x="745.0" y="147.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="745.0" dy="0">Apply or destroy</tspan><tspan x="745.0" dy="17">deliberately</tspan></text>
+<rect x="120" y="245" width="260" height="62" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
+<text x="250.0" y="264.0" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="250.0" dy="0">Shared work:</tspan><tspan x="250.0" dy="17">protected remote</tspan><tspan x="250.0" dy="17">state</tspan></text>
+<rect x="525" y="245" width="300" height="62" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
+<text x="675.0" y="272.5" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600"><tspan x="675.0" dy="0">State locking and</tspan><tspan x="675.0" dy="17">restricted access</tspan></text>
+</svg>

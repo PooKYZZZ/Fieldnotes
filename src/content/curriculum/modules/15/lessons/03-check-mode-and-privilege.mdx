@@ -1,0 +1,44 @@
+export const lessonId = "M15-L03";
+export const lessonTitle = "Check mode and privilege";
+
+<ConceptSection layout="split">
+  <div className="learning-concept-copy">
+`ansible-playbook --check --diff` can preview changes for modules that support check mode, but it cannot perfectly
+simulate every custom operation. Review privilege escalation (`become`) only where required, validate SSH host
+identity, and protect credentials. Compare the first and second normal run: the second should have few or no
+unexpected changes. Record exceptions rather than hiding them.
+  </div>
+  <TechnicalFigure
+    src="/diagrams/module15/lesson-03.svg"
+    alt="Verify SSH host identity and required privilege, preview changes only where check mode is supported, apply safely, then repeat and inspect changed tasks."
+    caption="Verify host identity and privilege → check and diff where supported → apply on a disposable host → repeat and inspect changes."
+  />
+</ConceptSection>
+
+<KnowledgeCheck
+  id="module-15-knowledge-check"
+  title="Apply what you learned"
+  questions={[
+    {
+      id: "q1",
+      prompt: "A package is already installed on a managed host. Which task is most likely to report no change on a repeat run?",
+      options: ["An Ansible package module declaring the package as present.", "A shell command that runs an install command unconditionally.", "A shell command that appends the package name to a file each run."],
+      correctIndex: 0,
+      explanation: "A state-aware package module can compare actual and desired state. Opaque shell commands may repeat work or create duplicate changes.",
+    },
+    {
+      id: "q2",
+      prompt: "A service configuration template changes. When should its restart handler run?",
+      options: ["Whenever the playbook starts, regardless of changes.", "When a relevant changed task notifies the handler.", "Only when a human manually restarts the host."],
+      correctIndex: 1,
+      explanation: "Handlers are notified by changed tasks, so a configuration-triggered restart can be limited to runs where it is needed.",
+    },
+    {
+      id: "q3",
+      prompt: "A check-mode run shows no changes for a custom shell task. What is the right interpretation?",
+      options: ["Check mode perfectly simulates every custom operation.", "The preview is limited by module support; inspect the task and verify safely on a disposable host.", "The task is guaranteed harmless to repeat."],
+      correctIndex: 1,
+      explanation: "Check mode cannot perfectly predict every custom operation. Review privileged actions and validate behavior in a safe environment.",
+    }
+  ]}
+/>

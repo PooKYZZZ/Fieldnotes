@@ -32,6 +32,11 @@ describe("progressSchema", () => {
     expect(progressSchema.safeParse({ ...validProgress, repositoryUrl: "", comfort: null }).success).toBe(true);
   });
 
+  it("accepts lesson records only for canonical lesson IDs", () => {
+    expect(progressSchema.safeParse({ ...validProgress, itemType: "lesson", itemId: "M01-L01" }).success).toBe(true);
+    expect(progressSchema.safeParse({ ...validProgress, itemType: "lesson", itemId: "M99-L01" }).success).toBe(false);
+  });
+
   it("uses clear labels for each persisted status", () => {
     expect(formatStatus("needs_review")).toBe("Needs review");
   });
@@ -46,6 +51,17 @@ describe("progressImportSchema", () => {
 
   it("accepts a valid versioned progress backup", () => {
     expect(progressImportSchema.safeParse(backup).success).toBe(true);
+    expect(progressImportSchema.safeParse({ ...backup, version: 2 }).success).toBe(true);
+    expect(progressImportSchema.safeParse({
+      ...backup,
+      version: 2,
+      records: [{ ...backup.records[0], itemType: "lesson", itemId: "M01-L01" }],
+    }).success).toBe(true);
+  });
+
+  it("continues to accept old version 1 backups and rejects unsupported versions", () => {
+    expect(progressImportSchema.safeParse(backup).success).toBe(true);
+    expect(progressImportSchema.safeParse({ ...backup, version: 3 }).success).toBe(false);
   });
 
   it("rejects unknown learning items and duplicate record keys", () => {
