@@ -11,7 +11,7 @@ export function ModuleLesson({ learningModule, activity }: { learningModule: Mod
   const moduleId = `M${String(learningModule.id).padStart(2, "0")}`;
 
   return (
-    <>
+    <div className="module-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
         <Link href="/roadmap">Roadmap</Link><span aria-hidden="true">/</span><span>{learningModule.phase}</span>
         <span aria-hidden="true">/</span><span>Module {String(learningModule.id).padStart(2, "0")}</span>
@@ -128,6 +128,6 @@ export function ModuleLesson({ learningModule, activity }: { learningModule: Mod
         {previousModule ? <Link className="button button-outline" href={`/modules/${String(previousModule.id).padStart(2, "0")}`}><ArrowLeft size={14} /> Previous module</Link> : <span />}
         {nextModule && <Link className="button button-primary" href={`/modules/${String(nextModule.id).padStart(2, "0")}`}>Continue to Module {String(nextModule.id).padStart(2, "0")} <ArrowRight size={14} /></Link>}
       </nav>
-    </>
+    </div>
   );
 }
