@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, BookOpenCheck, ChevronDown, Search } from "lucide-react";
 import type { ActivityRecord, ModuleRecord, TroubleshootingRecord } from "@/content/catalog";
 import { formatStatus, type ProgressRecord, type ProgressStatus } from "@/features/progress/model";
+import { MarkdownContent } from "@/components/ui/markdown-content";
+import { ProgressEditor } from "@/features/progress/progress-editor";
 
 type ActivityModule = Pick<ModuleRecord, "id" | "title" | "phase">;
 type Phase = ModuleRecord["phase"];
@@ -26,6 +28,42 @@ const statusFilters: { value: "all" | ProgressStatus; label: string }[] = [
 
 function phaseForActivity(activity: ActivityRecord, moduleById: Map<number, ActivityModule>): Phase | undefined {
   return moduleById.get(activity.moduleId)?.phase;
+}
+
+function TroubleshootingCard({ item, record, progressLoaded, progressError }: {
+  item: TroubleshootingRecord;
+  record?: ProgressRecord;
+  progressLoaded: boolean;
+  progressError: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const status = progressError ? "Progress unavailable" : !progressLoaded ? "Loading progress" : formatStatus(record?.status ?? "not_started");
+  const statusClass = progressLoaded && !progressError ? ` practice-status--${record?.status ?? "not_started"}` : "";
+
+  return (
+    <details id={`troubleshooting-${item.id.toLowerCase()}`} className="troubleshooting-card" onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="troubleshooting-summary">
+        <span>{item.id}</span>
+        <strong>{item.title}</strong>
+        <span className={`practice-status${statusClass}`}>{status}</span>
+        <ChevronDown size={17} aria-hidden="true" />
+      </summary>
+      <div className="troubleshooting-body">
+        <div className="troubleshooting-section"><p className="eyebrow">Scenario</p><p>{item.observation}</p></div>
+        <div className="troubleshooting-section"><p className="eyebrow">Investigate in order</p><MarkdownContent copyable>{item.investigation}</MarkdownContent></div>
+        <div className="troubleshooting-section troubleshooting-safety"><p className="eyebrow">Safety boundary</p><p>{item.constraint}</p></div>
+        <details className="troubleshooting-hint">
+          <summary>Optional hint</summary>
+          <MarkdownContent copyable>{item.hint}</MarkdownContent>
+        </details>
+        <div className="troubleshooting-section"><p className="eyebrow">Evidence that completes the investigation</p><MarkdownContent>{item.completion}</MarkdownContent></div>
+        {open && <div className="troubleshooting-record">
+          <p className="eyebrow">Save your attempt</p>
+          <ProgressEditor itemType="troubleshooting" itemId={item.id} title={`${item.id} learning record`} showComfort wide />
+        </div>}
+      </div>
+    </details>
+  );
 }
 
 export function ActivityDirectory({
@@ -52,7 +90,7 @@ export function ActivityDirectory({
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
-        setRecords(rows.filter((record) => record.itemType === "activity"));
+        setRecords(rows);
         setLoadError(false);
       })
       .catch(() => {
@@ -80,7 +118,8 @@ export function ActivityDirectory({
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const moduleById = useMemo(() => new Map(modules.map((module) => [module.id, module])), [modules]);
-  const progressByActivity = useMemo(() => new Map(records.map((record) => [record.itemId, record])), [records]);
+  const progressByActivity = useMemo(() => new Map(records.filter((record) => record.itemType === "activity").map((record) => [record.itemId, record])), [records]);
+  const progressByTroubleshooting = useMemo(() => new Map(records.filter((record) => record.itemType === "troubleshooting").map((record) => [record.itemId, record])), [records]);
   const phaseCounts = useMemo(() => new Map(phaseFilters.slice(1).map(({ value }) => [
     value,
     activities.filter((activity) => phaseForActivity(activity, moduleById) === value).length,
@@ -88,7 +127,7 @@ export function ActivityDirectory({
   const resumableActivity = useMemo(() => {
     if (!loaded || loadError) return undefined;
     const saved = records
-      .filter((record) => record.status === "in_progress" || record.status === "needs_review")
+      .filter((record) => record.itemType === "activity" && (record.status === "in_progress" || record.status === "needs_review"))
       .sort((left, right) => right.updatedAt - left.updatedAt)
       .find((record) => activities.some((activity) => activity.id === record.itemId));
     const activity = saved ? activities.find((item) => item.id === saved.itemId) : undefined;
@@ -195,17 +234,7 @@ export function ActivityDirectory({
           <span className="activity-result-count">{filteredTroubleshooting.length} of {troubleshooting.length}</span>
         </div>
         {filteredTroubleshooting.length ? <div className="troubleshooting-grid">
-          {filteredTroubleshooting.map((item) => <details id={`troubleshooting-${item.id.toLowerCase()}`} className="troubleshooting-card" key={item.id}>
-            <summary className="troubleshooting-summary"><span>{item.id}</span><strong>{item.title}</strong><ChevronDown size={17} aria-hidden="true" /></summary>
-            <div className="troubleshooting-body">
-              <p><strong>Observe</strong>{item.observation}</p>
-              <p><strong>Investigate</strong>{item.investigation}</p>
-              <p><strong>Safety boundary</strong>{item.constraint}</p>
-              <p><strong>Hint</strong>{item.hint}</p>
-              <p><strong>Evidence to record</strong>{item.completion}</p>
-              <Link href="/progress">Record your reflection <ArrowRight size={14} /></Link>
-            </div>
-          </details>)}
+          {filteredTroubleshooting.map((item) => <TroubleshootingCard key={item.id} item={item} record={progressByTroubleshooting.get(item.id)} progressLoaded={loaded} progressError={loadError} />)}
         </div> : <p className="troubleshooting-empty" role="status">No troubleshooting scenarios match this search.</p>}
       </section>
     </>

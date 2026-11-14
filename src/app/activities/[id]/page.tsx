@@ -23,5 +23,8 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
   if (!activity) notFound();
 
   const relatedModule = modules.find((item) => item.id === activity.moduleId);
-  return <ActivityLesson activity={activity} relatedModule={relatedModule} />;
+  const activityIndex = activities.findIndex((item) => item.id === activity.id);
+  const previousActivity = activities[activityIndex - 1];
+  const nextActivity = activities[activityIndex + 1];
+  return <ActivityLesson activity={activity} relatedModule={relatedModule} previousActivity={previousActivity} nextActivity={nextActivity} />;
 }

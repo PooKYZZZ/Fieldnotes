@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import { CopyCodeButton } from "@/components/ui/copy-code-button";
 
 function nodeText(node: ReactNode): string {
   if (typeof node === "string" || typeof node === "number") return String(node);
@@ -26,7 +27,7 @@ function CurriculumDiagram({ src, alt, title }: Pick<ComponentProps<"img">, "src
   );
 }
 
-export function MarkdownContent({ children, headingIdPrefix }: { children: string; headingIdPrefix?: string }) {
+export function MarkdownContent({ children, headingIdPrefix, copyable = false }: { children: string; headingIdPrefix?: string; copyable?: boolean }) {
   const components: Components = {
     ...(headingIdPrefix
       ? {
@@ -40,9 +41,14 @@ export function MarkdownContent({ children, headingIdPrefix }: { children: strin
       const isDiagram = isValidElement<{ className?: string }>(code)
         && code.props.className?.split(/\s+/).includes("language-diagram");
 
-      return isDiagram
-        ? <figure className="lesson-diagram" aria-label="Text diagram"><pre>{content}</pre></figure>
-        : <pre>{content}</pre>;
+      if (isDiagram) return <figure className="lesson-diagram" aria-label="Text diagram"><pre>{content}</pre></figure>;
+      if (copyable && isValidElement<{ children?: ReactNode }>(code)) {
+        const value = nodeText(code.props.children);
+        if (value.trim()) {
+          return <div className="copyable-code-block"><CopyCodeButton value={value} /><pre>{content}</pre></div>;
+        }
+      }
+      return <pre>{content}</pre>;
     },
     img: CurriculumDiagram,
     p: ({ children: paragraph, ...props }) => {

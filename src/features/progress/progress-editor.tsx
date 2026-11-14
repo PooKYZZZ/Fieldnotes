@@ -35,6 +35,7 @@ export function ProgressEditor({
 }) {
   const isModuleSummary = variant === "module-summary";
   const isLessonStatus = variant === "lesson-status";
+  const isPracticeRecord = itemType === "activity" || itemType === "troubleshooting";
   const isCompact = isModuleSummary || isLessonStatus;
   const [form, setForm] = useState<ProgressInput>(() => blankRecord(itemType, itemId));
   const [updatedAt, setUpdatedAt] = useState<number>();
@@ -128,7 +129,9 @@ export function ProgressEditor({
         ? "Lesson completion is learner-reported and does not indicate mastery."
         : isModuleSummary
           ? "Mark your module progress and add a short reflection if useful. This is a self-report, not a mastery check. Saved in this Fieldnotes workspace."
-        : "Reading does not change this item’s status. Choose the status and independence level that reflect your work; the app does not verify mastery. This record is saved in this Fieldnotes workspace."}</p>
+        : isPracticeRecord
+          ? `Save partial work and return later. Record what you attempted, expected versus observed results, how you investigated, and how you verified the outcome. This is a self-report, not proof of mastery. Saved in this Fieldnotes workspace.`
+          : "Reading does not change this item’s status. Choose the status and independence level that reflect your work; the app does not verify mastery. This record is saved in this Fieldnotes workspace."}</p>
       <form onSubmit={submit}>
         {isLessonStatus ? (
           <div className="progress-lesson-status-control">
@@ -167,13 +170,13 @@ export function ProgressEditor({
         <div className="progress-long-fields">
           <div className="form-field">
             <label htmlFor={`notes-${itemId}`}>Learning note</label>
-            <span className="field-hint">A useful reflection can capture your goal, what you observed, any troubleshooting, and the lesson you took away.</span>
-            <Textarea id={`notes-${itemId}`} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="What did you predict? What did you observe? What would you revisit?" />
+            <span className="field-hint">{isPracticeRecord ? "Capture your attempt, expected versus actual behavior, any problem you investigated, and what you learned." : "A useful reflection can capture your goal, what you observed, any troubleshooting, and the lesson you took away."}</span>
+            <Textarea id={`notes-${itemId}`} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isPracticeRecord ? "What did you try? What did you expect? What happened, and what would you check next?" : "What did you predict? What did you observe? What would you revisit?"} />
           </div>
           <div className="form-field">
             <label htmlFor={`evidence-${itemId}`}>Evidence or verification</label>
-            <span className="field-hint">Record the command or artifact, observed result, and how you checked it. Keep the excerpt small and sanitized.</span>
-            <Textarea id={`evidence-${itemId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder="Commands, observed result, and verification…" />
+            <span className="field-hint">{itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : "Record commands or configuration, expected and observed results, and how you checked them. Keep the excerpt small and sanitized."}</span>
+            <Textarea id={`evidence-${itemId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={itemType === "troubleshooting" ? "Symptom, cause hypothesis, evidence, action taken, and repeatable verification…" : "Commands or configuration, expected versus observed result, and verification…"} />
             <span className="field-hint">Keep it sanitized: no passwords, tokens, private addresses, or personal data.</span>
           </div>
         </div>

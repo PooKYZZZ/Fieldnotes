@@ -32,9 +32,12 @@ export type ActivityRecord = {
   id: string;
   moduleId: number;
   title: string;
+  scenario: string;
+  objectives: string;
   prerequisite: string;
   environment?: string;
   steps?: string;
+  expectedObservations: string;
   challenge: string;
   build: string;
   submit: string;
@@ -128,9 +131,12 @@ export const activities: ActivityRecord[] = readMarkdownDirectory("activities", 
   return {
     ...metadata,
     title: document.title,
+    scenario: requiredSection(document, filename, "Scenario"),
+    objectives: requiredSection(document, filename, "Learning objectives"),
     prerequisite: requiredSection(document, filename, "Prerequisites"),
     environment: optionalSection(document, "Environment"),
     steps: optionalSection(document, "Lab steps"),
+    expectedObservations: requiredSection(document, filename, "Expected observations"),
     challenge,
     build,
     submit,

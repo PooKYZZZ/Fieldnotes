@@ -36,18 +36,29 @@ describe("learning content integrity", () => {
     const activity = activities.find((item) => item.id === "A01");
     expect(activity).toMatchObject({
       environment: expect.stringContaining("disposable Ubuntu virtual machine"),
-      hints: expect.stringContaining("ps -eo pid,ppid,comm,rss --sort=-rss | head"),
+      steps: expect.stringContaining("ps -u \"$(id -u)\" -o pid,ppid,uid,comm,rss"),
+      expectedObservations: expect.stringContaining("<your uid>"),
       verification: expect.stringContaining("live PID"),
       troubleshooting: expect.stringContaining("do not use `sudo`"),
       cleanup: expect.stringContaining("Shut down the disposable VM"),
     });
     for (const item of activities) {
+      expect(item.scenario, item.id).toBeTruthy();
+      expect(item.objectives, item.id).toMatch(/^- /m);
       expect(item.environment, item.id).toBeTruthy();
       expect(item.steps, item.id).toBeTruthy();
+      expect(item.expectedObservations, item.id).toBeTruthy();
+      expect(item.submit, item.id).not.toContain("One short readme/note containing expected result");
       expect(item.hints, item.id).toBeTruthy();
       expect(item.verification, item.id).toBeTruthy();
       expect(item.troubleshooting, item.id).toBeTruthy();
       expect(item.cleanup, item.id).toBeTruthy();
+    }
+    expect(troubleshooting).toHaveLength(12);
+    for (const item of troubleshooting) {
+      expect(item.investigation, item.id).toMatch(/^1\./);
+      expect(item.investigation, item.id).toContain("2.");
+      expect(item.completion, item.id).toBeTruthy();
     }
   });
 
