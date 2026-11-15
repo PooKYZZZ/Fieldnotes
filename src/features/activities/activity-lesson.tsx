@@ -58,7 +58,10 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
 
           <section className="activity-stage activity-prepare" id="activity-prepare" aria-labelledby="activity-prepare-title">
             <h2 id="activity-prepare-title">Prepare</h2>
-            <p className="activity-prerequisite"><strong>Before you begin</strong>{activity.prerequisite}</p>
+            <div className="activity-prerequisite">
+              <strong>Before you begin</strong>
+              <MarkdownContent>{activity.prerequisite}</MarkdownContent>
+            </div>
             {activity.environment && <div className="activity-environment"><MarkdownContent>{activity.environment}</MarkdownContent></div>}
           </section>
 

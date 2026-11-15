@@ -379,9 +379,15 @@ test("career priorities link to the related roadmap, practice, and project work"
 });
 
 test("activity brief and source PDFs are available", async ({ page }) => {
+  await page.goto("/activities/A02");
+  const prerequisite = page.locator(".activity-prerequisite");
+  const bashReference = prerequisite.getByRole("link", { name: "GNU Bash pipelines" });
+  await expect(bashReference).toHaveAttribute("href", "https://www.gnu.org/software/bash/manual/html_node/Pipelines.html");
+  await expect(prerequisite).not.toContainText("https://");
+
   await page.goto("/activities/A08");
   await expect(page.getByRole("heading", { level: 1, name: "Container fundamentals with Docker" })).toBeVisible();
-  await expect(page.getByText(/Build an image for your status API/)).toBeVisible();
+  await expect(page.getByText(/Build the A05 Status API image/)).toBeVisible();
   await expect(page.getByRole("link", { name: /Activity reference PDF/ })).toHaveAttribute("href", "/library/04_Activities_and_Practice.pdf");
   const response = await page.request.get("/library/04_Activities_and_Practice.pdf");
   expect(response.ok()).toBeTruthy();

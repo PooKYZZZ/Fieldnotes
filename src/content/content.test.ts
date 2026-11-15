@@ -70,6 +70,23 @@ describe("learning content integrity", () => {
     }
   });
 
+  it("grounds each activity in technical references and keeps cross-activity claims aligned", () => {
+    const byId = new Map(activities.map((activity) => [activity.id, activity]));
+    for (const activity of activities) {
+      expect(activity.prerequisite, `${activity.id} technical references`).toMatch(/https:\/\/[^\s)]+/);
+    }
+
+    expect(byId.get("A07")?.challenge).toContain("optional extension");
+    expect(byId.get("A11")?.expectedObservations).toContain("mutable name");
+    expect(byId.get("A12")?.expectedObservations).toContain("notification threshold");
+    expect(byId.get("A08")?.steps).toContain("status-api:dev");
+    expect(byId.get("A18")?.steps).toContain("status-api:dev");
+    expect(byId.get("A18")?.steps).toContain("Do not push an image");
+    expect(byId.get("A23")?.environment).toContain("Do not stop or modify Fieldnotes");
+    expect(byId.get("A23")?.verification).toContain("full service recovery test");
+    expect(byId.get("A24")?.expectedObservations).toContain("partial/unknown");
+  });
+
   it("gives every module valid lesson links, selected local figures, and an interactive practice check", () => {
     const knowledgeCheckIds = new Set<string>();
     const module01FigureLessons = new Set(["M01-L01", "M01-L02", "M01-L03", "M01-L04", "M01-L06"]);

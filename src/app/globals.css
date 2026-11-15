@@ -415,8 +415,8 @@ body { font-size: 15px; }
   .overall-progress { grid-column: 1 / -1; }
 }
 @media (max-width: 860px) {
-  .sidebar { width: 270px; align-items: stretch; padding: 18px 14px 14px; transform: translateX(-105%); }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar { display: none; width: 270px; align-items: stretch; padding: 18px 14px 14px; transform: none; transition: none; }
+  .sidebar.open { display: flex; transform: none; }
   .brand { flex-direction: row; gap: 11px; padding: 2px 8px 21px; text-align: left; }
   .brand-mark { width: 37px; height: 37px; }
   .brand-name { font-size: 14px; }
@@ -1022,6 +1022,9 @@ body { font-size: 15px; }
 .activity-objectives .article-copy li::marker { color: #3d7770; }
 .activity-prerequisite { display: flex; flex-wrap: wrap; gap: 3px 9px; max-width: 84ch; margin: 0; color: #526366; font-size: 14px; line-height: 1.55; }
 .activity-prerequisite strong { flex: 0 0 auto; color: #365653; font-size: 13px; }
+.activity-prerequisite .article-copy { flex: 1 1 36rem; min-width: 0; max-width: 84ch; margin: 0; color: inherit; font-size: inherit; line-height: inherit; overflow-wrap: anywhere; }
+.activity-prerequisite .article-copy p { margin: 0; }
+.activity-prerequisite .article-copy a { overflow-wrap: anywhere; }
 .activity-environment { max-width: 88ch; margin: 12px 0 0; border-left: 2px solid #91aaa2; background: transparent; padding: 1px 0 1px 13px; color: #526366; font-size: 14px; line-height: 1.6; }
 .activity-environment .article-copy { max-width: none; margin: 0; font-size: inherit; line-height: inherit; }
 .activity-environment .article-copy p:last-child { margin-bottom: 0; }
@@ -1106,6 +1109,9 @@ body { font-size: 15px; }
   .activity-workflow-nav a { min-height: 44px; border-bottom: 1px solid #edf1ef; padding-inline: 2px; }
   .activity-brief { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .activity-continuation { grid-template-columns: minmax(0, 1fr); }
+  .activity-steps .copyable-code-block { max-width: 100%; overflow: hidden; }
+  .activity-steps .copyable-code-block > pre,
+  .activity-help .article-copy pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
   .troubleshooting-summary { flex-wrap: wrap; }
   .troubleshooting-summary strong { flex-basis: calc(100% - 60px); }
   .troubleshooting-summary > .practice-status { margin-left: 40px; }
