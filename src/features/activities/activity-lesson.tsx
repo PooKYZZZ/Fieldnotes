@@ -26,7 +26,7 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
           <div className="activity-header-tools">
             <div className="activity-header-actions" aria-label="Activity actions">
               <a className="button button-primary" href="#activity-scenario">Start activity <ArrowRight size={14} /></a>
-              <a className="button button-outline" href={`#progress-editor-${activity.id}`}>Record your work</a>
+              <a className="button button-outline" href={isA01 ? "#activity-record" : `#progress-editor-${activity.id}`}>{isA01 ? "Review findings" : "Record your work"}</a>
             </div>
             <nav className="activity-resource-links" aria-label="Activity references">
               {relatedModule && <Link href={modulePath}>Review Module {String(relatedModule.id).padStart(2, "0")} · {relatedModule.title}</Link>}
@@ -38,8 +38,8 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
         <nav className="activity-workflow-nav" aria-label="Activity steps">
           <a href="#activity-scenario"><span>01</span><strong>{isA01 ? "Understand" : "Scenario & goals"}</strong></a>
           <a href="#activity-prepare"><span>02</span><strong>Prepare</strong></a>
-          <a href="#activity-perform"><span>03</span><strong>{isA01 ? "Investigate" : "Perform & verify"}</strong></a>
-          <a href="#activity-record"><span>04</span><strong>{isA01 ? "Verify & save" : "Record your work"}</strong></a>
+          <a href="#activity-perform"><span>03</span><strong>{isA01 ? "Investigate & record" : "Perform & verify"}</strong></a>
+          <a href="#activity-record"><span>04</span><strong>{isA01 ? "Review & complete" : "Record your work"}</strong></a>
         </nav>
 
         {isA01 ? <A01Lab activity={activity} /> : <div className="activity-experience">
