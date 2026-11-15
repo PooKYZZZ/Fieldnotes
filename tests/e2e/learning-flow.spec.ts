@@ -568,7 +568,7 @@ test("module learning flow links directly to practice and readable activity evid
   await expect(page.locator(".activity-a01-objectives ul li")).toHaveCount(4);
   await expect(page.getByRole("heading", { name: "Prepare your VM" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Follow the process from ps to /proc" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Review and save" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Check what your evidence supports" })).toBeVisible();
   await expect(page.locator("#activity-steps ol > li")).toHaveCount(5);
   await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
   await expect(page.getByRole("img", { name: /Application code calls a library/ })).toHaveCount(1);
@@ -584,13 +584,18 @@ test("module learning flow links directly to practice and readable activity evid
   await expect(troubleshooting).toHaveJSProperty("open", false);
   await expect(troubleshooting.locator("summary")).toContainText("Troubleshoot a problem");
   await expect(page.getByRole("heading", { name: "Evidence to include" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Your investigation notebook" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Save your investigation" })).toBeVisible();
   await expect(page.getByLabel("Commands and evidence")).toBeVisible();
   await expect(page.getByLabel("Findings and reflection")).toBeVisible();
+  const lastStepBottom = await page.locator("#activity-steps").evaluate((element) => element.getBoundingClientRect().bottom + window.scrollY);
+  const notebookTop = await page.locator(".activity-a01-notebook").evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+  expect(notebookTop).toBeGreaterThan(lastStepBottom);
   await expect(page.getByRole("link", { name: /Review Module 01/ })).toHaveCount(1);
   await expect(page.getByRole("link", { name: /Next activity.*A02/ })).toHaveAttribute("href", "/activities/A02");
   await expect(page.getByLabel("How independently can you do this?")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-desktop.png"), fullPage: true });
+  await page.locator(".activity-workflow-nav a").nth(3).click();
+  await expect(page.getByRole("heading", { name: "Check what your evidence supports" })).toBeInViewport();
 
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: testOrigin });
   const copyButton = page.getByRole("button", { name: "Copy example code" }).first();
@@ -706,7 +711,7 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
     await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
     await expect(page.locator(".activity-expected-observations .article-copy")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Check the result" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: activityId === "A01" ? "Review and save" : "Record your work" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: activityId === "A01" ? "Check what your evidence supports" : "Record your work" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Evidence to include" })).toBeVisible();
     await expect(page.locator(`#progress-editor-${activityId}`)).toBeVisible();
     await expect(page.locator(`#notes-help-${activityId}`)).toContainText(activityId);

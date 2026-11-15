@@ -146,7 +146,7 @@ export function ProgressEditor({
     <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${bare ? " editor-card--bare" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}${isActivityLab ? " progress-editor--activity-lab" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
       <EditorTitle id={`editor-title-${itemId}`}>{title}</EditorTitle>
       <p className="editor-intro">{isActivityLab
-        ? "Keep the commands you ran beside the findings they support. Save partial work at any time; choose Completed only when you want to record that status yourself."
+        ? "Record sanitized findings and the commands that support them. Save partial work at any time; choose Completed only when you want to record that status yourself."
         : bare && isPracticeRecord
         ? "This self-reported record is saved in this Fieldnotes workspace; it does not prove mastery."
         : isLessonStatus

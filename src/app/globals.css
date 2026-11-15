@@ -1124,7 +1124,7 @@ body { font-size: 15px; }
 .activity-a01-brief .eyebrow { margin-bottom: 4px; font-size: 11px; }
 .activity-a01-brief .article-copy { max-width: 58ch; color: #465b5e; font-size: 15px; line-height: 1.55; }
 .activity-a01-brief .article-copy > :last-child { margin-bottom: 0; }
-.activity-a01-objectives { margin-top: 24px; border-top: 1px solid #e4ebe7; padding-top: 16px; }
+.activity-a01-objectives { max-width: none; margin-top: 24px; border-top: 1px solid #e4ebe7; padding-top: 16px; }
 .activity-a01-objectives h3 { margin: 0 0 8px; color: #365653; }
 .activity-a01-objectives .article-copy { max-width: none; color: #465b5e; font-size: 15px; line-height: 1.55; }
 .activity-a01-objectives .article-copy ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 24px; margin: 0; padding-left: 20px; }
@@ -1137,22 +1137,22 @@ body { font-size: 15px; }
 .activity-a01-ready h3 { margin: 0 0 8px; color: #365653; }
 .activity-a01-ready ul { display: grid; gap: 7px; margin: 0; padding-left: 19px; color: #4c6260; font-size: 14px; line-height: 1.5; }
 .activity-a01-ready li::marker { color: #4d8276; }
-.activity-a01-section-heading { max-width: 88ch; margin-bottom: 20px; }
+.activity-a01-section-heading { max-width: 88ch; margin: 0 0 20px; }
 .activity-a01-section-heading h2 { margin-bottom: 6px !important; }
 .activity-a01-section-heading > p:last-child { margin: 0; color: #536668; font-size: 15px; line-height: 1.55; }
-.activity-a01-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(350px, 410px); align-items: start; gap: clamp(24px, 3vw, 42px); }
+.activity-a01-workspace { max-width: 112ch; margin-right: auto; }
 .activity-a01-instructions, .activity-a01-notebook { min-width: 0; }
-.activity-a01-instructions .activity-steps .article-copy { max-width: none; font-size: 15px; line-height: 1.65; }
-.activity-a01-instructions .activity-steps .article-copy > ol > li { padding: 15px 0 20px 42px; }
-.activity-a01-instructions .activity-steps .article-copy > ol > li::before { top: 15px; }
-.activity-a01-instructions .activity-steps .article-copy > ol > li > p { max-width: none; margin-top: 4px; }
-.activity-a01-instructions .activity-steps .article-copy > ol > li > .copyable-code-block { margin-block: 13px; }
-.activity-a01-instructions .activity-steps .article-copy > ol > li > .copyable-code-block > pre { font-size: 12px; }
-.activity-a01-instructions .activity-steps .article-copy > ol > li > :last-child { margin-bottom: 0; }
+.activity-a01-instructions .article-copy { max-width: none; font-size: 15px; line-height: 1.65; }
+.activity-a01-instructions .article-copy > ol > li { padding: 15px 0 20px 42px; }
+.activity-a01-instructions .article-copy > ol > li::before { top: 15px; }
+.activity-a01-instructions .article-copy > ol > li > p { max-width: none; margin-top: 4px; }
+.activity-a01-instructions .article-copy > ol > li > .copyable-code-block { margin-block: 13px; }
+.activity-a01-instructions .article-copy > ol > li > .copyable-code-block > pre { font-size: 12px; }
+.activity-a01-instructions .article-copy > ol > li > :last-child { margin-bottom: 0; }
 .activity-a01-review { margin-top: 25px; border-top: 1px solid #dce5e1; padding-top: 20px; scroll-margin-top: 18px; }
 .activity-a01-review-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 15px; }
 .activity-a01-review-heading .eyebrow { margin-bottom: 5px; }
-.activity-a01-review-heading h3 { margin: 0; color: #29494a; font-size: 20px; }
+.activity-a01-review-heading h2 { margin: 0; color: #29494a; font-size: 23px; }
 .activity-a01-review-heading > p { max-width: 46ch; margin: 0; color: #617170; font-size: 13px; line-height: 1.5; }
 .activity-a01-review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
 .activity-a01-review-grid > div { min-width: 0; }
@@ -1162,14 +1162,13 @@ body { font-size: 15px; }
 .activity-a01-review-grid .article-copy ul, .activity-a01-evidence .article-copy ul { gap: 7px; margin: 8px 0; padding-left: 19px; }
 .activity-a01-review-grid .article-copy li::marker, .activity-a01-evidence .article-copy li::marker { color: #3d7770; }
 .activity-a01-evidence { max-width: none; margin-top: 16px; border-left: 2px solid #bdd3ca; padding-left: 14px; }
-.activity-a01-notebook { position: sticky; top: 18px; }
-.activity-a01-return { display: none; }
-.activity-a01-record { border: 0; padding: 0; }
-.activity-a01-record > h2 { margin: 0 0 12px; color: #29494a; font-size: 21px; }
+.activity-a01-notebook { margin-top: 24px; }
 .progress-editor--activity-lab { border: 1px solid #d5e2dc; border-radius: 12px; background: #f3f7f4; padding: 20px; box-shadow: 0 5px 16px rgb(30 52 53 / 6%); scroll-margin-top: 18px; }
 .progress-editor--activity-lab h3 { margin: 0 0 5px; color: #29494a; font-size: 19px; }
 .progress-editor--activity-lab .editor-intro { margin-bottom: 16px; color: #536866; font-size: 13px; line-height: 1.5; }
-.progress-editor--activity-lab form, .progress-editor--activity-lab .progress-long-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.progress-editor--activity-lab form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.progress-editor--activity-lab .progress-long-fields { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.progress-editor--activity-lab .progress-repository-field, .progress-editor--activity-lab .form-footer { grid-column: 1 / -1; }
 .progress-editor--activity-lab .form-field { margin-bottom: 13px; }
 .progress-editor--activity-lab .form-field label { font-size: 14px; }
 .progress-editor--activity-lab .form-select, .progress-editor--activity-lab .form-input { min-height: 42px; font-size: 14px; }
@@ -1185,11 +1184,6 @@ body { font-size: 15px; }
 
 @media (max-width: 1080px) {
   .activity-a01-understand-grid, .activity-a01-prepare { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-  .activity-a01-workspace { grid-template-columns: minmax(0, 1fr); }
-  .activity-a01-notebook { position: static; }
-  .activity-a01-return { display: inline-flex; min-height: 34px; align-items: center; margin-bottom: 10px; color: #356d68; font-size: 13px; font-weight: 700; text-decoration: none; }
-  .activity-a01-return:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .activity-a01-record { max-width: none; }
 }
 
 @media (max-width: 620px) {
@@ -1200,8 +1194,9 @@ body { font-size: 15px; }
   .activity-a01-brief { padding-left: 14px; }
   .activity-a01-ready { padding: 14px 15px; }
   .activity-a01-review-heading { align-items: flex-start; flex-direction: column; gap: 7px; }
-  .activity-a01-workspace { gap: 22px; }
+  .activity-a01-review-heading h2 { font-size: 21px; }
   .progress-editor--activity-lab { padding: 16px; }
+  .progress-editor--activity-lab form, .progress-editor--activity-lab .progress-long-fields { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .activity-a01-instructions .article-copy pre { font-size: 11px; }
 }
 

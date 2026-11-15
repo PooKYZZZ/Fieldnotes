@@ -50,72 +50,66 @@ export function A01Lab({ activity }: { activity: ActivityRecord }) {
         <div className="activity-a01-section-heading">
           <p className="eyebrow">Investigate</p>
           <h2 id="activity-perform-title">Follow the process from <code>ps</code> to <code>/proc</code></h2>
-          <p>Run each check in your VM. Compare the values, notice what changes, and record the evidence while it is in front of you.</p>
+          <p>Run each check in your VM. Jot down sanitized values as you go, then use Verify &amp; save below to compare them with the checklist and record your note.</p>
         </div>
 
         <div className="activity-a01-workspace">
-          <div className="activity-a01-instructions">
-            {activity.steps && <div className="activity-steps" id="activity-steps"><MarkdownContent copyable>{activity.steps}</MarkdownContent></div>}
+          {activity.steps && <div className="activity-a01-instructions activity-steps" id="activity-steps"><MarkdownContent copyable>{activity.steps}</MarkdownContent></div>}
 
-            <section className="activity-a01-review" id="activity-review" aria-labelledby="activity-a01-review-title">
-              <div className="activity-a01-review-heading">
-                <div>
-                  <p className="eyebrow">Verify</p>
-                  <h3 id="activity-a01-review-title">Check what your evidence supports</h3>
-                </div>
-                <p>Compare your notes with the checklist. Fieldnotes cannot read commands from your terminal or verify them automatically.</p>
-              </div>
-              <div className="activity-a01-review-grid">
-                <div className="activity-a01-expected activity-expected-observations">
-                  <h4>Expected observations</h4>
-                  <MarkdownContent>{activity.expectedObservations}</MarkdownContent>
-                </div>
-                {activity.verification && <div className="activity-a01-verification activity-verification">
-                  <h4>Check the result</h4>
-                  <MarkdownContent>{activity.verification}</MarkdownContent>
-                </div>}
-              </div>
-              <div className="activity-a01-evidence activity-evidence-guidance">
-                <h4>Evidence to include</h4>
-                <MarkdownContent>{activity.submit}</MarkdownContent>
-              </div>
-            </section>
-
-            {(activity.hints || activity.troubleshooting) && <div className="activity-help" aria-label="Optional help">
-              <p className="eyebrow">Need a hand?</p>
-              {activity.hints && <details className="optional-hints">
-                <summary>Open a hint</summary>
-                <div className="optional-hints-content"><MarkdownContent>{activity.hints}</MarkdownContent></div>
-              </details>}
-              {activity.troubleshooting && <details className="activity-troubleshooting">
-                <summary>Troubleshoot a problem</summary>
-                <MarkdownContent>{activity.troubleshooting}</MarkdownContent>
-              </details>}
-            </div>}
-
-            {activity.cleanup && <details className="activity-cleanup">
-              <summary>Finish the lab · clean up</summary>
-              <MarkdownContent>{activity.cleanup}</MarkdownContent>
+          {(activity.hints || activity.troubleshooting) && <div className="activity-help" aria-label="Optional help">
+            <p className="eyebrow">Need a hand?</p>
+            {activity.hints && <details className="optional-hints">
+              <summary>Open a hint</summary>
+              <div className="optional-hints-content"><MarkdownContent>{activity.hints}</MarkdownContent></div>
             </details>}
+            {activity.troubleshooting && <details className="activity-troubleshooting">
+              <summary>Troubleshoot a problem</summary>
+              <MarkdownContent>{activity.troubleshooting}</MarkdownContent>
+            </details>}
+          </div>}
+        </div>
+
+        <section className="activity-record activity-a01-review" id="activity-record" aria-labelledby="activity-a01-review-title">
+          <div className="activity-a01-review-heading">
+            <div>
+              <p className="eyebrow">Verify &amp; save</p>
+              <h2 id="activity-a01-review-title">Check what your evidence supports</h2>
+            </div>
+            <p>Compare your notes with the checklist, then save a concise record. Fieldnotes cannot read commands from your terminal or verify them automatically.</p>
+          </div>
+          <div className="activity-a01-review-grid">
+            <div className="activity-a01-expected activity-expected-observations">
+              <h4>Expected observations</h4>
+              <MarkdownContent>{activity.expectedObservations}</MarkdownContent>
+            </div>
+            {activity.verification && <div className="activity-a01-verification activity-verification">
+              <h4>Check the result</h4>
+              <MarkdownContent>{activity.verification}</MarkdownContent>
+            </div>}
+          </div>
+          <div className="activity-a01-evidence activity-evidence-guidance">
+            <h4>Evidence to include</h4>
+            <MarkdownContent>{activity.submit}</MarkdownContent>
           </div>
 
-          <aside className="activity-a01-notebook" aria-label="Investigation notebook">
-            <a className="activity-a01-return" href="#activity-perform">Back to investigation steps</a>
-            <section className="activity-record activity-a01-record" id="activity-record" aria-labelledby="activity-record-title">
-              <h2 id="activity-record-title">Review and save</h2>
-              <ProgressEditor
-                itemType="activity"
-                itemId={activity.id}
-                title="Your investigation notebook"
-                showComfort
-                wide
-                recordContext={`${activity.id} · ${activity.title}`}
-                reflectionPrompt={activity.selfCheck}
-                variant="activity-lab"
-              />
-            </section>
-          </aside>
-        </div>
+          <div className="activity-a01-notebook">
+            <ProgressEditor
+              itemType="activity"
+              itemId={activity.id}
+              title="Save your investigation"
+              showComfort
+              wide
+              recordContext={`${activity.id} · ${activity.title}`}
+              reflectionPrompt={activity.selfCheck}
+              variant="activity-lab"
+            />
+          </div>
+
+          {activity.cleanup && <details className="activity-cleanup">
+            <summary>Finish the lab · clean up</summary>
+            <MarkdownContent>{activity.cleanup}</MarkdownContent>
+          </details>}
+        </section>
       </section>
     </div>
   );
