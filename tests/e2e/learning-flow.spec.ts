@@ -382,7 +382,7 @@ test("activity brief and source PDFs are available", async ({ page }) => {
   await page.goto("/activities/A08");
   await expect(page.getByRole("heading", { level: 1, name: "Container fundamentals with Docker" })).toBeVisible();
   await expect(page.getByText(/Build an image for your status API/)).toBeVisible();
-  await expect(page.getByRole("link", { name: /Source PDF/ })).toHaveAttribute("href", "/library/04_Activities_and_Practice.pdf");
+  await expect(page.getByRole("link", { name: /Activity reference PDF/ })).toHaveAttribute("href", "/library/04_Activities_and_Practice.pdf");
   const response = await page.request.get("/library/04_Activities_and_Practice.pdf");
   expect(response.ok()).toBeTruthy();
   expect(response.headers()["content-type"]).toContain("application/pdf");
@@ -555,28 +555,36 @@ test("module learning flow links directly to practice and readable activity evid
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/activities/A01");
-  await expect(page.getByRole("heading", { level: 1, name: "How computers and operating systems work" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Start this activity" })).toHaveAttribute("href", "#activity-prepare");
-  await expect(page.locator(".activity-objective-strip ul li")).toHaveCount(3);
+  await expect(page.getByRole("heading", { level: 1, name: "Investigate a running Linux process" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Start activity" })).toHaveAttribute("href", "#activity-scenario");
+  await expect(page.locator(".activity-workflow-nav a")).toHaveCount(4);
+  await expect(page.locator(".activity-workflow-nav a").nth(0)).toHaveAttribute("href", "#activity-scenario");
+  await expect(page.locator(".activity-workflow-nav a").nth(1)).toHaveAttribute("href", "#activity-prepare");
+  await expect(page.locator(".activity-workflow-nav a").nth(2)).toHaveAttribute("href", "#activity-perform");
+  await expect(page.locator(".activity-workflow-nav a").nth(3)).toHaveAttribute("href", "#activity-record");
+  await expect(page.getByRole("heading", { name: "Scenario & goals" })).toBeVisible();
+  await expect(page.locator("#activity-scenario")).toContainText("on-call operator");
+  await expect(page.locator("#activity-scenario")).toContainText("Deliverable");
+  await expect(page.locator(".activity-objectives ul li")).toHaveCount(3);
   await expect(page.getByRole("heading", { name: "Prepare" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Hands-on work" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Verify & Record" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Practice steps" })).toBeVisible();
-  await expect(page.locator("#activity-steps ol > li")).toHaveCount(6);
-  await expect(page.getByRole("heading", { name: "What to expect and how to read it" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Perform & verify" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Record your work" })).toBeVisible();
+  await expect(page.locator("#activity-steps ol > li")).toHaveCount(4);
+  await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
   await expect(page.getByRole("img", { name: /A file read travels from application code/ })).toHaveCount(1);
   const processFigure = page.locator(".module-diagram img");
   await expect.poll(() => processFigure.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   await expect(page.locator(".module-diagram figcaption")).toContainText("Figure 1");
   await expect(page.getByRole("button", { name: "Copy example code" }).first()).toBeVisible();
-  await expect(page.getByText(/Use a disposable Ubuntu virtual machine/)).toBeVisible();
+  await expect(page.getByText(/Use a disposable Ubuntu VM/)).toBeVisible();
   const hints = page.locator(".optional-hints");
   await expect(hints).toHaveJSProperty("open", false);
-  await expect(page.getByRole("heading", { name: "Verify your result" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Check the result" })).toBeVisible();
   const troubleshooting = page.locator(".activity-troubleshooting");
   await expect(troubleshooting).toHaveJSProperty("open", false);
-  await expect(troubleshooting.locator("summary")).toContainText("If something goes wrong");
-  await expect(page.getByRole("heading", { name: "When you finish" })).toBeVisible();
+  await expect(troubleshooting.locator("summary")).toContainText("Troubleshoot a problem");
+  await expect(page.getByRole("heading", { name: "Evidence to include" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Save your learning record" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Review Module 01/ })).toHaveCount(1);
   await expect(page.getByRole("link", { name: /Next activity.*A02/ })).toHaveAttribute("href", "/activities/A02");
   await expect(page.getByLabel("How independently can you do this?")).toBeVisible();
@@ -589,13 +597,33 @@ test("module learning flow links directly to practice and readable activity evid
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("ps -u");
 
   await hints.locator("summary").click();
-  await expect(hints.getByText('ps -u "$(id -u)" -o pid,ppid,uid,comm,rss --sort=-rss | head -n 8')).toBeVisible();
+  await expect(hints).toContainText("Optional extension");
+  await expect(hints).toContainText("strace");
   await troubleshooting.locator("summary").click();
   await expect(troubleshooting).toContainText("permission");
   await hints.locator("summary").click();
   await troubleshooting.locator("summary").click();
-  await page.getByRole("link", { name: "Record your work" }).click();
+  await page.getByRole("link", { name: "Record your work", exact: true }).click();
   await expect(page.locator("#progress-editor-A01")).toBeInViewport();
+  const learningNote = page.getByLabel("Learning note");
+  const evidenceNote = page.getByLabel("Evidence or verification");
+  await expect(learningNote).toHaveAttribute("aria-describedby", /notes-help-A01 notes-reflection-A01/);
+  await expect(learningNote).toHaveAttribute("placeholder", /Attempt: .*Expected: .*Observed: .*Learned:/);
+  await expect(page.locator("#notes-reflection-A01")).toContainText("program becomes a process");
+  await learningNote.fill("I inspected one process owned by my account. I expected a stable RSS value; it changed between checks. I learned the process table is a point-in-time view.");
+  await evidenceNote.fill("ps showed my UID, PID and PPID; /proc status matched, and the descriptor links were listed. Figure 1 explains the system-call path.");
+  await page.getByLabel("Status").selectOption("in_progress");
+  await page.getByLabel("How independently can you do this?").selectOption("guided");
+  await page.getByRole("button", { name: "Save learning record" }).click();
+  await expect(page.locator("#progress-editor-A01 .form-message")).toContainText("Saved on this device.");
+  await page.reload();
+  await expect(page.getByLabel("Learning note")).toHaveValue(/I inspected one process/);
+  await expect(page.getByLabel("Evidence or verification")).toHaveValue(/ps showed my UID/);
+  await expect(page.getByLabel("Status")).toHaveValue("in_progress");
+  await expect(page.getByLabel("How independently can you do this?")).toHaveValue("guided");
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1920.png"), fullPage: true });
   await page.setViewportSize({ width: 768, height: 1024 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-tablet.png"), fullPage: true });
@@ -663,22 +691,36 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
 
     await page.goto(`/activities/${activityId}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.locator(".activity-objective-strip ul li").first()).toBeVisible();
+    await expect(page.locator("#activity-scenario")).toBeVisible();
+    await expect(page.locator(".activity-objectives ul li").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Prepare" })).toBeVisible();
     await expect(page.locator(".activity-environment")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Hands-on work" })).toBeVisible();
-    await expect(page.locator(".activity-challenge")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Practice steps" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Perform & verify" })).toBeVisible();
     expect(await page.locator("#activity-steps ol > li").count()).toBeGreaterThan(0);
-    await expect(page.getByRole("heading", { name: "What to expect and how to read it" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
     await expect(page.locator(".activity-expected-observations .article-copy")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "What you will produce" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Verify & Record" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Verify your result" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "What to submit" })).toBeVisible();
-    await expect(page.getByText(/Self-check:/)).toBeVisible();
-    await expect(page.getByText(/Work independently:/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Check the result" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Record your work" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Evidence to include" })).toBeVisible();
     await expect(page.locator(`#progress-editor-${activityId}`)).toBeVisible();
+    await expect(page.locator(`#notes-help-${activityId}`)).toContainText(activityId);
+  }
+
+  for (const viewport of [
+    { width: 768, height: 1024 },
+    { width: 390, height: 844 },
+    { width: 320, height: 780 },
+  ]) {
+    await page.setViewportSize(viewport);
+    for (let number = 1; number <= 24; number += 1) {
+      const activityId = `A${String(number).padStart(2, "0")}`;
+      await page.goto(`/activities/${activityId}`);
+      const { documentWidth, viewportWidth } = await page.evaluate(() => ({
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+      }));
+      expect(documentWidth, `${activityId} must not overflow at ${viewport.width}px`).toBeLessThanOrEqual(viewportWidth);
+    }
   }
 });
 

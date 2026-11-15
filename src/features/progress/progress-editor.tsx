@@ -24,6 +24,9 @@ export function ProgressEditor({
   title = "Progress note",
   showComfort = false,
   wide = false,
+  bare = false,
+  recordContext,
+  reflectionPrompt,
   variant = "full",
 }: {
   itemType: ProgressInput["itemType"];
@@ -31,12 +34,20 @@ export function ProgressEditor({
   title?: string;
   showComfort?: boolean;
   wide?: boolean;
+  bare?: boolean;
+  recordContext?: string;
+  reflectionPrompt?: string;
   variant?: "full" | "module-summary" | "lesson-status";
 }) {
   const isModuleSummary = variant === "module-summary";
   const isLessonStatus = variant === "lesson-status";
   const isPracticeRecord = itemType === "activity" || itemType === "troubleshooting";
   const isCompact = isModuleSummary || isLessonStatus;
+  const EditorTitle = bare ? "h3" : "h2";
+  const noteHintId = `notes-help-${itemId}`;
+  const noteReflectionId = `notes-reflection-${itemId}`;
+  const evidenceHintId = `evidence-help-${itemId}`;
+  const evidencePrivacyId = `evidence-privacy-${itemId}`;
   const [form, setForm] = useState<ProgressInput>(() => blankRecord(itemType, itemId));
   const [updatedAt, setUpdatedAt] = useState<number>();
   const [message, setMessage] = useState("");
@@ -123,9 +134,11 @@ export function ProgressEditor({
   }
 
   return (
-    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
-      <h2 id={`editor-title-${itemId}`}>{title}</h2>
-      <p className="editor-intro">{isLessonStatus
+    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${bare ? " editor-card--bare" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
+      <EditorTitle id={`editor-title-${itemId}`}>{title}</EditorTitle>
+      <p className="editor-intro">{bare && isPracticeRecord
+        ? "This self-reported record is saved in this Fieldnotes workspace; it does not prove mastery."
+        : isLessonStatus
         ? "Lesson completion is learner-reported and does not indicate mastery."
         : isModuleSummary
           ? "Mark your module progress and add a short reflection if useful. This is a self-report, not a mastery check. Saved in this Fieldnotes workspace."
@@ -170,14 +183,17 @@ export function ProgressEditor({
         <div className="progress-long-fields">
           <div className="form-field">
             <label htmlFor={`notes-${itemId}`}>Learning note</label>
-            <span className="field-hint">{isPracticeRecord ? "Capture your attempt, expected versus actual behavior, any problem you investigated, and what you learned." : "A useful reflection can capture your goal, what you observed, any troubleshooting, and the lesson you took away."}</span>
-            <Textarea id={`notes-${itemId}`} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isPracticeRecord ? "What did you try? What did you expect? What happened, and what would you check next?" : "What did you predict? What did you observe? What would you revisit?"} />
+            <span className="field-hint" id={noteHintId}>{itemType === "activity" && recordContext
+              ? `For ${recordContext}, describe what you attempted, what you expected, what you observed, and what you learned.`
+              : isPracticeRecord ? "Describe what you attempted, expected, observed, and learned." : "Capture your goal, what you observed, any troubleshooting, and the lesson you took away."}</span>
+            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
+            {reflectionPrompt && <span className="field-hint" id={noteReflectionId}>Reflection prompt: {reflectionPrompt}</span>}
           </div>
           <div className="form-field">
             <label htmlFor={`evidence-${itemId}`}>Evidence or verification</label>
-            <span className="field-hint">{itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : "Record commands or configuration, expected and observed results, and how you checked them. Keep the excerpt small and sanitized."}</span>
-            <Textarea id={`evidence-${itemId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={itemType === "troubleshooting" ? "Symptom, cause hypothesis, evidence, action taken, and repeatable verification…" : "Commands or configuration, expected versus observed result, and verification…"} />
-            <span className="field-hint">Keep it sanitized: no passwords, tokens, private addresses, or personal data.</span>
+            <span className="field-hint" id={evidenceHintId}>{itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : itemType === "activity" ? "Use the evidence checklist above. Note the relevant command or setting, what it showed, and how you confirmed your interpretation." : "Record commands or configuration, expected and observed results, and how you checked them."}</span>
+            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
+            <span className="field-hint" id={evidencePrivacyId}>Keep saved evidence small and sanitized; omit passwords, tokens, private addresses, and personal data.</span>
           </div>
         </div>
         <div className="form-field progress-repository-field">
