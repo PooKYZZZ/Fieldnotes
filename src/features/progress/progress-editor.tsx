@@ -37,19 +37,22 @@ export function ProgressEditor({
   bare?: boolean;
   recordContext?: string;
   reflectionPrompt?: string;
-  variant?: "full" | "module-summary" | "lesson-status";
+  variant?: "full" | "module-summary" | "lesson-status" | "activity-lab";
 }) {
   const isModuleSummary = variant === "module-summary";
   const isLessonStatus = variant === "lesson-status";
+  const isActivityLab = variant === "activity-lab";
   const isPracticeRecord = itemType === "activity" || itemType === "troubleshooting";
   const isCompact = isModuleSummary || isLessonStatus;
-  const EditorTitle = bare ? "h3" : "h2";
+  const EditorTitle = bare || isActivityLab ? "h3" : "h2";
   const noteHintId = `notes-help-${itemId}`;
   const noteReflectionId = `notes-reflection-${itemId}`;
   const evidenceHintId = `evidence-help-${itemId}`;
   const evidencePrivacyId = `evidence-privacy-${itemId}`;
   const [form, setForm] = useState<ProgressInput>(() => blankRecord(itemType, itemId));
   const [updatedAt, setUpdatedAt] = useState<number>();
+  const [isDirty, setIsDirty] = useState(false);
+  const [repositoryOpen, setRepositoryOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -76,6 +79,8 @@ export function ProgressEditor({
             repositoryUrl: saved.repositoryUrl,
           });
           setUpdatedAt(saved.updatedAt);
+          setIsDirty(false);
+          setRepositoryOpen(Boolean(saved.repositoryUrl));
         }
       })
       .catch(() => {
@@ -119,6 +124,7 @@ export function ProgressEditor({
       }
       const saved = body as ProgressRecord;
       setUpdatedAt(saved.updatedAt);
+      setIsDirty(false);
       setMessage("Saved on this device.");
       window.dispatchEvent(new CustomEvent("progress-updated"));
     } catch (caught) {
@@ -131,12 +137,17 @@ export function ProgressEditor({
 
   function update<K extends keyof ProgressInput>(key: K, value: ProgressInput[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    setIsDirty(true);
+    setError(false);
+    setMessage("");
   }
 
   return (
-    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${bare ? " editor-card--bare" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
+    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${bare ? " editor-card--bare" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}${isActivityLab ? " progress-editor--activity-lab" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
       <EditorTitle id={`editor-title-${itemId}`}>{title}</EditorTitle>
-      <p className="editor-intro">{bare && isPracticeRecord
+      <p className="editor-intro">{isActivityLab
+        ? "Keep the commands you ran beside the findings they support. Save partial work at any time; choose Completed only when you want to record that status yourself."
+        : bare && isPracticeRecord
         ? "This self-reported record is saved in this Fieldnotes workspace; it does not prove mastery."
         : isLessonStatus
         ? "Lesson completion is learner-reported and does not indicate mastery."
@@ -159,6 +170,7 @@ export function ProgressEditor({
           <select id={`status-${itemId}`} className="form-select" value={form.status} onChange={(event) => update("status", event.target.value as ProgressInput["status"])}>
             {progressStatuses.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
           </select>
+          {isActivityLab && <span className="field-hint">Saving keeps this choice; it never marks the activity complete automatically.</span>}
         </div>
         )}
         {!isCompact && showComfort && (
@@ -182,28 +194,42 @@ export function ProgressEditor({
           <>
         <div className="progress-long-fields">
           <div className="form-field">
-            <label htmlFor={`notes-${itemId}`}>Learning note</label>
-            <span className="field-hint" id={noteHintId}>{itemType === "activity" && recordContext
+            <label htmlFor={`notes-${itemId}`}>{isActivityLab ? "Findings and reflection" : "Learning note"}</label>
+            <span className="field-hint" id={noteHintId}>{isActivityLab
+              ? `For ${recordContext ?? itemId}, interpret the process state, memory, and unit result. Separate what you observed from what you infer.`
+              : itemType === "activity" && recordContext
               ? `For ${recordContext}, describe what you attempted, what you expected, what you observed, and what you learned.`
               : isPracticeRecord ? "Describe what you attempted, expected, observed, and learned." : "Capture your goal, what you observed, any troubleshooting, and the lesson you took away."}</span>
-            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
+            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isActivityLab ? "Process and finding: …\nWhat it suggests: …\nWhat remains uncertain: …" : isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
             {reflectionPrompt && <span className="field-hint" id={noteReflectionId}>Reflection prompt: {reflectionPrompt}</span>}
           </div>
           <div className="form-field">
-            <label htmlFor={`evidence-${itemId}`}>Evidence or verification</label>
-            <span className="field-hint" id={evidenceHintId}>{itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : itemType === "activity" ? "Use the evidence checklist above. Note the relevant command or setting, what it showed, and how you confirmed your interpretation." : "Record commands or configuration, expected and observed results, and how you checked them."}</span>
-            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
+            <label htmlFor={`evidence-${itemId}`}>{isActivityLab ? "Commands and evidence" : "Evidence or verification"}</label>
+            <span className="field-hint" id={evidenceHintId}>{isActivityLab
+              ? "Record the commands and sanitized results that support your process and systemd observations."
+              : itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : itemType === "activity" ? "Use the evidence checklist above. Note the relevant command or setting, what it showed, and how you confirmed your interpretation." : "Record commands or configuration, expected and observed results, and how you checked them."}</span>
+            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isActivityLab ? "Command and relevant result: …\nVerification: …" : isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
             <span className="field-hint" id={evidencePrivacyId}>Keep saved evidence small and sanitized; omit passwords, tokens, private addresses, and personal data.</span>
           </div>
         </div>
-        <div className="form-field progress-repository-field">
-          <label htmlFor={`repository-${itemId}`}>Repository or project URL <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
-          <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
-        </div>
+        {isActivityLab ? (
+          <details className="progress-repository-field progress-optional-repository" open={repositoryOpen} onToggle={(event) => setRepositoryOpen(event.currentTarget.open)}>
+            <summary>Repository or project URL (optional)</summary>
+            <div className="form-field">
+              <label htmlFor={`repository-${itemId}`}>Repository or project URL</label>
+              <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
+            </div>
+          </details>
+        ) : (
+          <div className="form-field progress-repository-field">
+            <label htmlFor={`repository-${itemId}`}>Repository or project URL <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
+            <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
+          </div>
+        )}
           </>
         )}
         <div className="form-footer progress-form-footer">
-          <span className="field-hint">{loading ? "Loading saved progress…" : updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet"}</span>
+          <span className="field-hint">{loading ? "Loading saved progress…" : loadFailed ? "Saved progress could not be loaded" : isDirty ? `Unsaved changes${updatedAt ? ` · last saved ${new Date(updatedAt).toLocaleString()}` : ""}` : updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet"}</span>
           <Button className="button button-primary" type="submit" disabled={saving || loading || loadFailed}>
             <Save size={15} aria-hidden="true" />{saving ? "Saving…" : isModuleSummary ? "Save module progress" : "Save learning record"}
           </Button>

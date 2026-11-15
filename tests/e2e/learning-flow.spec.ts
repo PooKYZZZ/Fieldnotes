@@ -562,16 +562,16 @@ test("module learning flow links directly to practice and readable activity evid
   await expect(page.locator(".activity-workflow-nav a").nth(1)).toHaveAttribute("href", "#activity-prepare");
   await expect(page.locator(".activity-workflow-nav a").nth(2)).toHaveAttribute("href", "#activity-perform");
   await expect(page.locator(".activity-workflow-nav a").nth(3)).toHaveAttribute("href", "#activity-record");
-  await expect(page.getByRole("heading", { name: "Scenario & goals" })).toBeVisible();
-  await expect(page.locator("#activity-scenario")).toContainText("on-call operator");
-  await expect(page.locator("#activity-scenario")).toContainText("Deliverable");
-  await expect(page.locator(".activity-objectives ul li")).toHaveCount(3);
-  await expect(page.getByRole("heading", { name: "Prepare" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Perform & verify" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Record your work" })).toBeVisible();
-  await expect(page.locator("#activity-steps ol > li")).toHaveCount(4);
+  await expect(page.getByRole("heading", { name: "What can one process snapshot tell you?" })).toBeVisible();
+  await expect(page.locator("#activity-scenario")).toContainText("A technician is learning");
+  await expect(page.locator("#activity-scenario")).toContainText("Your deliverable");
+  await expect(page.locator(".activity-a01-objectives ul li")).toHaveCount(4);
+  await expect(page.getByRole("heading", { name: "Prepare your VM" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Follow the process from ps to /proc" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review and save" })).toBeVisible();
+  await expect(page.locator("#activity-steps ol > li")).toHaveCount(5);
   await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
-  await expect(page.getByRole("img", { name: /A file read travels from application code/ })).toHaveCount(1);
+  await expect(page.getByRole("img", { name: /Application code calls a library/ })).toHaveCount(1);
   const processFigure = page.locator(".module-diagram img");
   await expect.poll(() => processFigure.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   await expect(page.locator(".module-diagram figcaption")).toContainText("Figure 1");
@@ -584,7 +584,9 @@ test("module learning flow links directly to practice and readable activity evid
   await expect(troubleshooting).toHaveJSProperty("open", false);
   await expect(troubleshooting.locator("summary")).toContainText("Troubleshoot a problem");
   await expect(page.getByRole("heading", { name: "Evidence to include" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Save your learning record" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your investigation notebook" })).toBeVisible();
+  await expect(page.getByLabel("Commands and evidence")).toBeVisible();
+  await expect(page.getByLabel("Findings and reflection")).toBeVisible();
   await expect(page.getByRole("link", { name: /Review Module 01/ })).toHaveCount(1);
   await expect(page.getByRole("link", { name: /Next activity.*A02/ })).toHaveAttribute("href", "/activities/A02");
   await expect(page.getByLabel("How independently can you do this?")).toBeVisible();
@@ -594,31 +596,31 @@ test("module learning flow links directly to practice and readable activity evid
   const copyButton = page.getByRole("button", { name: "Copy example code" }).first();
   await copyButton.click();
   await expect(copyButton).toContainText("Copied");
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("ps -u");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("id -u");
 
   await hints.locator("summary").click();
-  await expect(hints).toContainText("Optional extension");
-  await expect(hints).toContainText("strace");
+  await expect(hints).toContainText("PID disappears");
   await troubleshooting.locator("summary").click();
   await expect(troubleshooting).toContainText("permission");
   await hints.locator("summary").click();
   await troubleshooting.locator("summary").click();
   await page.getByRole("link", { name: "Record your work", exact: true }).click();
   await expect(page.locator("#progress-editor-A01")).toBeInViewport();
-  const learningNote = page.getByLabel("Learning note");
-  const evidenceNote = page.getByLabel("Evidence or verification");
+  const learningNote = page.getByLabel("Findings and reflection");
+  const evidenceNote = page.getByLabel("Commands and evidence");
   await expect(learningNote).toHaveAttribute("aria-describedby", /notes-help-A01 notes-reflection-A01/);
-  await expect(learningNote).toHaveAttribute("placeholder", /Attempt: .*Expected: .*Observed: .*Learned:/);
-  await expect(page.locator("#notes-reflection-A01")).toContainText("program becomes a process");
-  await learningNote.fill("I inspected one process owned by my account. I expected a stable RSS value; it changed between checks. I learned the process table is a point-in-time view.");
-  await evidenceNote.fill("ps showed my UID, PID and PPID; /proc status matched, and the descriptor links were listed. Figure 1 explains the system-call path.");
+  await expect(learningNote).toHaveAttribute("placeholder", /Process and finding:[\s\S]*What it suggests:[\s\S]*What remains uncertain:/);
+  await expect(page.locator("#notes-reflection-A01")).toContainText("process state");
+  await learningNote.fill("The selected process was sleeping when I checked it. That one state value does not tell me whether it is slow.");
+  await evidenceNote.fill("ps and /proc/status showed the same PID and effective UID. systemctl identified the session scope; descriptor targets were sanitized.");
   await page.getByLabel("Status").selectOption("in_progress");
   await page.getByLabel("How independently can you do this?").selectOption("guided");
+  await expect(page.locator("#progress-editor-A01 .field-hint").filter({ hasText: "Unsaved changes" })).toBeVisible();
   await page.getByRole("button", { name: "Save learning record" }).click();
   await expect(page.locator("#progress-editor-A01 .form-message")).toContainText("Saved on this device.");
   await page.reload();
-  await expect(page.getByLabel("Learning note")).toHaveValue(/I inspected one process/);
-  await expect(page.getByLabel("Evidence or verification")).toHaveValue(/ps showed my UID/);
+  await expect(page.getByLabel("Findings and reflection")).toHaveValue(/selected process was sleeping/);
+  await expect(page.getByLabel("Commands and evidence")).toHaveValue(/ps and \/proc\/status/);
   await expect(page.getByLabel("Status")).toHaveValue("in_progress");
   await expect(page.getByLabel("How independently can you do this?")).toHaveValue("guided");
 
@@ -695,12 +697,16 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
     await expect(page.locator(".activity-objectives ul li").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Prepare" })).toBeVisible();
     await expect(page.locator(".activity-environment")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Perform & verify" })).toBeVisible();
+    if (activityId === "A01") {
+      await expect(page.getByRole("heading", { name: /Follow the process from ps to \/proc/ })).toBeVisible();
+    } else {
+      await expect(page.getByRole("heading", { name: "Perform & verify" })).toBeVisible();
+    }
     expect(await page.locator("#activity-steps ol > li").count()).toBeGreaterThan(0);
     await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
     await expect(page.locator(".activity-expected-observations .article-copy")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Check the result" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Record your work" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: activityId === "A01" ? "Review and save" : "Record your work" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Evidence to include" })).toBeVisible();
     await expect(page.locator(`#progress-editor-${activityId}`)).toBeVisible();
     await expect(page.locator(`#notes-help-${activityId}`)).toContainText(activityId);

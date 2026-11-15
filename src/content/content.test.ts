@@ -35,12 +35,12 @@ describe("learning content integrity", () => {
   it("provides concrete, safe, verifiable practice guidance for every activity", () => {
     const activity = activities.find((item) => item.id === "A01");
     expect(activity).toMatchObject({
-      scenario: expect.stringContaining("on-call operator"),
+      scenario: expect.stringContaining("cannot establish about a service's responsiveness"),
       environment: expect.stringContaining("disposable Ubuntu VM"),
-      steps: expect.stringContaining("ps -u \"$(id -u)\" -o pid,ppid,uid,comm,rss"),
-      expectedObservations: expect.stringContaining("<your uid>"),
-      verification: expect.stringContaining("selected PID appears"),
-      troubleshooting: expect.stringContaining("Do not bypass permissions with `sudo`"),
+      steps: expect.stringContaining("ps -u \"$(id -u)\" -o pid,ppid,euid,stat,rss,comm"),
+      expectedObservations: expect.stringContaining("a session scope"),
+      verification: expect.stringContaining("sanitized PID, PPID"),
+      troubleshooting: expect.stringContaining("Do not use `sudo`"),
       cleanup: expect.stringContaining("shut down the disposable VM"),
     });
     for (const item of activities) {

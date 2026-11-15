@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, FileText, TriangleAlert } from "lucide-react";
 import type { ActivityRecord, ModuleRecord } from "@/content";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
+import { A01Lab } from "@/features/activities/a01-lab";
 
 export function ActivityLesson({ activity, relatedModule, previousActivity, nextActivity }: {
   activity: ActivityRecord;
@@ -11,11 +12,12 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
   nextActivity?: Pick<ActivityRecord, "id" | "title">;
 }) {
   const modulePath = relatedModule ? `/modules/${String(relatedModule.id).padStart(2, "0")}` : "/roadmap";
+  const isA01 = activity.id === "A01";
 
   return (
     <>
       <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/activities">Activities</Link><span aria-hidden="true">/</span><span>{activity.id}</span></nav>
-      <div className="activity-lesson-shell">
+      <div className={`activity-lesson-shell${isA01 ? " activity-lesson-shell--a01" : ""}`}>
         <header className="page-header activity-lesson-header">
           <div>
             <p className="eyebrow">Activity {activity.id} · Module {String(activity.moduleId).padStart(2, "0")}</p>
@@ -34,13 +36,13 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
         </header>
 
         <nav className="activity-workflow-nav" aria-label="Activity steps">
-          <a href="#activity-scenario"><span>01</span><strong>Scenario &amp; goals</strong></a>
+          <a href="#activity-scenario"><span>01</span><strong>{isA01 ? "Understand" : "Scenario & goals"}</strong></a>
           <a href="#activity-prepare"><span>02</span><strong>Prepare</strong></a>
-          <a href="#activity-perform"><span>03</span><strong>Perform &amp; verify</strong></a>
-          <a href="#activity-record"><span>04</span><strong>Record your work</strong></a>
+          <a href="#activity-perform"><span>03</span><strong>{isA01 ? "Investigate" : "Perform & verify"}</strong></a>
+          <a href="#activity-record"><span>04</span><strong>{isA01 ? "Verify & save" : "Record your work"}</strong></a>
         </nav>
 
-        <div className="activity-experience">
+        {isA01 ? <A01Lab activity={activity} /> : <div className="activity-experience">
           <section className="activity-stage activity-scenario" id="activity-scenario" aria-labelledby="activity-scenario-title">
             <h2 id="activity-scenario-title">Scenario &amp; goals</h2>
             <p className="activity-scenario-text">{activity.scenario}</p>
@@ -105,7 +107,7 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
               <MarkdownContent>{activity.cleanup}</MarkdownContent>
             </details>}
           </section>
-        </div>
+        </div>}
 
         <nav className="activity-continuation" aria-label="Continue learning">
           {previousActivity ? <Link className="activity-continuation-link activity-continuation-link--previous" href={`/activities/${previousActivity.id}`}><span>Previous activity</span><strong><ArrowLeft size={14} /> {previousActivity.id} · {previousActivity.title}</strong></Link> : <span />}
