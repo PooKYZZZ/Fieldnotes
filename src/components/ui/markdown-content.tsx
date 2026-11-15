@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import { ArrowRight } from "lucide-react";
 import { CopyCodeButton } from "@/components/ui/copy-code-button";
 
 function nodeText(node: ReactNode): string {
@@ -33,12 +34,14 @@ export function MarkdownContent({
   copyable = false,
   taskIds,
   taskHints,
+  onRecordTask,
 }: {
   children: string;
   headingIdPrefix?: string;
   copyable?: boolean;
   taskIds?: readonly string[];
   taskHints?: Partial<Record<string, string>>;
+  onRecordTask?: (taskId: string) => void;
 }) {
   let taskIndex = 0;
   const components: Components = {
@@ -54,13 +57,22 @@ export function MarkdownContent({
         <ol {...props}>
           {Children.toArray(listChildren).map((child) => {
             if (!isValidElement<{ children?: ReactNode }>(child) || child.type !== "li") return child;
-            const taskId = taskIds[taskIndex];
+            const taskPosition = taskIndex;
+            const taskId = taskIds[taskPosition];
             if (!taskId) return child;
             taskIndex += 1;
             const item = child as ReactElement<{ children?: ReactNode }>;
             return (
               <li key={item.key ?? taskId} id={`activity-task-${taskId}`} data-task-id={taskId}>
                 {item.props.children}
+                {onRecordTask && <button
+                  type="button"
+                  className="activity-task-record"
+                  aria-label={`Record Task ${taskPosition + 1} in the investigation notebook`}
+                  onClick={() => onRecordTask(taskId)}
+                >
+                  Record Task {taskPosition + 1}<ArrowRight size={14} aria-hidden="true" />
+                </button>}
                 {taskHints?.[taskId] && <details className="activity-task-help">
                   <summary>Need help with this task?</summary>
                   <div className="activity-task-help-content"><MarkdownContent>{taskHints[taskId]}</MarkdownContent></div>

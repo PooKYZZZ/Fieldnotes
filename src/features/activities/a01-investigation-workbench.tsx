@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { BookOpen, Check, RefreshCw, Save, X } from "lucide-react";
 import type { ActivityRecord } from "@/content";
 import { a01TaskIds, type A01TaskId } from "@/content/a01-task-ids";
@@ -46,6 +46,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   const [updatedAt, setUpdatedAt] = useState<number>();
   const [selectedTaskId, setSelectedTaskId] = useState<A01TaskSelection>(a01Tasks[0].id);
   const [visibleTaskId, setVisibleTaskId] = useState<A01TaskId>(a01Tasks[0].id);
+  const [focusRequest, setFocusRequest] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -55,6 +56,8 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   const [message, setMessage] = useState("");
   const [messageLocation, setMessageLocation] = useState<"notebook" | "review">("notebook");
   const [error, setError] = useState(false);
+  const focusTargetRef = useRef<A01TaskSelection | null>(null);
+  const notebookReturnFocusRef = useRef<HTMLElement | null>(null);
   const taskObservationId = `task-observation-${activity.id}`;
   const taskPromptId = `activity-a01-task-prompt-${activity.id}`;
   const disabled = loading || loadFailed || saving;
@@ -127,7 +130,8 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMobileNotebookOpen(false);
-        requestAnimationFrame(() => document.getElementById("a01-mobile-notebook-toggle")?.focus());
+        const returnTarget = notebookReturnFocusRef.current ?? document.getElementById("a01-mobile-notebook-toggle");
+        requestAnimationFrame(() => returnTarget?.focus());
       }
     };
     window.addEventListener("keydown", closeOnEscape);
@@ -146,6 +150,19 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
     window.addEventListener("hashchange", revealLinkedNotebook);
     return () => window.removeEventListener("hashchange", revealLinkedNotebook);
   }, [activity.id]);
+
+  useEffect(() => {
+    if (!focusRequest || focusTargetRef.current !== selectedTaskId) return;
+    if (window.matchMedia("(max-width: 1180px)").matches && !mobileNotebookOpen) return;
+
+    const inputId = selectedTaskId === "legacy" ? `notes-${activity.id}` : taskObservationId;
+    const editor = document.getElementById(inputId);
+    if (!(editor instanceof HTMLElement)) return;
+
+    editor.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    editor.focus({ preventScroll: true });
+    focusTargetRef.current = null;
+  }, [activity.id, focusRequest, mobileNotebookOpen, selectedTaskId, taskObservationId]);
 
   async function save(status: ProgressStatus, location: "notebook" | "review", action: "draft" | "reopen" = "draft") {
     setSaving(true);
@@ -196,35 +213,53 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   }
 
   function updateObservation(taskId: A01TaskId, value: string) {
-    update("taskObservations", { ...(record.taskObservations ?? {}), [taskId]: value });
+    setRecord((current) => ({
+      ...current,
+      taskObservations: { ...(current.taskObservations ?? {}), [taskId]: value },
+    }));
+    setIsDirty(true);
+    setError(false);
+    setMessage("");
   }
 
-  function selectTask(taskId: A01TaskSelection) {
+  function selectTask(taskId: A01TaskSelection, trigger?: HTMLElement) {
+    focusTargetRef.current = taskId;
+    setFocusRequest((request) => request + 1);
     setSelectedTaskId(taskId);
     setError(false);
     setMessage("");
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-      const inputId = taskId === "legacy" ? `notes-${activity.id}` : taskObservationId;
-      const editor = document.getElementById(inputId);
-      editor?.focus();
-      if (editor instanceof HTMLElement && window.matchMedia("(max-width: 1180px)").matches) {
-        const notebookBody = document.querySelector<HTMLElement>(".activity-a01-notebook--open .activity-a01-notebook-body");
-        if (notebookBody) {
-          const targetTop = notebookBody.getBoundingClientRect().top + notebookBody.clientHeight * 0.58;
-          notebookBody.scrollTop += editor.getBoundingClientRect().top - targetTop;
-        }
-      }
-    }));
+    if (window.matchMedia("(max-width: 1180px)").matches) {
+      if (trigger) notebookReturnFocusRef.current = trigger;
+      setMobileNotebookOpen(true);
+    }
   }
 
-  function editTask(taskId: A01TaskSelection) {
-    selectTask(taskId);
-    setMobileNotebookOpen(true);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-      const editor = document.getElementById(`progress-editor-${activity.id}`);
-      editor?.scrollIntoView({ behavior: "smooth", block: "center" });
-      document.getElementById(taskObservationId)?.focus({ preventScroll: true });
-    }));
+  function recordTask(taskId: string) {
+    const stableTaskId = a01TaskIds.find((id) => id === taskId);
+    if (!stableTaskId) return;
+    selectTask(stableTaskId, document.activeElement instanceof HTMLElement ? document.activeElement : undefined);
+  }
+
+  function editTask(taskId: A01TaskSelection, trigger?: HTMLElement) {
+    const target = taskId === "legacy" ? document.getElementById("activity-perform") : document.getElementById(`activity-task-${taskId}`);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    selectTask(taskId, trigger);
+  }
+
+  function closeMobileNotebook() {
+    setMobileNotebookOpen(false);
+    const returnTarget = notebookReturnFocusRef.current ?? document.getElementById("a01-mobile-notebook-toggle");
+    requestAnimationFrame(() => returnTarget?.focus());
+  }
+
+  function markComplete() {
+    if (recordedCount < a01Tasks.length) {
+      const confirmed = window.confirm(
+        `You have notes for ${recordedCount} of ${a01Tasks.length} tasks. You can still mark A01 complete now. Completion is your self-report; Fieldnotes does not verify your VM results, and your notes will remain editable.\n\nMark A01 complete?`,
+      );
+      if (!confirmed) return;
+    }
+    void save("completed", "review");
   }
 
   function retryLoad() {
@@ -244,9 +279,10 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
     void save(record.status === "completed" ? "completed" : "in_progress", "review");
   }
 
-  const viewingDifferentTask = visibleTaskId !== selectedTaskId && selectedTaskId !== "legacy";
+  const viewingDifferentTask = selectedTaskId === "legacy" || visibleTaskId !== selectedTaskId;
   const legacyExists = Boolean(record.notes.trim() || record.evidence.trim());
   const legacyDirty = record.notes !== savedRecord.notes || record.evidence !== savedRecord.evidence;
+  const missingTasks = a01Tasks.filter(({ id }) => !record.taskObservations?.[id]?.trim());
 
   return (
     <>
@@ -254,12 +290,12 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         <div className="activity-a01-section-heading">
           <p className="eyebrow">Investigate and record</p>
           <h2 id="activity-perform-title">Follow one process from <code>ps</code> to <code>/proc</code></h2>
-          <p>Run each read-only check in your VM. Select a task in the notebook to record it; scrolling through the steps will never change the note you are editing.</p>
+          <p>Run each read-only check in your VM. Use its Record button to open the matching notebook entry.</p>
         </div>
 
         <div className="activity-a01-workspace">
           <div className="activity-a01-instructions" id="activity-steps">
-            {activity.steps && <MarkdownContent copyable taskIds={a01TaskIds} taskHints={activity.taskHints}>{activity.steps}</MarkdownContent>}
+            {activity.steps && <MarkdownContent copyable taskIds={a01TaskIds} taskHints={activity.taskHints} onRecordTask={recordTask}>{activity.steps}</MarkdownContent>}
           </div>
 
           <aside id="a01-notebook" className={`activity-a01-notebook${mobileNotebookOpen ? " activity-a01-notebook--open" : " activity-a01-notebook--closed"}`} aria-label="A01 investigation notebook">
@@ -270,7 +306,14 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                 type="button"
                 aria-expanded={mobileNotebookOpen}
                 aria-controls={`progress-editor-${activity.id}`}
-                onClick={() => setMobileNotebookOpen((open) => !open)}
+                onClick={(event) => {
+                  if (mobileNotebookOpen) {
+                    closeMobileNotebook();
+                    return;
+                  }
+                  notebookReturnFocusRef.current = event.currentTarget;
+                  setMobileNotebookOpen(true);
+                }}
               >
                 {mobileNotebookOpen ? <X size={16} aria-hidden="true" /> : <BookOpen size={16} aria-hidden="true" />}
                 {mobileNotebookOpen ? "Close notebook" : "Open investigation notebook"}
@@ -283,19 +326,24 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                 <div className="activity-a01-notebook-heading">
                   <p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared record</p>
                   <h2>Investigation notebook</h2>
-                  <p>Choose a task, record what your VM showed, and return to these notes in the final review.</p>
+                  <p>Choose a task to edit. Your notes stay in this A01 record until you save them.</p>
                 </div>
 
                 {viewingDifferentTask && <div className="activity-a01-visible-task" role="status">
-                  <span>Viewing Task {a01Tasks.findIndex(({ id }) => id === visibleTaskId) + 1}: {a01Tasks.find(({ id }) => id === visibleTaskId)?.title}</span>
-                  <button type="button" onClick={() => selectTask(visibleTaskId)}>Switch notebook to this task</button>
+                  <span>
+                    <strong>Reading Task {a01Tasks.findIndex(({ id }) => id === visibleTaskId) + 1} · {a01Tasks.find(({ id }) => id === visibleTaskId)?.title}</strong>
+                    <span>Editing {currentTask ? `Task ${a01Tasks.findIndex(({ id }) => id === currentTask.id) + 1} · ${currentTask.title}` : "your earlier unassigned note"}</span>
+                  </span>
+                  <button type="button" onClick={(event) => selectTask(visibleTaskId, event.currentTarget)}>Edit Task {a01Tasks.findIndex(({ id }) => id === visibleTaskId) + 1}</button>
                 </div>}
 
                 <div className="activity-a01-task-picker" role="group" aria-label="Task notes and saved states">
                   {a01Tasks.map((task, index) => {
                     const value = record.taskObservations?.[task.id] ?? "";
                     const savedValue = savedRecord.taskObservations?.[task.id] ?? "";
-                    const taskState = value.trim() ? value !== savedValue ? "Unsaved" : "Recorded" : "Not recorded";
+                    const taskState = selectedTaskId === task.id
+                      ? `Editing · ${value.trim() ? value !== savedValue ? "unsaved" : "note saved" : "not recorded"}`
+                      : value.trim() ? value !== savedValue ? "Unsaved" : "Note saved" : "Not recorded";
                     return <button
                       key={task.id}
                       type="button"
@@ -320,7 +368,11 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                   </button>}
                 </div>
                 <label className="activity-a01-task-picker-mobile">
-                  <span id="activity-a01-task-picker-label">Choose a task observation</span>
+                  <span id="activity-a01-task-picker-label">
+                    Choose a task · {currentTask
+                      ? `Editing Task ${a01Tasks.findIndex(({ id }) => id === currentTask.id) + 1} of ${a01Tasks.length} · ${currentTask.title}`
+                      : "Editing your earlier unassigned note"}
+                  </span>
                   <select
                     className="form-select"
                     aria-labelledby="activity-a01-task-picker-label"
@@ -331,7 +383,9 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                     {a01Tasks.map((task, index) => {
                       const value = record.taskObservations?.[task.id] ?? "";
                       const savedValue = savedRecord.taskObservations?.[task.id] ?? "";
-                      const taskState = value.trim() ? value !== savedValue ? "Unsaved" : "Recorded" : "Not recorded";
+                    const taskState = selectedTaskId === task.id
+                      ? `Editing · ${value.trim() ? value !== savedValue ? "unsaved" : "note saved" : "not recorded"}`
+                      : value.trim() ? value !== savedValue ? "Unsaved" : "Note saved" : "Not recorded";
                       return <option key={task.id} value={task.id}>Task {index + 1} · {task.title} · {taskState}</option>;
                     })}
                     {legacyExists && <option value="legacy">Earlier unassigned note · {legacyDirty ? "Unsaved" : "Preserved"}</option>}
@@ -339,7 +393,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                 </label>
 
                 {currentTask ? <div className="activity-a01-current-task" aria-live="polite">
-                  <span>Task {a01Tasks.findIndex(({ id }) => id === currentTask.id) + 1} of {a01Tasks.length}</span>
+                  <span>Editing Task {a01Tasks.findIndex(({ id }) => id === currentTask.id) + 1} of {a01Tasks.length}</span>
                   <strong>{currentTask.title}</strong>
                   <p id={taskPromptId}>{currentTask.prompt}</p>
                 </div> : <div className="activity-a01-current-task activity-a01-current-task--legacy">
@@ -351,7 +405,6 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                 <div className="activity-a01-notebook-form">
                   {currentTask ? <div className="form-field">
                     <label htmlFor={taskObservationId}>Task observation</label>
-                    <span className="field-hint">A short note is enough: what you observed, what it means, and a relevant limit.</span>
                     <Textarea
                       id={taskObservationId}
                       className="form-textarea"
@@ -359,10 +412,10 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                       value={currentObservation}
                       disabled={disabled}
                       aria-describedby={`${taskPromptId} activity-a01-observation-privacy`}
-                      placeholder={"What did your VM show? What does it mean? What can’t it prove?"}
+                      placeholder="Record a short, sanitized observation and what it supports."
                       onChange={(event) => updateObservation(currentTask.id, event.target.value)}
                     />
-                    <span className="activity-a01-character-count">{currentObservation.length} / 1,200 characters · {recordedCount} of 5 tasks recorded</span>
+                    <span className="activity-a01-character-count">{currentObservation.length} / 1,200 characters</span>
                   </div> : <>
                     <div className="form-field">
                       <label htmlFor={`notes-${activity.id}`}>Earlier notes</label>
@@ -375,7 +428,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                       <Textarea id={`evidence-${activity.id}`} className="form-textarea" maxLength={3000} value={record.evidence} disabled={disabled} onChange={(event) => update("evidence", event.target.value)} />
                     </div>
                   </>}
-                  <p className="activity-a01-privacy-note" id="activity-a01-observation-privacy">Omit private paths, full command arguments, tokens, and personal data. Fieldnotes saves your note here; it does not read your terminal.</p>
+                  <p className="activity-a01-privacy-note" id="activity-a01-observation-privacy">Avoid saving private paths, full command arguments, tokens, or personal data.</p>
                 </div>
               </div>
 
@@ -401,25 +454,45 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             <p className="eyebrow">Review, save, and continue</p>
             <h2 id="activity-a01-review-title">Review the observations you recorded</h2>
           </div>
-          <p>Each row shows the same observation saved in the notebook. Choose Edit to return to that task; no evidence needs to be entered again.</p>
+          <p>Review the same task notes here, edit any entry, then save the investigation when ready.</p>
         </div>
 
-        <p className="activity-a01-review-progress">{recordedCount} of 5 task observations recorded. “Recorded” describes saved learner notes; it does not mean Fieldnotes verified the Linux results.</p>
-        <div className="activity-a01-review-record" aria-label="Task observations in the shared notebook">
+        <p className="activity-a01-review-progress">
+          {recordedCount === 0
+            ? "No task notes yet. You can save a partial draft at any time."
+            : `${recordedCount} of ${a01Tasks.length} tasks have notes in this investigation. These are self-reported; Fieldnotes does not verify VM results.`}
+        </p>
+        <div className="activity-a01-review-record" role="group" aria-label="Task observations in the shared notebook">
+          {recordedCount === 0 && <div className="activity-a01-review-empty">
+            <p>Start with your account check. You can return to the other tasks whenever you are ready.</p>
+            <Button className="button button-outline" type="button" disabled={disabled} onClick={(event) => editTask(a01Tasks[0].id, event.currentTarget)}>
+              Open Task 1 · Confirm your account
+            </Button>
+          </div>}
           {a01Tasks.map((task, index) => {
             const observation = record.taskObservations?.[task.id]?.trim();
-            return <article className="activity-a01-review-task" key={task.id}>
+            if (!observation) return null;
+            return <article className="activity-a01-review-task" data-task-id={task.id} key={task.id}>
               <div className="activity-a01-review-task-heading">
                 <div><span className="activity-a01-review-number">{String(index + 1).padStart(2, "0")}</span><h3>{task.title}</h3></div>
-                <a href={`#progress-editor-${activity.id}`} onClick={() => editTask(task.id)}>Edit Task {index + 1}</a>
+                <button type="button" onClick={(event) => editTask(task.id, event.currentTarget)}>Edit Task {index + 1}</button>
               </div>
-              <p className={`activity-a01-review-value${observation ? "" : " activity-a01-review-value--empty"}`}>{observation || "Not recorded yet."}</p>
+              <p className="activity-a01-review-value">{observation}</p>
             </article>;
           })}
+          {recordedCount > 0 && missingTasks.length > 0 && <div className="activity-a01-review-missing">
+            <strong>Not recorded yet ({missingTasks.length})</strong>
+            <ul aria-label="Tasks without notes">
+              {missingTasks.map((task) => {
+                const index = a01Tasks.findIndex(({ id }) => id === task.id);
+                return <li key={task.id}><button type="button" disabled={disabled} onClick={(event) => editTask(task.id, event.currentTarget)}>Record Task {index + 1} · {task.title}</button></li>;
+              })}
+            </ul>
+          </div>}
           {legacyExists && <article className="activity-a01-review-task activity-a01-review-task--legacy">
             <div className="activity-a01-review-task-heading">
               <div><span className="activity-a01-review-number">Old</span><h3>Earlier unassigned A01 note</h3></div>
-              <a href={`#progress-editor-${activity.id}`} onClick={() => editTask("legacy")}>Edit earlier note</a>
+              <button type="button" onClick={(event) => editTask("legacy", event.currentTarget)}>Edit earlier note</button>
             </div>
             <p className="activity-a01-review-value">{record.notes.trim() || "No earlier notes."}{record.evidence.trim() ? `\n\nEarlier evidence: ${record.evidence.trim()}` : ""}</p>
             <p className="activity-a01-review-legacy-help">Preserved from the earlier record without guessing which task it belongs to.</p>
@@ -442,7 +515,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             <option value="guided">Guided</option>
             <option value="independent">Independent</option>
           </select>
-          <p className="field-hint">Completion is your choice. Fieldnotes does not inspect the VM or verify these results.</p>
+          <p className="field-hint">Completion is your self-report. Your notes remain editable afterward.</p>
         </div>
 
         <div className="activity-a01-review-footer">
@@ -458,7 +531,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             {record.status === "completed" && <Button className="button button-outline" type="button" disabled={disabled} onClick={() => void save("in_progress", "review", "reopen")}>
               Reopen as in progress
             </Button>}
-            <Button className="button button-primary" type="button" disabled={disabled || record.status === "completed"} onClick={() => void save("completed", "review")}>
+            <Button className="button button-primary" type="button" disabled={disabled || record.status === "completed"} onClick={markComplete}>
               <Check size={15} aria-hidden="true" />{record.status === "completed" ? "Activity marked complete" : "Mark activity complete"}
             </Button>
             {messageLocation === "review" && <p className={`activity-a01-review-message${error ? " error" : ""}`} role="status" aria-live="polite">{message}</p>}

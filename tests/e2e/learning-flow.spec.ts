@@ -575,7 +575,14 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await expect(page.getByRole("heading", { level: 1, name: "Investigate a running Linux process" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Review the observations you recorded" })).toBeVisible();
   const steps = page.locator("#activity-steps [data-task-id]");
+  const review = page.locator("#activity-record");
   await expect(steps).toHaveCount(5);
+  await expect(steps.nth(0)).toHaveAttribute("data-task-id", "confirm-account");
+  await expect(steps.nth(1)).toHaveAttribute("data-task-id", "choose-process");
+  await expect(steps.nth(2)).toHaveAttribute("data-task-id", "compare-proc");
+  await expect(review.locator(".activity-a01-review-task[data-task-id]")).toHaveCount(0);
+  await expect(review.getByText("No task notes yet.")).toBeVisible();
+  await expect(review.getByRole("button", { name: "Open Task 1 · Confirm your account" })).toBeVisible();
   await expect(steps.nth(1)).toContainText("Before running the command, predict");
   await expect(steps.nth(2)).toContainText("Expect:");
   await expect(steps.nth(2)).toContainText("Meaning:");
@@ -587,11 +594,14 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   const editor = page.locator("#progress-editor-A01");
   const taskObservation = page.getByRole("textbox", { name: "Task observation" });
   await expect(taskObservation).toBeVisible();
+  await expect(taskObservation).toHaveAttribute("placeholder", "Record a short, sanitized observation and what it supports.");
   await expect(page.getByRole("button", { name: /Earlier unassigned note/ })).toBeVisible();
   await page.getByRole("button", { name: /Earlier unassigned note/ }).click();
   await expect(page.getByLabel("Earlier notes")).toHaveValue("Previously saved A01 finding from the existing notebook.");
   await expect(page.getByLabel("Earlier evidence")).toHaveValue("Earlier sanitized ps and /proc evidence.");
-  await page.getByRole("button", { name: /Confirm your account/ }).click();
+  await notebook.getByRole("button", { name: /Confirm your account/ }).click();
+  await expect(page.getByRole("button", { name: /Editing · not recorded/ })).toHaveAttribute("aria-pressed", "true");
+  await taskObservation.fill("The numeric UID was 1000; I omitted the account name from my notes.");
 
   const desktopLayout = await page.evaluate(() => {
     const instructions = document.querySelector(".activity-a01-instructions")!.getBoundingClientRect();
@@ -604,17 +614,50 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   expect(desktopLayout.gap).toBeLessThan(60);
 
   const thirdTask = page.locator("#activity-steps [data-task-id=compare-proc]");
+  const secondTask = page.locator("#activity-steps [data-task-id=choose-process]");
+  const firstTask = page.locator("#activity-steps [data-task-id=confirm-account]");
   await thirdTask.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 110, behavior: "instant" }));
   await expect(notebook).toBeInViewport();
-  await expect(page.locator(".activity-a01-visible-task")).toContainText("Viewing Task 3");
+  await expect(page.locator(".activity-a01-visible-task")).toContainText("Reading Task 3");
+  await expect(page.locator(".activity-a01-visible-task")).toContainText("Editing Task 1");
   await expect(page.getByRole("button", { name: /Confirm your account/ })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".activity-a01-visible-task button")).toContainText("Switch notebook to this task");
+  await expect(page.locator(".activity-a01-visible-task button")).toHaveText("Edit Task 3");
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1440.png") });
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1440-full.png"), fullPage: true });
 
-  await page.locator(".activity-a01-visible-task button").click();
-  await expect(page.getByRole("button", { name: /Compare the process with \/proc/ })).toHaveAttribute("aria-pressed", "true");
+  const recordTask3 = thirdTask.getByRole("button", { name: "Record Task 3 in the investigation notebook" });
+  await recordTask3.focus();
+  await expect(recordTask3).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(notebook.getByRole("button", { name: /Compare the process with \/proc/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(taskObservation).toBeFocused();
   await taskObservation.fill("The PID and effective UID matched. VmRSS differed slightly, and descriptor 0 was standard input.");
+
+  await secondTask.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 110, behavior: "instant" }));
+  await expect(page.locator(".activity-a01-visible-task")).toContainText("Reading Task 2");
+  await expect(page.locator(".activity-a01-visible-task")).toContainText("Editing Task 3");
+  await expect(notebook.getByRole("button", { name: /Compare the process with \/proc/ })).toHaveAttribute("aria-pressed", "true");
+  await secondTask.getByRole("button", { name: "Record Task 2 in the investigation notebook" }).click();
+  await expect(notebook.getByRole("button", { name: /Choose a process you own/ })).toHaveAttribute("aria-pressed", "true");
+  await taskObservation.fill("Prediction: RSS may change between snapshots. The PID and parent stayed stable while RSS changed slightly.");
+
+  await thirdTask.getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
+  await expect(taskObservation).toHaveValue("The PID and effective UID matched. VmRSS differed slightly, and descriptor 0 was standard input.");
+  await firstTask.getByRole("button", { name: "Record Task 1 in the investigation notebook" }).click();
+  await expect(taskObservation).toHaveValue("The numeric UID was 1000; I omitted the account name from my notes.");
+
+  await page.route("**/api/progress", async (route) => {
+    if (route.request().method() === "PUT") {
+      await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "Simulated save failure." }) });
+      return;
+    }
+    await route.continue();
+  });
+  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Simulated save failure.");
+  await expect(taskObservation).toHaveValue("The numeric UID was 1000; I omitted the account name from my notes.");
+  await page.unroute("**/api/progress");
+
   await notebook.getByRole("button", { name: "Save draft" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
   const firstSave = await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01");
@@ -625,29 +668,33 @@ test("A01 keeps task observations in one notebook through save, review, and reop
     notes: "Previously saved A01 finding from the existing notebook.",
     evidence: "Earlier sanitized ps and /proc evidence.",
     repositoryUrl: "https://example.test/a01-notes",
-    taskObservations: { "compare-proc": "The PID and effective UID matched. VmRSS differed slightly, and descriptor 0 was standard input." },
+    taskObservations: {
+      "confirm-account": "The numeric UID was 1000; I omitted the account name from my notes.",
+      "choose-process": "Prediction: RSS may change between snapshots. The PID and parent stayed stable while RSS changed slightly.",
+      "compare-proc": "The PID and effective UID matched. VmRSS differed slightly, and descriptor 0 was standard input.",
+    },
   });
 
-  await page.getByRole("button", { name: /Choose a process you own/ }).click();
-  await taskObservation.fill("Prediction: RSS might change while the process runs. Observed: PID and parent stayed the same; RSS changed slightly.");
-  await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
   await page.reload();
-  await page.getByRole("button", { name: /Choose a process you own/ }).click();
-  await expect(taskObservation).toHaveValue("Prediction: RSS might change while the process runs. Observed: PID and parent stayed the same; RSS changed slightly.");
-  await expect(page.getByText("2 of 5 task observations recorded.", { exact: false })).toBeVisible();
+  await expect(taskObservation).toHaveValue("The numeric UID was 1000; I omitted the account name from my notes.");
+  await thirdTask.getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
+  await expect(taskObservation).toHaveValue("The PID and effective UID matched. VmRSS differed slightly, and descriptor 0 was standard input.");
+  await notebook.getByRole("button", { name: /Choose a process you own/ }).click();
+  await expect(taskObservation).toHaveValue("Prediction: RSS may change between snapshots. The PID and parent stayed stable while RSS changed slightly.");
+  await expect(page.getByText("3 of 5 tasks have notes in this investigation.", { exact: false })).toBeVisible();
 
-  const review = page.locator("#activity-record");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review).toBeInViewport();
   await expect(review.locator(".activity-a01-review-record")).toContainText("The PID and effective UID matched.");
-  await expect(review.locator(".activity-a01-review-record")).toContainText("Prediction: RSS might change");
-  await expect(review.locator(".activity-a01-review-record")).toContainText("Not recorded yet.");
+  await expect(review.locator(".activity-a01-review-record")).toContainText("Prediction: RSS may change");
+  await expect(review.locator(".activity-a01-review-task[data-task-id]")).toHaveCount(3);
+  await expect(review.locator(".activity-a01-review-task[data-task-id=check-systemd]")).toHaveCount(0);
+  await expect(review.getByRole("button", { name: "Record Task 4 · Check its systemd unit" })).toBeVisible();
   await expect(review.locator("textarea")).toHaveCount(0);
-  await expect(review.getByRole("link", { name: "Edit Task 3" })).toBeVisible();
-  await review.getByRole("link", { name: "Edit Task 3" }).click();
+  await expect(review.getByRole("button", { name: "Edit Task 3" })).toBeVisible();
+  await review.getByRole("button", { name: "Edit Task 3" }).click();
   await expect(editor).toBeInViewport();
-  await expect(page.getByRole("button", { name: /Compare the process with \/proc/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(notebook.getByRole("button", { name: /Compare the process with \/proc/ })).toHaveAttribute("aria-pressed", "true");
   await expect(taskObservation).toBeFocused();
 
   await taskObservation.fill("Refined: the PID and IDs agreed; the small RSS difference is consistent with a changing point-in-time estimate.");
@@ -657,6 +704,17 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await expect(review.locator(".activity-a01-review-record")).toContainText("Refined: the PID and IDs agreed");
 
   await review.getByLabel(/How independently did this work feel/).selectOption("guided");
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("3 of 5 tasks");
+    expect(dialog.message()).toContain("You can still mark A01 complete now.");
+    await dialog.dismiss();
+  });
+  await review.getByRole("button", { name: "Mark activity complete" }).click();
+  await expect(review.locator(".activity-a01-status")).toHaveText("In progress");
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("3 of 5 tasks");
+    await dialog.accept();
+  });
   await review.getByRole("button", { name: "Mark activity complete" }).click();
   await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
   type A01Rows = Array<{ status: string; taskObservations: Record<string, string> }>;
@@ -665,8 +723,8 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   expect(currentRows[0].status).toBe("completed");
   expect(currentRows[0].taskObservations["choose-process"]).toContain("Prediction:");
 
-  await review.getByRole("link", { name: "Edit Task 2" }).click();
-  await expect(page.getByRole("button", { name: /Choose a process you own/ })).toHaveAttribute("aria-pressed", "true");
+  await review.getByRole("button", { name: "Edit Task 2" }).click();
+  await expect(notebook.getByRole("button", { name: /Choose a process you own/ })).toHaveAttribute("aria-pressed", "true");
   await taskObservation.fill("Revised after review: RSS can change between snapshots; PID and parent remained stable.");
   await notebook.getByRole("button", { name: "Save draft" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Draft saved. The activity remains marked complete.");
@@ -718,12 +776,26 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await page.goto("/activities/A01");
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.locator(".activity-workflow-nav a").nth(2).click();
+  await page.locator(".activity-a01-workspace").scrollIntoViewIfNeeded();
   await expect(page.locator(".activity-a01-workspace")).toBeInViewport();
   await expect(page.getByRole("button", { name: /Earlier unassigned note/ })).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1920.png") });
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1920-full.png"), fullPage: true });
 
-  for (const viewport of [{ width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 780 }]) {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.locator(".activity-a01-workspace").scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
+  await expect(page.locator(".activity-a01-notebook-panel")).toBeInViewport();
+  await expect(notebook.getByRole("button", { name: "Save draft" })).toBeInViewport();
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1366x768.png") });
+
+  // A 720px CSS viewport approximates the effective width of a 1440px desktop at 200% zoom.
+  for (const viewport of [
+    { width: 768, height: 1024, name: "768" },
+    { width: 720, height: 450, name: "zoom-200" },
+    { width: 390, height: 844, name: "390" },
+    { width: 320, height: 780, name: "320" },
+  ]) {
     await page.setViewportSize(viewport);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
     await page.getByRole("button", { name: /Open investigation notebook/ }).click();
@@ -732,18 +804,21 @@ test("A01 keeps task observations in one notebook through save, review, and reop
     await expect(mobileTaskPicker).toBeVisible();
     await mobileTaskPicker.locator("select").selectOption("explain-boundary");
     await expect(taskObservation).toBeFocused();
+    await expect(mobileTaskPicker).toContainText("Editing Task 5 of 5 · Explain what the evidence supports");
+    await expect(notebook.getByRole("button", { name: "Save draft" })).toBeVisible();
     await expect(mobileTaskPicker).toBeInViewport();
     await expect.poll(() => taskObservation.evaluate((element) => {
       const body = element.closest<HTMLElement>(".activity-a01-notebook-body")!;
+      const picker = body.querySelector<HTMLElement>(".activity-a01-task-picker-mobile")!;
       const input = element.getBoundingClientRect();
       const viewport = body.getBoundingClientRect();
-      return input.top >= viewport.top && input.bottom <= viewport.bottom;
+      return input.top >= picker.getBoundingClientRect().bottom - 2 && input.top < viewport.bottom && input.bottom > viewport.top;
     })).toBe(true);
     await expect(page.getByRole("button", { name: /Close notebook/ })).toHaveAttribute("aria-expanded", "true");
-    await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-" + viewport.width + "-notebook.png") });
+    await page.screenshot({ path: path.join(screenshotDirectory, `activity-a01-${viewport.name}-notebook.png`) });
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: /Open investigation notebook/ })).toHaveAttribute("aria-expanded", "false");
-    await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-" + viewport.width + "-full.png"), fullPage: true });
+    await page.screenshot({ path: path.join(screenshotDirectory, `activity-a01-${viewport.name}-full.png`), fullPage: true });
   }
 });
 test("all module overviews, lessons, and activity pages render", async ({ page }) => {
