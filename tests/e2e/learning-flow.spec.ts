@@ -575,8 +575,27 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await expect(page.getByRole("heading", { level: 1, name: "Investigate a running Linux process" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Review the observations you recorded" })).toBeVisible();
   const beginInvestigation = page.getByRole("link", { name: "Begin investigation" });
-  await expect(beginInvestigation).toHaveAttribute("href", "#activity-task-confirm-account");
+  const reviewFindings = page.getByRole("link", { name: "Review findings" });
+  await expect(beginInvestigation).toHaveAttribute("href", "#activity-prepare");
+  await expect(beginInvestigation).toBeVisible();
+  await expect(page.locator(".activity-header-tools")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Review Module 01/ })).toHaveAttribute("href", "/modules/01");
+  const overviewLayout = await page.evaluate(() => {
+    const copy = document.querySelector(".activity-a01-understand-copy")!.getBoundingClientRect();
+    const actions = document.querySelector(".activity-a01-start-panel")!.getBoundingClientRect();
+    const primary = document.querySelector<HTMLAnchorElement>(".activity-a01-start-actions .button-primary")!.getBoundingClientRect();
+    return { copyRight: copy.right, actionsLeft: actions.left, actionsWidth: actions.width, buttonHeight: primary.height };
+  });
+  expect(overviewLayout.actionsLeft).toBeGreaterThanOrEqual(overviewLayout.copyRight);
+  expect(overviewLayout.actionsWidth).toBeGreaterThan(300);
+  expect(overviewLayout.buttonHeight).toBeGreaterThanOrEqual(44);
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-start-1440x900.png") });
+  await reviewFindings.click();
+  await expect(page).toHaveURL(/#activity-record$/);
+  await expect(page.locator("#activity-record")).toBeInViewport();
   await beginInvestigation.click();
+  await expect(page).toHaveURL(/#activity-prepare$/);
+  await expect(page.locator("#activity-prepare")).toBeInViewport();
   const steps = page.locator("#activity-steps [data-task-id]");
   const review = page.locator("#activity-record");
   await expect(steps).toHaveCount(5);
@@ -791,6 +810,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
 
   await page.goto("/activities/A01");
   await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-start-1920x1080.png") });
   await page.locator(".activity-workflow-nav a").nth(2).click();
   await page.locator(".activity-a01-workspace").scrollIntoViewIfNeeded();
   await expect(page.locator(".activity-a01-workspace")).toBeInViewport();
@@ -814,6 +834,16 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   ]) {
     await page.setViewportSize(viewport);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
+    if (viewport.width <= 620) {
+      await expect(page.locator(".activity-a01-start-actions")).toHaveCSS("display", "grid");
+      const actionSizes = await page.locator(".activity-a01-start-actions .button").evaluateAll((buttons) => buttons.map((button) => {
+        const { width, height } = button.getBoundingClientRect();
+        return { width, height };
+      }));
+      expect(actionSizes).toHaveLength(2);
+      expect(actionSizes[0].height).toBeGreaterThanOrEqual(48);
+      expect(actionSizes[1].width).toBe(actionSizes[0].width);
+    }
     await page.getByRole("button", { name: /Open investigation notebook/ }).click();
     await expect(taskObservation).toBeVisible();
     const mobileTaskPicker = page.locator(".activity-a01-task-picker-mobile");
