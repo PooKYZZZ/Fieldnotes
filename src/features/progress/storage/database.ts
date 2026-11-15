@@ -30,7 +30,7 @@ function applyMigrations(sqlite: InstanceType<typeof Database>, migrationDirecto
 }
 
 function fromRow(row: typeof schema.learningProgress.$inferSelect): ProgressRecord {
-  return {
+  const record: ProgressRecord = {
     itemType: row.itemType as ProgressInput["itemType"],
     itemId: row.itemId,
     status: row.status as ProgressInput["status"],
@@ -40,6 +40,15 @@ function fromRow(row: typeof schema.learningProgress.$inferSelect): ProgressReco
     repositoryUrl: row.repositoryUrl,
     updatedAt: row.updatedAt,
   };
+  if (row.itemType === "activity" && row.itemId === "A01") {
+    const taskObservations: unknown = JSON.parse(row.taskObservations);
+    if (typeof taskObservations !== "object" || taskObservations === null || Array.isArray(taskObservations)
+      || !Object.values(taskObservations).every((value) => typeof value === "string")) {
+      throw new Error("The saved A01 task observations are invalid.");
+    }
+    record.taskObservations = taskObservations as Record<string, string>;
+  }
+  return record;
 }
 
 export function createProgressDatabase(databasePath: string, migrationDirectory: string) {
@@ -52,8 +61,18 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
   const orm = drizzle(sqlite, { schema });
 
   function upsert(input: ProgressInput, now: number): ProgressRecord {
+    const isA01 = input.itemType === "activity" && input.itemId === "A01";
+    const existingTaskObservations = isA01 && input.taskObservations === undefined
+      ? orm.select({ taskObservations: schema.learningProgress.taskObservations })
+        .from(schema.learningProgress)
+        .where(and(eq(schema.learningProgress.itemType, input.itemType), eq(schema.learningProgress.itemId, input.itemId)))
+        .get()?.taskObservations
+      : undefined;
+    const taskObservations = input.taskObservations
+      ?? (existingTaskObservations ? JSON.parse(existingTaskObservations) as Record<string, string> : {});
+    const taskObservationsJson = JSON.stringify(taskObservations);
     orm.insert(schema.learningProgress)
-      .values({ ...input, createdAt: now, updatedAt: now })
+      .values({ ...input, taskObservations: taskObservationsJson, createdAt: now, updatedAt: now })
       .onConflictDoUpdate({
         target: [schema.learningProgress.itemType, schema.learningProgress.itemId],
         set: {
@@ -62,11 +81,12 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
           notes: input.notes,
           evidence: input.evidence,
           repositoryUrl: input.repositoryUrl,
+          ...(input.taskObservations !== undefined ? { taskObservations: taskObservationsJson } : {}),
           updatedAt: now,
         },
       })
       .run();
-    return { ...input, updatedAt: now };
+    return { ...input, ...(isA01 ? { taskObservations } : {}), updatedAt: now };
   }
 
   return {

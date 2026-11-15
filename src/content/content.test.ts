@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { activities, glossary, libraryDocuments, majorProjects, modules, officialResources, projectMilestones, smallProjects, troubleshooting } from "@/content";
+import { a01TaskIds } from "@/content/a01-task-ids";
 
 describe("learning content integrity", () => {
   it("contains the complete course and project catalog with unique identifiers", () => {
@@ -40,9 +41,10 @@ describe("learning content integrity", () => {
       steps: expect.stringContaining("ps -u \"$(id -u)\" -o pid,ppid,euid,stat,rss,comm"),
       expectedObservations: expect.stringContaining("a session scope"),
       verification: expect.stringContaining("sanitized PID, PPID"),
-      troubleshooting: expect.stringContaining("Do not use `sudo`"),
       cleanup: expect.stringContaining("shut down the disposable VM"),
     });
+    expect(Object.keys(activity?.taskHints ?? {}).sort()).toEqual([...a01TaskIds].filter((id) => id !== "confirm-account").sort());
+    expect(activity?.taskHints?.["compare-proc"]).toContain("without using `sudo`");
     for (const item of activities) {
       expect(item.scenario, item.id).toBeTruthy();
       expect(item.objectives, item.id).toMatch(/^- /m);
@@ -50,9 +52,9 @@ describe("learning content integrity", () => {
       expect(item.steps, item.id).toBeTruthy();
       expect(item.expectedObservations, item.id).toBeTruthy();
       expect(item.submit, item.id).not.toContain("One short readme/note containing expected result");
-      expect(item.hints, item.id).toBeTruthy();
+      expect(item.id === "A01" ? Object.keys(item.taskHints ?? {}).length : item.hints, item.id).toBeTruthy();
       expect(item.verification, item.id).toBeTruthy();
-      expect(item.troubleshooting, item.id).toBeTruthy();
+      if (item.id !== "A01") expect(item.troubleshooting, item.id).toBeTruthy();
       expect(item.cleanup, item.id).toBeTruthy();
     }
     expect(troubleshooting).toHaveLength(12);

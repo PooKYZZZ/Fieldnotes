@@ -3,7 +3,7 @@ import { progressImportSchema, progressLookupSchema, progressSchema } from "@/fe
 import { findProgress, listProgress, saveProgress, saveProgressMany } from "@/features/progress/storage/store.server";
 
 export const dynamic = "force-dynamic";
-const maxRequestBytes = 32_000;
+const maxRequestBytes = 64_000;
 const maxImportRequestBytes = 1_000_000;
 
 type JsonBodyResult = { ok: true; value: unknown } | { ok: false; status: 400 | 413; message: string };

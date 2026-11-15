@@ -28,6 +28,7 @@ export type ProgressInput = {
   notes: string;
   evidence: string;
   repositoryUrl: string;
+  taskObservations?: Record<string, string>;
 };
 
 export type ProgressRecord = ProgressInput & { updatedAt: number };

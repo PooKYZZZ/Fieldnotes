@@ -37,6 +37,15 @@ describe("progressSchema", () => {
     expect(progressSchema.safeParse({ ...validProgress, itemType: "lesson", itemId: "M99-L01" }).success).toBe(false);
   });
 
+  it("accepts bounded task observations only on A01 records", () => {
+    const a01 = { ...validProgress, itemType: "activity", itemId: "A01", taskObservations: { "compare-proc": "The PID and effective UID matched." } };
+    expect(progressSchema.safeParse(a01).success).toBe(true);
+    expect(progressSchema.safeParse({ ...a01, taskObservations: { unknown: "No task" } }).success).toBe(false);
+    expect(progressSchema.safeParse({ ...a01, taskObservations: { "compare-proc": "x".repeat(1201) } }).success).toBe(false);
+    expect(progressSchema.safeParse({ ...a01, taskObservations: { "confirm-account": "x".repeat(1200), "choose-process": "x".repeat(1200), "compare-proc": "x".repeat(1200), "check-systemd": "x".repeat(1200), "explain-boundary": "x".repeat(1201) } }).success).toBe(false);
+    expect(progressSchema.safeParse({ ...validProgress, taskObservations: { "compare-proc": "Not an A01 record." } }).success).toBe(false);
+  });
+
   it("uses clear labels for each persisted status", () => {
     expect(formatStatus("needs_review")).toBe("Needs review");
   });
@@ -61,7 +70,8 @@ describe("progressImportSchema", () => {
 
   it("continues to accept old version 1 backups and rejects unsupported versions", () => {
     expect(progressImportSchema.safeParse(backup).success).toBe(true);
-    expect(progressImportSchema.safeParse({ ...backup, version: 3 }).success).toBe(false);
+    expect(progressImportSchema.safeParse({ ...backup, version: 3 }).success).toBe(true);
+    expect(progressImportSchema.safeParse({ ...backup, version: 4 }).success).toBe(false);
   });
 
   it("rejects unknown learning items and duplicate record keys", () => {

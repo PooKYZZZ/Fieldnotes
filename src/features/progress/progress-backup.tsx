@@ -12,15 +12,16 @@ type ExportRecord = {
   evidence: string;
   repositoryUrl: string;
   updatedAt: number;
+  taskObservations?: Record<string, string>;
 };
 
-type ExportPayload = { version: 1 | 2; exportedAt: string; records: ExportRecord[] };
+type ExportPayload = { version: 1 | 2 | 3; exportedAt: string; records: ExportRecord[] };
 
 function isExportPayload(value: unknown): value is ExportPayload {
   return typeof value === "object"
     && value !== null
     && "version" in value
-    && (value.version === 1 || value.version === 2)
+    && (value.version === 1 || value.version === 2 || value.version === 3)
     && "exportedAt" in value
     && typeof value.exportedAt === "string"
     && "records" in value
@@ -40,7 +41,7 @@ export function ProgressBackup() {
       const response = await fetch("/api/progress", { cache: "no-store" });
       if (!response.ok) throw new Error("Saved progress could not be exported.");
       const records = await response.json() as ExportRecord[];
-      const payload: ExportPayload = { version: 2, exportedAt: new Date().toISOString(), records };
+      const payload: ExportPayload = { version: 3, exportedAt: new Date().toISOString(), records };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");

@@ -3,6 +3,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { z } from "zod";
 import { milestonesForProjects } from "@/content/project-milestones";
+import { a01TaskIds, type A01TaskId } from "@/content/a01-task-ids";
 import { moduleDefinitions } from "@/content/curriculum/modules/definitions";
 import type { ModuleDefinition } from "@/content/module-definitions";
 
@@ -12,6 +13,16 @@ const curriculumDirectory = path.join(process.cwd(), "src", "content", "curricul
 const activityMetadataSchema = z.object({
   id: z.string().regex(/^A\d{2}$/),
   moduleId: z.number().int().positive(),
+  taskHints: z.record(z.string(), z.string().max(1200)).optional(),
+}).superRefine((metadata, context) => {
+  if (metadata.taskHints && metadata.id !== "A01") {
+    context.addIssue({ code: "custom", path: ["taskHints"], message: "Task-specific hints are only supported for Activity A01." });
+  }
+  for (const taskId of Object.keys(metadata.taskHints ?? {})) {
+    if (!(a01TaskIds as readonly string[]).includes(taskId)) {
+      context.addIssue({ code: "custom", path: ["taskHints", taskId], message: "Choose a stable Activity A01 task ID." });
+    }
+  }
 });
 
 const identifiedMetadataSchema = z.object({ id: z.string().min(2).max(8) });
@@ -37,6 +48,7 @@ export type ActivityRecord = {
   prerequisite: string;
   environment?: string;
   steps?: string;
+  taskHints?: Partial<Record<A01TaskId, string>>;
   expectedObservations: string;
   challenge: string;
   build: string;
@@ -136,6 +148,7 @@ export const activities: ActivityRecord[] = readMarkdownDirectory("activities", 
     prerequisite: requiredSection(document, filename, "Prerequisites"),
     environment: optionalSection(document, "Environment"),
     steps: optionalSection(document, "Lab steps"),
+    taskHints: metadata.taskHints as Partial<Record<A01TaskId, string>> | undefined,
     expectedObservations: requiredSection(document, filename, "Expected observations"),
     challenge,
     build,

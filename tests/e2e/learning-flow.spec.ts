@@ -205,7 +205,7 @@ test("backup import merges records and export downloads the saved data", async (
   const downloadPath = await download.path();
   expect(downloadPath).toBeTruthy();
   const exported = JSON.parse(await (await import("node:fs/promises")).readFile(downloadPath!, "utf8")) as { version: number; records: unknown[] };
-  expect(exported.version).toBe(2);
+  expect(exported.version).toBe(3);
   expect(exported.records).toHaveLength(rows.length);
 
   await page.goto("/");
@@ -463,7 +463,7 @@ test("Module 23 recovery lesson renders its knowledge check and A23 practice evi
   }
 });
 
-test("module learning flow links directly to practice and readable activity evidence", async ({ page, request }) => {
+test("module learning flow links directly to practice and readable activity evidence", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/modules/01");
   await expect(page.getByRole("heading", { level: 1, name: /Module 01.*How computers and operating systems work/ })).toBeVisible();
@@ -553,7 +553,10 @@ test("module learning flow links directly to practice and readable activity evid
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
   await page.screenshot({ path: path.join(screenshotDirectory, "module-01-small-mobile.png"), fullPage: true });
 
-  const legacyA01 = await request.put(`${testOrigin}/api/progress`, {
+  });
+
+test("A01 keeps task observations in one notebook through save, review, and reopen", async ({ page, request }) => {
+  const legacyA01 = await request.put(testOrigin + "/api/progress", {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
     data: {
       itemType: "activity",
@@ -570,152 +573,179 @@ test("module learning flow links directly to practice and readable activity evid
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/activities/A01");
   await expect(page.getByRole("heading", { level: 1, name: "Investigate a running Linux process" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Start activity" })).toHaveAttribute("href", "#activity-scenario");
-  await expect(page.locator(".activity-workflow-nav a")).toHaveCount(4);
-  await expect(page.locator(".activity-workflow-nav a").nth(0)).toHaveAttribute("href", "#activity-scenario");
-  await expect(page.locator(".activity-workflow-nav a").nth(1)).toHaveAttribute("href", "#activity-prepare");
-  await expect(page.locator(".activity-workflow-nav a").nth(2)).toHaveAttribute("href", "#activity-perform");
-  await expect(page.locator(".activity-workflow-nav a").nth(3)).toHaveAttribute("href", "#activity-record");
-  await expect(page.getByRole("heading", { name: "What can one process snapshot tell you?" })).toBeVisible();
-  await expect(page.locator("#activity-scenario")).toContainText("A technician is learning");
-  await expect(page.locator("#activity-scenario")).toContainText("What you will keep");
-  await expect(page.getByRole("heading", { name: "Prepare your VM" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Follow one process from ps to /proc" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Review the findings you already recorded" })).toBeVisible();
-  await expect(page.locator("#activity-steps ol > li")).toHaveCount(5);
-  await expect(page.locator("#activity-steps ol > li").nth(2)).toContainText("Expect:");
-  await expect(page.locator("#activity-steps ol > li").nth(2)).toContainText("Meaning:");
-  await expect(page.locator("#activity-steps ol > li").nth(2)).toContainText("Record:");
+  await expect(page.getByRole("heading", { name: "Review the observations you recorded" })).toBeVisible();
+  const steps = page.locator("#activity-steps [data-task-id]");
+  await expect(steps).toHaveCount(5);
+  await expect(steps.nth(1)).toContainText("Before running the command, predict");
+  await expect(steps.nth(2)).toContainText("Expect:");
+  await expect(steps.nth(2)).toContainText("Meaning:");
+  await expect(steps.nth(2)).toContainText("Record:");
+  await expect(page.locator("#activity-steps [data-task-id=compare-proc] .activity-task-help")).toContainText("If access is denied");
   await expect(page.getByRole("img", { name: /Application code calls a library/ })).toHaveCount(1);
-  const processFigure = page.locator(".module-diagram img");
-  await expect.poll(() => processFigure.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-  await expect(page.locator(".module-diagram figcaption")).toContainText("Figure 1");
-  await expect(page.getByRole("button", { name: "Copy example code" }).first()).toBeVisible();
-  await expect(page.getByText(/Use a disposable Ubuntu VM/)).toBeVisible();
-  const hints = page.locator(".optional-hints");
-  await expect(hints).toHaveJSProperty("open", false);
-  const troubleshooting = page.locator(".activity-troubleshooting");
-  await expect(troubleshooting).toHaveJSProperty("open", false);
-  await expect(troubleshooting.locator("summary")).toContainText("Troubleshoot access or systemd results");
-  await expect(page.getByRole("link", { name: /Review Module 01/ })).toHaveCount(1);
-  await expect(page.getByRole("link", { name: /Next activity.*A02/ })).toHaveAttribute("href", "/activities/A02");
+
   const notebook = page.locator(".activity-a01-notebook");
-  const notes = page.getByLabel("Findings and interpretation");
-  const evidence = page.getByLabel("Sanitized commands and evidence");
-  await expect(notes).toBeVisible();
-  await expect(evidence).toBeVisible();
-  await expect(notes).toHaveValue("Previously saved A01 finding from the existing notebook.");
-  await expect(evidence).toHaveValue("Earlier sanitized ps and /proc evidence.");
+  const editor = page.locator("#progress-editor-A01");
+  const taskObservation = page.getByRole("textbox", { name: "Task observation" });
+  await expect(taskObservation).toBeVisible();
+  await expect(page.getByRole("button", { name: /Earlier unassigned note/ })).toBeVisible();
+  await page.getByRole("button", { name: /Earlier unassigned note/ }).click();
+  await expect(page.getByLabel("Earlier notes")).toHaveValue("Previously saved A01 finding from the existing notebook.");
+  await expect(page.getByLabel("Earlier evidence")).toHaveValue("Earlier sanitized ps and /proc evidence.");
+  await page.getByRole("button", { name: /Confirm your account/ }).click();
+
   const desktopLayout = await page.evaluate(() => {
     const instructions = document.querySelector(".activity-a01-instructions")!.getBoundingClientRect();
-    const notebook = document.querySelector(".activity-a01-notebook-panel")!.getBoundingClientRect();
-    return { instructionWidth: instructions.width, notebookWidth: notebook.width, gap: notebook.left - instructions.right };
+    const notebookPanel = document.querySelector(".activity-a01-notebook-panel")!.getBoundingClientRect();
+    return { instructionWidth: instructions.width, notebookWidth: notebookPanel.width, gap: notebookPanel.left - instructions.right };
   });
-  expect(desktopLayout.instructionWidth).toBeGreaterThan(520);
-  expect(desktopLayout.notebookWidth).toBeGreaterThanOrEqual(330);
+  expect(desktopLayout.instructionWidth).toBeGreaterThan(500);
+  expect(desktopLayout.notebookWidth).toBeGreaterThanOrEqual(350);
   expect(desktopLayout.gap).toBeGreaterThan(0);
   expect(desktopLayout.gap).toBeLessThan(60);
-  const thirdTask = page.locator("#activity-steps ol > li").nth(2);
+
+  const thirdTask = page.locator("#activity-steps [data-task-id=compare-proc]");
   await thirdTask.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 110, behavior: "instant" }));
   await expect(notebook).toBeInViewport();
-  await expect(page.locator(".activity-a01-current-task")).toContainText("Task 3 of 5");
-  await expect(page.locator(".activity-a01-current-task")).toContainText("Compare the process with /proc");
+  await expect(page.locator(".activity-a01-visible-task")).toContainText("Viewing Task 3");
+  await expect(page.getByRole("button", { name: /Confirm your account/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".activity-a01-visible-task button")).toContainText("Switch notebook to this task");
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1440.png") });
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1440-full.png"), fullPage: true });
 
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: testOrigin });
-  const copyButton = page.getByRole("button", { name: "Copy example code" }).nth(2);
-  await copyButton.click();
-  await expect(copyButton).toContainText("Copied");
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/proc/$PID/status");
-
-  await hints.locator("summary").click();
-  await expect(hints).toContainText("PID disappears");
-  await troubleshooting.locator("summary").click();
-  await expect(troubleshooting).toContainText("permission");
-  await hints.locator("summary").click();
-  await troubleshooting.locator("summary").click();
-  await notes.fill("The selected process was sleeping when I checked it. That one state value does not tell me whether it is slow.");
-  await evidence.fill("ps and /proc/status showed the same PID and effective UID. systemctl identified a session scope; descriptor targets were recorded by type.");
-  await expect(page.locator(".activity-a01-save-state")).toContainText("Unsaved changes");
+  await page.locator(".activity-a01-visible-task button").click();
+  await expect(page.getByRole("button", { name: /Compare the process with \/proc/ })).toHaveAttribute("aria-pressed", "true");
+  await taskObservation.fill("The PID and effective UID matched. VmRSS differed slightly, and descriptor 0 was standard input.");
   await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.getByRole("status")).toContainText("Draft saved on this device.");
-  const firstSavedResponse = await request.get("/api/progress?itemType=activity&itemId=A01");
-  const firstSavedRows = await firstSavedResponse.json() as Array<{ status: string; comfort: string | null; notes: string; evidence: string; repositoryUrl: string }>;
-  expect(firstSavedRows).toHaveLength(1);
-  expect(firstSavedRows[0].status).toBe("in_progress");
-  expect(firstSavedRows[0]).toMatchObject({ comfort: "familiar", repositoryUrl: "https://example.test/a01-notes" });
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  const firstSave = await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01");
+  const firstRows = await firstSave.json() as Array<{ status: string; notes: string; evidence: string; repositoryUrl: string; taskObservations: Record<string, string> }>;
+  expect(firstRows).toHaveLength(1);
+  expect(firstRows[0]).toMatchObject({
+    status: "in_progress",
+    notes: "Previously saved A01 finding from the existing notebook.",
+    evidence: "Earlier sanitized ps and /proc evidence.",
+    repositoryUrl: "https://example.test/a01-notes",
+    taskObservations: { "compare-proc": "The PID and effective UID matched. VmRSS differed slightly, and descriptor 0 was standard input." },
+  });
 
+  await page.getByRole("button", { name: /Choose a process you own/ }).click();
+  await taskObservation.fill("Prediction: RSS might change while the process runs. Observed: PID and parent stayed the same; RSS changed slightly.");
+  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
   await page.reload();
-  await expect(page.getByLabel("Findings and interpretation")).toHaveValue(/selected process was sleeping/);
-  await expect(page.getByLabel("Sanitized commands and evidence")).toHaveValue(/ps and \/proc\/status/);
-  await page.locator(".activity-workflow-nav a").nth(3).click();
-  const review = page.locator("#activity-record");
-  await expect(review).toBeInViewport();
-  await expect(review.locator(".activity-a01-review-record")).toContainText("selected process was sleeping");
-  await expect(review.locator(".activity-a01-review-record")).toContainText("systemctl identified a session scope");
-  await expect(review.locator("textarea")).toHaveCount(0);
-  await expect(review.getByRole("link", { name: "Edit in the notebook" })).toBeVisible();
-  await review.getByRole("button", { name: "Save draft" }).click();
-  await expect(review.getByRole("status")).toContainText("Draft saved on this device.");
-  const reviewDraftResponse = await request.get("/api/progress?itemType=activity&itemId=A01");
-  const reviewDraftRows = await reviewDraftResponse.json() as Array<{ status: string }>;
-  expect(reviewDraftRows).toHaveLength(1);
-  expect(reviewDraftRows[0].status).toBe("in_progress");
+  await page.getByRole("button", { name: /Choose a process you own/ }).click();
+  await expect(taskObservation).toHaveValue("Prediction: RSS might change while the process runs. Observed: PID and parent stayed the same; RSS changed slightly.");
+  await expect(page.getByText("2 of 5 task observations recorded.", { exact: false })).toBeVisible();
 
-  await review.getByRole("link", { name: "Edit in the notebook" }).click();
-  await expect(notebook).toBeInViewport();
-  await notes.fill("Refined: this process was sleeping at the instant I checked it; that alone does not establish whether it is slow.");
-  await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.getByRole("status")).toContainText("Draft saved on this device.");
+  const review = page.locator("#activity-record");
   await page.locator(".activity-workflow-nav a").nth(3).click();
-  await expect(review.locator(".activity-a01-review-record")).toContainText("Refined: this process was sleeping");
+  await expect(review).toBeInViewport();
+  await expect(review.locator(".activity-a01-review-record")).toContainText("The PID and effective UID matched.");
+  await expect(review.locator(".activity-a01-review-record")).toContainText("Prediction: RSS might change");
+  await expect(review.locator(".activity-a01-review-record")).toContainText("Not recorded yet.");
+  await expect(review.locator("textarea")).toHaveCount(0);
+  await expect(review.getByRole("link", { name: "Edit Task 3" })).toBeVisible();
+  await review.getByRole("link", { name: "Edit Task 3" }).click();
+  await expect(editor).toBeInViewport();
+  await expect(page.getByRole("button", { name: /Compare the process with \/proc/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(taskObservation).toBeFocused();
+
+  await taskObservation.fill("Refined: the PID and IDs agreed; the small RSS difference is consistent with a changing point-in-time estimate.");
+  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  await page.locator(".activity-workflow-nav a").nth(3).click();
+  await expect(review.locator(".activity-a01-review-record")).toContainText("Refined: the PID and IDs agreed");
+
   await review.getByLabel(/How independently did this work feel/).selectOption("guided");
   await review.getByRole("button", { name: "Mark activity complete" }).click();
   await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
-  const completedResponse = await request.get("/api/progress?itemType=activity&itemId=A01");
-  const completedRows = await completedResponse.json() as Array<{ status: string; comfort: string | null; notes: string; evidence: string }>;
-  expect(completedRows).toHaveLength(1);
-  expect(completedRows[0]).toMatchObject({ status: "completed", comfort: "guided" });
-  expect(completedRows[0].notes).toContain("Refined: this process was sleeping");
-  expect(completedRows[0].evidence).toContain("session scope");
+  type A01Rows = Array<{ status: string; taskObservations: Record<string, string> }>;
+  let currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as A01Rows;
+  expect(currentRows).toHaveLength(1);
+  expect(currentRows[0].status).toBe("completed");
+  expect(currentRows[0].taskObservations["choose-process"]).toContain("Prediction:");
 
+  await review.getByRole("link", { name: "Edit Task 2" }).click();
+  await expect(page.getByRole("button", { name: /Choose a process you own/ })).toHaveAttribute("aria-pressed", "true");
+  await taskObservation.fill("Revised after review: RSS can change between snapshots; PID and parent remained stable.");
+  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved. The activity remains marked complete.");
+  await page.locator(".activity-workflow-nav a").nth(3).click();
+  await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
+  currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as Array<{ status: string; taskObservations: Record<string, string> }>;
+  expect(currentRows[0].status).toBe("completed");
+  expect(currentRows[0].taskObservations["choose-process"]).toContain("Revised after review:");
+
+  await review.getByRole("button", { name: "Reopen as in progress" }).click();
+  await expect(review.locator(".activity-a01-status")).toHaveText("In progress");
+  currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as A01Rows;
+  expect(currentRows[0].status).toBe("in_progress");
+
+  const legacyImport = await request.post(testOrigin + "/api/progress", {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      records: [{
+        itemType: "activity",
+        itemId: "A01",
+        status: "in_progress",
+        comfort: "guided",
+        notes: "Imported older A01 note.",
+        evidence: "Imported earlier evidence.",
+        repositoryUrl: "",
+        updatedAt: Date.now() - 1000,
+      }],
+    },
+  });
+  expect(legacyImport.ok()).toBeTruthy();
+  currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as A01Rows;
+  expect(currentRows).toHaveLength(1);
+  expect(currentRows[0].taskObservations["choose-process"]).toContain("Revised after review:");
+  expect(currentRows[0].taskObservations["compare-proc"]).toContain("Refined:");
+
+  await page.goto("/progress");
+  await expect(page.getByText("Revised after review: RSS can change between snapshots", { exact: false })).toBeVisible();
+  await expect(page.getByText("Imported older A01 note.")).toBeVisible();
+  const a01BackupDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  const a01BackupPath = await (await a01BackupDownload).path();
+  expect(a01BackupPath).toBeTruthy();
+  const a01Backup = JSON.parse(await (await import("node:fs/promises")).readFile(a01BackupPath!, "utf8")) as { version: number; records: Array<{ itemId: string; taskObservations?: Record<string, string> }> };
+  expect(a01Backup.version).toBe(3);
+  expect(a01Backup.records.find((entry) => entry.itemId === "A01")?.taskObservations?.["choose-process"]).toContain("Revised after review:");
+
+  await page.goto("/activities/A01");
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await thirdTask.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 110, behavior: "instant" }));
-  await expect(page.locator(".activity-a01-current-task")).toContainText("Task 3 of 5");
-  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1920.png") });
-
-  await page.setViewportSize({ width: 768, height: 1024 });
   await page.locator(".activity-workflow-nav a").nth(2).click();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
-  await expect(page.getByRole("button", { name: /Open investigation notebook/ })).toBeVisible();
-  await page.getByRole("button", { name: /Open investigation notebook/ }).click();
-  await expect(page.getByLabel("Findings and interpretation")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: /Open investigation notebook/ })).toHaveAttribute("aria-expanded", "false");
-  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-tablet.png") });
+  await expect(page.locator(".activity-a01-workspace")).toBeInViewport();
+  await expect(page.getByRole("button", { name: /Earlier unassigned note/ })).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1920.png") });
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1920-full.png"), fullPage: true });
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
-  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-mobile.png") });
-  await page.getByRole("button", { name: /Open investigation notebook/ }).click();
-  await expect(page.getByLabel("Findings and interpretation")).toBeVisible();
-  await expect(page.locator(".activity-a01-current-task")).toBeVisible();
-  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-mobile-notebook.png") });
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: /Open investigation notebook/ })).toHaveAttribute("aria-expanded", "false");
-
-  await page.setViewportSize({ width: 320, height: 780 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
-  await page.getByRole("button", { name: /Open investigation notebook/ }).click();
-  await expect(page.getByLabel("Findings and interpretation")).toBeVisible();
-  await page.locator(".activity-a01-notebook-body").evaluate((element) => { element.scrollTop = element.scrollHeight; });
-  await expect(evidence).toBeInViewport();
-  await expect(notebook.getByRole("button", { name: "Save draft" })).toBeInViewport();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
-  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-320-evidence.png") });
-  await page.keyboard.press("Escape");
+  for (const viewport of [{ width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 780 }]) {
+    await page.setViewportSize(viewport);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
+    await page.getByRole("button", { name: /Open investigation notebook/ }).click();
+    await expect(taskObservation).toBeVisible();
+    const mobileTaskPicker = page.locator(".activity-a01-task-picker-mobile");
+    await expect(mobileTaskPicker).toBeVisible();
+    await mobileTaskPicker.locator("select").selectOption("explain-boundary");
+    await expect(taskObservation).toBeFocused();
+    await expect(mobileTaskPicker).toBeInViewport();
+    await expect.poll(() => taskObservation.evaluate((element) => {
+      const body = element.closest<HTMLElement>(".activity-a01-notebook-body")!;
+      const input = element.getBoundingClientRect();
+      const viewport = body.getBoundingClientRect();
+      return input.top >= viewport.top && input.bottom <= viewport.bottom;
+    })).toBe(true);
+    await expect(page.getByRole("button", { name: /Close notebook/ })).toHaveAttribute("aria-expanded", "true");
+    await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-" + viewport.width + "-notebook.png") });
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: /Open investigation notebook/ })).toHaveAttribute("aria-expanded", "false");
+    await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-" + viewport.width + "-full.png"), fullPage: true });
+  }
 });
-
 test("all module overviews, lessons, and activity pages render", async ({ page }) => {
   test.setTimeout(120_000);
   for (let number = 1; number <= 24; number += 1) {
@@ -783,9 +813,9 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
     }
     expect(await page.locator("#activity-steps ol > li").count()).toBeGreaterThan(0);
     if (activityId === "A01") {
-      await expect(page.getByRole("heading", { name: "Review the findings you already recorded" })).toBeVisible();
-      await expect(page.getByLabel("Findings and interpretation")).toBeVisible();
-      await expect(page.getByLabel("Sanitized commands and evidence")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Review the observations you recorded" })).toBeVisible();
+      await expect(page.getByRole("textbox", { name: "Task observation" })).toBeVisible();
+      await expect(page.locator(".activity-a01-task-choice:not(.activity-a01-task-choice--legacy)")).toHaveCount(5);
     } else {
       await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
       await expect(page.locator(".activity-expected-observations .article-copy")).toBeVisible();
@@ -859,7 +889,7 @@ test("progress API validates IDs, same-origin writes, and payload sizes", async 
 
   const oversizedWrite = await request.put("/api/progress", {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: `{"notes":"${"x".repeat(32_001)}"}`,
+    data: `{"notes":"${"x".repeat(64_001)}"}`,
   });
   expect(oversizedWrite.status()).toBe(413);
 

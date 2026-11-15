@@ -10,6 +10,7 @@ export const learningProgress = sqliteTable(
     notes: text("notes").notNull().default(""),
     evidence: text("evidence").notNull().default(""),
     repositoryUrl: text("repository_url").notNull().default(""),
+    taskObservations: text("task_observations").notNull().default("{}"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },

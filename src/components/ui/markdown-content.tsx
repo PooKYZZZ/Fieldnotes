@@ -1,4 +1,4 @@
-import { Children, isValidElement, type ComponentProps, type ReactNode } from "react";
+import { Children, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
@@ -27,7 +27,20 @@ function CurriculumDiagram({ src, alt, title }: Pick<ComponentProps<"img">, "src
   );
 }
 
-export function MarkdownContent({ children, headingIdPrefix, copyable = false }: { children: string; headingIdPrefix?: string; copyable?: boolean }) {
+export function MarkdownContent({
+  children,
+  headingIdPrefix,
+  copyable = false,
+  taskIds,
+  taskHints,
+}: {
+  children: string;
+  headingIdPrefix?: string;
+  copyable?: boolean;
+  taskIds?: readonly string[];
+  taskHints?: Partial<Record<string, string>>;
+}) {
+  let taskIndex = 0;
   const components: Components = {
     ...(headingIdPrefix
       ? {
@@ -36,6 +49,28 @@ export function MarkdownContent({ children, headingIdPrefix, copyable = false }:
           ),
         }
       : {}),
+    ...(taskIds ? {
+      ol: ({ children: listChildren, ...props }) => (
+        <ol {...props}>
+          {Children.toArray(listChildren).map((child) => {
+            if (!isValidElement<{ children?: ReactNode }>(child) || child.type !== "li") return child;
+            const taskId = taskIds[taskIndex];
+            if (!taskId) return child;
+            taskIndex += 1;
+            const item = child as ReactElement<{ children?: ReactNode }>;
+            return (
+              <li key={item.key ?? taskId} id={`activity-task-${taskId}`} data-task-id={taskId}>
+                {item.props.children}
+                {taskHints?.[taskId] && <details className="activity-task-help">
+                  <summary>Need help with this task?</summary>
+                  <div className="activity-task-help-content"><MarkdownContent>{taskHints[taskId]}</MarkdownContent></div>
+                </details>}
+              </li>
+            );
+          })}
+        </ol>
+      ),
+    } : {}),
     pre: ({ children: content }) => {
       const code = Array.isArray(content) ? content[0] : content;
       const isDiagram = isValidElement<{ className?: string }>(code)

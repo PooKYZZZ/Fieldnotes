@@ -3,33 +3,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { BookOpen, Check, RefreshCw, Save, X } from "lucide-react";
 import type { ActivityRecord } from "@/content";
+import { a01TaskIds, type A01TaskId } from "@/content/a01-task-ids";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { a01Tasks, type A01TaskSelection } from "@/features/activities/a01-task-catalog";
 import { formatStatus, type ComfortLevel, type ProgressInput, type ProgressRecord, type ProgressStatus } from "@/features/progress/model";
-
-const taskPrompts = [
-  {
-    title: "Confirm your account",
-    prompt: "Record the account and numeric UID used for the investigation. The UID is the value the next command uses to find your processes.",
-  },
-  {
-    title: "Choose a process you own",
-    prompt: "Record one familiar PID and its sanitized row values. Note which values might change if you check again later.",
-  },
-  {
-    title: "Compare the process with /proc",
-    prompt: "Record whether the PID still exists, which fields agree, and one descriptor resource type. Leave private paths out.",
-  },
-  {
-    title: "Check its systemd unit",
-    prompt: "Record the unit name and whether it is a service, scope, another unit, or no result. Include any access or systemd limitation.",
-  },
-  {
-    title: "Explain the evidence boundary",
-    prompt: "Use one observation to explain what the snapshot supports, what it cannot prove, and how an application request reaches the kernel.",
-  },
-] as const;
 
 function blankRecord(itemId: string): ProgressInput {
   return {
@@ -40,6 +19,7 @@ function blankRecord(itemId: string): ProgressInput {
     notes: "",
     evidence: "",
     repositoryUrl: "",
+    taskObservations: {},
   };
 }
 
@@ -52,13 +32,20 @@ function savedFields(record: ProgressRecord): ProgressInput {
     notes: record.notes,
     evidence: record.evidence,
     repositoryUrl: record.repositoryUrl,
+    taskObservations: record.taskObservations ?? {},
   };
+}
+
+function countObservations(observations: Record<string, string> | undefined): number {
+  return a01Tasks.filter(({ id }) => Boolean(observations?.[id]?.trim())).length;
 }
 
 export function A01InvestigationWorkbench({ activity }: { activity: ActivityRecord }) {
   const [record, setRecord] = useState<ProgressInput>(() => blankRecord(activity.id));
+  const [savedRecord, setSavedRecord] = useState<ProgressInput>(() => blankRecord(activity.id));
   const [updatedAt, setUpdatedAt] = useState<number>();
-  const [activeTask, setActiveTask] = useState(0);
+  const [selectedTaskId, setSelectedTaskId] = useState<A01TaskSelection>(a01Tasks[0].id);
+  const [visibleTaskId, setVisibleTaskId] = useState<A01TaskId>(a01Tasks[0].id);
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -68,10 +55,14 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   const [message, setMessage] = useState("");
   const [messageLocation, setMessageLocation] = useState<"notebook" | "review">("notebook");
   const [error, setError] = useState(false);
-  const notebookNotesId = `notes-${activity.id}`;
-  const notebookEvidenceId = `evidence-${activity.id}`;
+  const taskObservationId = `task-observation-${activity.id}`;
   const taskPromptId = `activity-a01-task-prompt-${activity.id}`;
   const disabled = loading || loadFailed || saving;
+  const currentTask = selectedTaskId === "legacy" ? undefined : a01Tasks.find(({ id }) => id === selectedTaskId)!;
+  const currentObservation = currentTask ? record.taskObservations?.[currentTask.id] ?? "" : "";
+  const recordedCount = countObservations(record.taskObservations);
+  const savedText = updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet";
+  const notebookState = loading ? "Loading saved notes" : loadFailed ? "Saved notes unavailable" : isDirty ? "Unsaved changes" : formatStatus(record.status);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -81,11 +72,10 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         if (!response.ok) throw new Error("Could not load this activity’s saved record.");
         const rows = await response.json() as ProgressRecord[];
         if (!Array.isArray(rows)) throw new Error("The saved record response was unexpected.");
-        const saved = rows[0];
-        if (saved) {
-          setRecord(savedFields(saved));
-          setUpdatedAt(saved.updatedAt);
-        }
+        const saved = rows[0] ? savedFields(rows[0]) : blankRecord(activity.id);
+        setRecord(saved);
+        setSavedRecord(saved);
+        setUpdatedAt(rows[0]?.updatedAt);
         setIsDirty(false);
         setMessage("");
         setError(false);
@@ -104,22 +94,22 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   }, [activity.id, loadAttempt]);
 
   useEffect(() => {
-    const updateActiveTask = () => {
-      const items = document.querySelectorAll<HTMLElement>("#activity-steps ol > li");
+    const updateVisibleTask = () => {
+      const items = document.querySelectorAll<HTMLElement>("#activity-steps [data-task-id]");
       if (!items.length) return;
       const focusLine = window.innerHeight * 0.38;
-      let current = 0;
-      items.forEach((item, index) => {
-        if (item.getBoundingClientRect().top <= focusLine) current = index;
+      let current = items[0].dataset.taskId as A01TaskId;
+      items.forEach((item) => {
+        if (item.getBoundingClientRect().top <= focusLine && item.dataset.taskId) current = item.dataset.taskId as A01TaskId;
       });
-      setActiveTask(Math.min(current, taskPrompts.length - 1));
+      setVisibleTaskId(current);
     };
     let frame = 0;
     const scheduleUpdate = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-        updateActiveTask();
+        updateVisibleTask();
       });
     };
     scheduleUpdate();
@@ -157,7 +147,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
     return () => window.removeEventListener("hashchange", revealLinkedNotebook);
   }, [activity.id]);
 
-  async function save(status: ProgressStatus, location: "notebook" | "review") {
+  async function save(status: ProgressStatus, location: "notebook" | "review", action: "draft" | "reopen" = "draft") {
     setSaving(true);
     setMessageLocation(location);
     setError(false);
@@ -180,11 +170,15 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         throw new Error("The server returned an unexpected save response.");
       }
       const saved = body as ProgressRecord;
-      setRecord(savedFields(saved));
+      const normalized = savedFields(saved);
+      setRecord(normalized);
+      setSavedRecord(normalized);
       setUpdatedAt(saved.updatedAt);
       setIsDirty(false);
-      setMessageLocation(location);
-      setMessage(status === "completed" ? "Activity marked complete on this device." : "Draft saved on this device.");
+      const keptCompleted = record.status === "completed" && status === "completed";
+      setMessage(status === "completed"
+        ? keptCompleted ? "Draft saved. The activity remains marked complete." : "Activity marked complete on this device."
+        : action === "reopen" ? "Activity marked in progress. Your notes were saved on this device." : "Draft saved on this device.");
       window.dispatchEvent(new CustomEvent("progress-updated"));
     } catch (caught) {
       setError(true);
@@ -201,6 +195,38 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
     setMessage("");
   }
 
+  function updateObservation(taskId: A01TaskId, value: string) {
+    update("taskObservations", { ...(record.taskObservations ?? {}), [taskId]: value });
+  }
+
+  function selectTask(taskId: A01TaskSelection) {
+    setSelectedTaskId(taskId);
+    setError(false);
+    setMessage("");
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      const inputId = taskId === "legacy" ? `notes-${activity.id}` : taskObservationId;
+      const editor = document.getElementById(inputId);
+      editor?.focus();
+      if (editor instanceof HTMLElement && window.matchMedia("(max-width: 1180px)").matches) {
+        const notebookBody = document.querySelector<HTMLElement>(".activity-a01-notebook--open .activity-a01-notebook-body");
+        if (notebookBody) {
+          const targetTop = notebookBody.getBoundingClientRect().top + notebookBody.clientHeight * 0.58;
+          notebookBody.scrollTop += editor.getBoundingClientRect().top - targetTop;
+        }
+      }
+    }));
+  }
+
+  function editTask(taskId: A01TaskSelection) {
+    selectTask(taskId);
+    setMobileNotebookOpen(true);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      const editor = document.getElementById(`progress-editor-${activity.id}`);
+      editor?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById(taskObservationId)?.focus({ preventScroll: true });
+    }));
+  }
+
   function retryLoad() {
     setLoading(true);
     setLoadFailed(false);
@@ -211,12 +237,16 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
 
   function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void save("in_progress", "notebook");
+    void save(record.status === "completed" ? "completed" : "in_progress", "notebook");
   }
 
-  const task = taskPrompts[activeTask];
-  const savedText = updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet";
-  const notebookState = loading ? "Loading saved notes" : loadFailed ? "Saved notes unavailable" : isDirty ? "Unsaved changes" : formatStatus(record.status);
+  function submitReviewDraft() {
+    void save(record.status === "completed" ? "completed" : "in_progress", "review");
+  }
+
+  const viewingDifferentTask = visibleTaskId !== selectedTaskId && selectedTaskId !== "legacy";
+  const legacyExists = Boolean(record.notes.trim() || record.evidence.trim());
+  const legacyDirty = record.notes !== savedRecord.notes || record.evidence !== savedRecord.evidence;
 
   return (
     <>
@@ -224,22 +254,12 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         <div className="activity-a01-section-heading">
           <p className="eyebrow">Investigate and record</p>
           <h2 id="activity-perform-title">Follow one process from <code>ps</code> to <code>/proc</code></h2>
-          <p>Run each read-only check in your VM. The notebook stays with the steps; save a draft whenever you need to pause.</p>
+          <p>Run each read-only check in your VM. Select a task in the notebook to record it; scrolling through the steps will never change the note you are editing.</p>
         </div>
 
         <div className="activity-a01-workspace">
           <div className="activity-a01-instructions" id="activity-steps">
-            {activity.steps && <MarkdownContent copyable>{activity.steps}</MarkdownContent>}
-            {(activity.hints || activity.troubleshooting) && <div className="activity-a01-help" aria-label="Investigation help">
-              {activity.hints && <details className="optional-hints">
-                <summary>Hints if a process changes or disappears</summary>
-                <div className="optional-hints-content"><MarkdownContent>{activity.hints}</MarkdownContent></div>
-              </details>}
-              {activity.troubleshooting && <details className="activity-troubleshooting">
-                <summary>Troubleshoot access or systemd results</summary>
-                <MarkdownContent>{activity.troubleshooting}</MarkdownContent>
-              </details>}
-            </div>}
+            {activity.steps && <MarkdownContent copyable taskIds={a01TaskIds} taskHints={activity.taskHints}>{activity.steps}</MarkdownContent>}
           </div>
 
           <aside id="a01-notebook" className={`activity-a01-notebook${mobileNotebookOpen ? " activity-a01-notebook--open" : " activity-a01-notebook--closed"}`} aria-label="A01 investigation notebook">
@@ -263,46 +283,99 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                 <div className="activity-a01-notebook-heading">
                   <p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared record</p>
                   <h2>Investigation notebook</h2>
-                  <p>These notes stay with A01 and appear in the final review.</p>
+                  <p>Choose a task, record what your VM showed, and return to these notes in the final review.</p>
                 </div>
 
-                <div className="activity-a01-current-task" aria-live="polite">
-                  <span>Task {activeTask + 1} of {taskPrompts.length}</span>
-                  <strong>{task.title}</strong>
-                  <p id={taskPromptId}>{task.prompt}</p>
+                {viewingDifferentTask && <div className="activity-a01-visible-task" role="status">
+                  <span>Viewing Task {a01Tasks.findIndex(({ id }) => id === visibleTaskId) + 1}: {a01Tasks.find(({ id }) => id === visibleTaskId)?.title}</span>
+                  <button type="button" onClick={() => selectTask(visibleTaskId)}>Switch notebook to this task</button>
+                </div>}
+
+                <div className="activity-a01-task-picker" role="group" aria-label="Task notes and saved states">
+                  {a01Tasks.map((task, index) => {
+                    const value = record.taskObservations?.[task.id] ?? "";
+                    const savedValue = savedRecord.taskObservations?.[task.id] ?? "";
+                    const taskState = value.trim() ? value !== savedValue ? "Unsaved" : "Recorded" : "Not recorded";
+                    return <button
+                      key={task.id}
+                      type="button"
+                      className="activity-a01-task-choice"
+                      aria-pressed={selectedTaskId === task.id}
+                      disabled={disabled}
+                      onClick={() => selectTask(task.id)}
+                    >
+                      <span className="activity-a01-task-choice-number">{String(index + 1).padStart(2, "0")}</span>
+                      <span className="activity-a01-task-choice-copy"><strong>{task.title}</strong><small>{taskState}</small></span>
+                    </button>;
+                  })}
+                  {legacyExists && <button
+                    type="button"
+                    className="activity-a01-task-choice activity-a01-task-choice--legacy"
+                    aria-pressed={selectedTaskId === "legacy"}
+                    disabled={disabled}
+                    onClick={() => selectTask("legacy")}
+                  >
+                    <span className="activity-a01-task-choice-number">Old</span>
+                    <span className="activity-a01-task-choice-copy"><strong>Earlier unassigned note</strong><small>{legacyDirty ? "Unsaved" : "Preserved"}</small></span>
+                  </button>}
                 </div>
+                <label className="activity-a01-task-picker-mobile">
+                  <span id="activity-a01-task-picker-label">Choose a task observation</span>
+                  <select
+                    className="form-select"
+                    aria-labelledby="activity-a01-task-picker-label"
+                    value={selectedTaskId}
+                    disabled={disabled}
+                    onChange={(event) => selectTask(event.target.value as A01TaskSelection)}
+                  >
+                    {a01Tasks.map((task, index) => {
+                      const value = record.taskObservations?.[task.id] ?? "";
+                      const savedValue = savedRecord.taskObservations?.[task.id] ?? "";
+                      const taskState = value.trim() ? value !== savedValue ? "Unsaved" : "Recorded" : "Not recorded";
+                      return <option key={task.id} value={task.id}>Task {index + 1} · {task.title} · {taskState}</option>;
+                    })}
+                    {legacyExists && <option value="legacy">Earlier unassigned note · {legacyDirty ? "Unsaved" : "Preserved"}</option>}
+                  </select>
+                </label>
+
+                {currentTask ? <div className="activity-a01-current-task" aria-live="polite">
+                  <span>Task {a01Tasks.findIndex(({ id }) => id === currentTask.id) + 1} of {a01Tasks.length}</span>
+                  <strong>{currentTask.title}</strong>
+                  <p id={taskPromptId}>{currentTask.prompt}</p>
+                </div> : <div className="activity-a01-current-task activity-a01-current-task--legacy">
+                  <span>Earlier A01 record</span>
+                  <strong>Not linked to a specific task</strong>
+                  <p>This note came from the earlier A01 notebook. It remains editable here and has not been assigned to a task.</p>
+                </div>}
 
                 <div className="activity-a01-notebook-form">
-                  <div className="form-field">
-                    <label htmlFor={notebookNotesId}>Findings and interpretation</label>
-                    <span className="field-hint">Use the current task prompt to separate what you observed from what you infer.</span>
+                  {currentTask ? <div className="form-field">
+                    <label htmlFor={taskObservationId}>Task observation</label>
+                    <span className="field-hint">A short note is enough: what you observed, what it means, and a relevant limit.</span>
                     <Textarea
-                      id={notebookNotesId}
+                      id={taskObservationId}
                       className="form-textarea"
-                      maxLength={3000}
-                      value={record.notes}
+                      maxLength={1200}
+                      value={currentObservation}
                       disabled={disabled}
-                      aria-describedby={`${taskPromptId} activity-a01-notes-privacy`}
-                      placeholder={"Observation: …\nWhat it means: …\nWhat it cannot prove: …"}
-                      onChange={(event) => update("notes", event.target.value)}
+                      aria-describedby={`${taskPromptId} activity-a01-observation-privacy`}
+                      placeholder={"What did your VM show? What does it mean? What can’t it prove?"}
+                      onChange={(event) => updateObservation(currentTask.id, event.target.value)}
                     />
-                  </div>
-                  <div className="form-field">
-                    <label htmlFor={notebookEvidenceId}>Sanitized commands and evidence</label>
-                    <span className="field-hint">Keep only the command and values needed to support your finding.</span>
-                    <Textarea
-                      id={notebookEvidenceId}
-                      className="form-textarea"
-                      maxLength={3000}
-                      value={record.evidence}
-                      disabled={disabled}
-                      aria-describedby="activity-a01-evidence-privacy"
-                      placeholder={"Command and selected values: …\nCheck or limitation: …"}
-                      onChange={(event) => update("evidence", event.target.value)}
-                    />
-                  </div>
-                  <p className="activity-a01-privacy-note" id="activity-a01-notes-privacy">Keep the record concise. Omit private paths, full command arguments, tokens, and personal data.</p>
-                  <p className="activity-a01-privacy-note" id="activity-a01-evidence-privacy">Saved in this Fieldnotes workspace on this device; it does not read your terminal.</p>
+                    <span className="activity-a01-character-count">{currentObservation.length} / 1,200 characters · {recordedCount} of 5 tasks recorded</span>
+                  </div> : <>
+                    <div className="form-field">
+                      <label htmlFor={`notes-${activity.id}`}>Earlier notes</label>
+                      <span className="field-hint">Kept as an unassigned note from your earlier A01 record.</span>
+                      <Textarea id={`notes-${activity.id}`} className="form-textarea" maxLength={3000} value={record.notes} disabled={disabled} onChange={(event) => update("notes", event.target.value)} />
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor={`evidence-${activity.id}`}>Earlier evidence</label>
+                      <span className="field-hint">Kept with the same record; it has not been copied into a task.</span>
+                      <Textarea id={`evidence-${activity.id}`} className="form-textarea" maxLength={3000} value={record.evidence} disabled={disabled} onChange={(event) => update("evidence", event.target.value)} />
+                    </div>
+                  </>}
+                  <p className="activity-a01-privacy-note" id="activity-a01-observation-privacy">Omit private paths, full command arguments, tokens, and personal data. Fieldnotes saves your note here; it does not read your terminal.</p>
                 </div>
               </div>
 
@@ -326,20 +399,31 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         <div className="activity-a01-review-heading">
           <div>
             <p className="eyebrow">Review, save, and continue</p>
-            <h2 id="activity-a01-review-title">Review the findings you already recorded</h2>
+            <h2 id="activity-a01-review-title">Review the observations you recorded</h2>
           </div>
-          <p>Refine your notes in the notebook above. This review shows the same fields; it does not ask you to enter the evidence again.</p>
+          <p>Each row shows the same observation saved in the notebook. Choose Edit to return to that task; no evidence needs to be entered again.</p>
         </div>
 
-        <div className="activity-a01-review-record" aria-label="Current notebook contents">
-          <div>
-            <h3>Findings and interpretation</h3>
-            <p className="activity-a01-review-value">{record.notes.trim() || "No findings recorded yet. Return to the notebook to add your observations."}</p>
-          </div>
-          <div>
-            <h3>Sanitized commands and evidence</h3>
-            <p className="activity-a01-review-value">{record.evidence.trim() || "No supporting evidence recorded yet."}</p>
-          </div>
+        <p className="activity-a01-review-progress">{recordedCount} of 5 task observations recorded. “Recorded” describes saved learner notes; it does not mean Fieldnotes verified the Linux results.</p>
+        <div className="activity-a01-review-record" aria-label="Task observations in the shared notebook">
+          {a01Tasks.map((task, index) => {
+            const observation = record.taskObservations?.[task.id]?.trim();
+            return <article className="activity-a01-review-task" key={task.id}>
+              <div className="activity-a01-review-task-heading">
+                <div><span className="activity-a01-review-number">{String(index + 1).padStart(2, "0")}</span><h3>{task.title}</h3></div>
+                <a href={`#progress-editor-${activity.id}`} onClick={() => editTask(task.id)}>Edit Task {index + 1}</a>
+              </div>
+              <p className={`activity-a01-review-value${observation ? "" : " activity-a01-review-value--empty"}`}>{observation || "Not recorded yet."}</p>
+            </article>;
+          })}
+          {legacyExists && <article className="activity-a01-review-task activity-a01-review-task--legacy">
+            <div className="activity-a01-review-task-heading">
+              <div><span className="activity-a01-review-number">Old</span><h3>Earlier unassigned A01 note</h3></div>
+              <a href={`#progress-editor-${activity.id}`} onClick={() => editTask("legacy")}>Edit earlier note</a>
+            </div>
+            <p className="activity-a01-review-value">{record.notes.trim() || "No earlier notes."}{record.evidence.trim() ? `\n\nEarlier evidence: ${record.evidence.trim()}` : ""}</p>
+            <p className="activity-a01-review-legacy-help">Preserved from the earlier record without guessing which task it belongs to.</p>
+          </article>}
         </div>
 
         <div className="activity-a01-review-prompt">
@@ -358,7 +442,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             <option value="guided">Guided</option>
             <option value="independent">Independent</option>
           </select>
-          <p className="field-hint">This is your self-assessment; Fieldnotes does not verify mastery.</p>
+          <p className="field-hint">Completion is your choice. Fieldnotes does not inspect the VM or verify these results.</p>
         </div>
 
         <div className="activity-a01-review-footer">
@@ -367,12 +451,15 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             <p>{isDirty ? "Changes are not saved yet." : updatedAt ? savedText : "No draft has been saved yet."}</p>
           </div>
           <div className="activity-a01-review-actions">
-            <a className="button button-outline" href="#activity-perform">Edit in the notebook</a>
-            <Button className="button button-outline" type="button" disabled={disabled} onClick={() => void save("in_progress", "review")}>
+            <a className="button button-outline" href="#progress-editor-A01">Edit in the notebook</a>
+            <Button className="button button-outline" type="button" disabled={disabled} onClick={submitReviewDraft}>
               <Save size={15} aria-hidden="true" />Save draft
             </Button>
-            <Button className="button button-primary" type="button" disabled={disabled || (record.status === "completed" && !isDirty)} onClick={() => void save("completed", "review")}>
-              <Check size={15} aria-hidden="true" />{record.status === "completed" && !isDirty ? "Activity marked complete" : "Mark activity complete"}
+            {record.status === "completed" && <Button className="button button-outline" type="button" disabled={disabled} onClick={() => void save("in_progress", "review", "reopen")}>
+              Reopen as in progress
+            </Button>}
+            <Button className="button button-primary" type="button" disabled={disabled || record.status === "completed"} onClick={() => void save("completed", "review")}>
+              <Check size={15} aria-hidden="true" />{record.status === "completed" ? "Activity marked complete" : "Mark activity complete"}
             </Button>
             {messageLocation === "review" && <p className={`activity-a01-review-message${error ? " error" : ""}`} role="status" aria-live="polite">{message}</p>}
           </div>

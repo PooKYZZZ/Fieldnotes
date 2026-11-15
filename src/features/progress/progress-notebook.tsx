@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, NotebookPen, PencilLine, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
+import { a01Tasks } from "@/features/activities/a01-task-catalog";
 
 export type NotebookItem = { itemType: ProgressRecord["itemType"]; itemId: string; label: string; href: string; editHref?: string; editLabel?: string; kind: string };
 type ItemFilter = "all" | "module" | "lesson" | "activity" | "project" | "milestone";
@@ -84,7 +85,8 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     return savedItems.filter(({ record, item }) => {
       const matchesStatus = statusFilter === "all" || record.status === statusFilter;
-      const searchable = `${item.label} ${item.kind} ${record.notes} ${record.evidence}`.toLocaleLowerCase();
+      const observations = Object.values(record.taskObservations ?? {}).join(" ");
+      const searchable = `${item.label} ${item.kind} ${record.notes} ${record.evidence} ${observations}`.toLocaleLowerCase();
       return matchesType(record, itemFilter) && matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
     });
   }, [itemFilter, query, savedItems, statusFilter]);
@@ -133,10 +135,16 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
         <div className="progress-record-body">
           <div className="progress-record-heading"><div><p className="progress-record-meta">{item.kind} <span aria-hidden="true">·</span> <time dateTime={updatedAt.toISOString()}>Saved {formattedDate}</time></p><h3><Link href={item.href}>{item.label}<ArrowUpRight size={14} aria-hidden="true" /></Link></h3></div><StatusPill status={record.status} /></div>
           {record.comfort && <p className="progress-record-detail"><strong>Confidence:</strong> {record.comfort[0].toUpperCase() + record.comfort.slice(1)}</p>}
+          {record.itemType === "activity" && record.itemId === "A01" && record.taskObservations && <div className="progress-record-task-observations" aria-label="Saved A01 task observations">
+            {a01Tasks.map((task) => {
+              const observation = record.taskObservations?.[task.id]?.trim();
+              return observation ? <p className="progress-record-detail" key={task.id}><strong>{task.title}:</strong> {observation}</p> : null;
+            })}
+          </div>}
           {record.notes && <p className="progress-record-note">{record.notes}</p>}
           {record.evidence && <p className="progress-record-detail"><strong>Evidence:</strong> {record.evidence}</p>}
           {record.repositoryUrl && <a className="progress-repository-link" href={record.repositoryUrl} target="_blank" rel="noreferrer">Open saved repository <ArrowUpRight size={13} aria-hidden="true" /></a>}
-          {!record.notes && !record.evidence && !record.repositoryUrl && <p className="progress-record-empty"><ShieldCheck size={14} aria-hidden="true" />No note or evidence has been added yet.</p>}
+          {!record.notes && !record.evidence && !record.repositoryUrl && !Object.values(record.taskObservations ?? {}).some((observation) => observation.trim()) && <p className="progress-record-empty"><ShieldCheck size={14} aria-hidden="true" />No note or evidence has been added yet.</p>}
           {item.editHref && <Link className="progress-record-action" href={item.editHref}><PencilLine size={14} aria-hidden="true" />{item.editLabel ?? "Edit learning record"}</Link>}
         </div>
       </article>;
