@@ -11,6 +11,11 @@ certificate for the intended name and trust chain. Encryption alone does not dec
 use an application feature. A browser lock icon is not proof of correct authorization, safe data handling or secure
 backend services.
 
+With curl's normal certificate verification enabled, `curl -v https://service.example.test/health` can help
+separate a certificate or handshake failure from an HTTP response. A `401` or `403` after successful TLS is
+evidence that an HTTP endpoint answered and denied the request; it does not identify which upstream generated it.
+Do not use `-k` as a fix for a certificate error: that disables peer verification. See [curl's certificate verification guidance](https://curl.se/docs/sslcerts.html).
+
 ```diagram
 name lookup → TCP connection → TLS certificate/handshake → HTTP request
      │               │                    │                       │

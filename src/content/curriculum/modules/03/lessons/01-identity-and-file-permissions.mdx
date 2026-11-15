@@ -10,6 +10,18 @@ Linux processes run with a user ID and group IDs. For a file, owner, group and o
 write and execute access. On a directory, execute means a process may traverse the path; listing names also
 requires read permission. A service account limits what a compromised or malfunctioning service can change.
 `sudo` elevates a command temporarily, so use it only for the operation that needs administrative rights.
+
+When a service cannot read `/srv/status-api/config.yaml`, inspect each path component, not just the file:
+
+```bash
+id
+namei -l /srv/status-api/config.yaml
+```
+
+The process must be allowed to traverse every parent directory and read the file under its own identity and groups.
+If the mode bits appear to allow access, check for access-control lists, mount options or mandatory access controls
+such as SELinux or AppArmor before changing ownership. A permission listing narrows the cause; it is not a complete
+access decision by itself. See the Linux [path resolution manual](https://man7.org/linux/man-pages/man7/path_resolution.7.html).
   </div>
   <TechnicalFigure
     src="/diagrams/module03/lesson-01.svg"

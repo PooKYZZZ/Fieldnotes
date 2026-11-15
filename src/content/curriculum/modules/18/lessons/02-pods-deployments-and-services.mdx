@@ -4,6 +4,13 @@ export const lessonTitle = "Pods, Deployments, and Services";
 <ConceptSection layout="split">
   <div className="learning-concept-copy">
     <p>A Pod groups one or more tightly coupled containers that share network identity and volumes. A Deployment manages replica count and rollout history. A Service selects matching Pods and provides a stable endpoint while Pod addresses change. Check labels and selectors together; a Service with no ready endpoints may be a selector or readiness problem rather than a network outage.</p>
+    <p>When a Service has no endpoints, compare its selector with the actual Pod labels and readiness before changing network rules:</p>
+    ```bash
+kubectl get pods --show-labels
+kubectl describe service web
+kubectl get endpointslice -l kubernetes.io/service-name=web
+```
+    <p>If the selector matches no Pods, investigate labels or the Deployment. If matching Pods exist but are not ready, inspect their conditions and readiness checks. These results narrow the problem inside the cluster; they do not by themselves test every client-to-Service network path. See the Kubernetes documentation on <a href="https://kubernetes.io/docs/concepts/services-networking/service/">Services</a>.</p>
   </div>
   <TechnicalFigure src="/diagrams/module18/lesson-02.svg" alt="A Deployment manages a ReplicaSet that maintains replaceable Pods. A separate Service selector identifies matching ready Pods and provides stable discovery." caption="The Deployment and ReplicaSet manage Pods; the Service selects matching ready Pods for a stable endpoint." />
 </ConceptSection>

@@ -6,7 +6,19 @@ export const lessonTitle = "Cloud service models and responsibility";
 Cloud providers expose virtual infrastructure through APIs and consoles. Infrastructure as a Service delegates
 physical hardware management to the provider but leaves you responsible for guest OS patching, configuration and
 many security choices. Managed PaaS shifts more operations to the provider, but the shared responsibility boundary
-depends on the service.
+depends on the service. A compact way to compare the models is to ask who operates each layer:
+
+- **IaaS:** the provider operates the physical data center and virtualization; you manage the guest operating
+  system, application, identities, data and the controls you configure.
+- **PaaS:** the provider also operates more of the operating system and runtime; you still manage your application,
+  its configuration, identities and data.
+- **SaaS:** the provider operates the application service; you still manage users, access, configuration and the
+  data you put into it.
+
+These are starting points, not a contract for every product. A provider can divide tasks differently for specific
+services, so use that service's responsibility documentation before relying on a control. Microsoft's
+[shared-responsibility guidance](https://learn.microsoft.com/en-us/azure/security/fundamentals/shared-responsibility)
+shows how the customer/provider boundary shifts across models.
   </div>
   <TechnicalFigure
     src="/diagrams/module12/lesson-01.svg"

@@ -4,6 +4,7 @@ export const lessonTitle = "Service and user health";
 <ConceptSection layout="split">
   <div className="learning-concept-copy">
     <p>Host CPU and memory can explain capacity pressure but do not directly establish that a user journey works. A process can be up while returning incorrect data. Pair infrastructure signals with application success, error and latency measurements. Define what a successful request means and label panels with units, time windows and service names.</p>
+    <p>For example, a successful Prometheus scrape alongside a falling checkout success rate means the monitoring endpoint is reachable while the user-facing path may still be failing. Check a synthetic request or the application's own success metric, then correlate failures with logs and a recent change. Conversely, an absent graph is a data-collection question until you establish whether the target, metric and query are present.</p>
   </div>
   <TechnicalFigure src="/diagrams/module17/lesson-02.svg" alt="Host, application, and synthetic user-journey signals converge as complementary evidence for assessing service health." caption="Assess user impact using host capacity, application success and latency, and a defined synthetic journey together." />
 </ConceptSection>

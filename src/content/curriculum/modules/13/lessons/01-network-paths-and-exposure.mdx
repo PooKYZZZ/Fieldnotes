@@ -11,6 +11,12 @@ routable; it does not guarantee a listener or permit traffic through every filte
 
 Test one layer at a time. For administrative access, restrict the allowed source range where feasible and avoid
 opening SSH to all internet addresses. Do not publish a database just because the application needs to reach it.
+
+If a request works from the VM but times out from a remote client, first check the listener's bind address. A service
+bound only to loopback is not reachable through the VM's network interface, even when a cloud rule allows the port.
+If it is listening on the intended interface, inspect the route, the matching Network Security Group rule and the
+guest firewall separately. Widening an inbound rule before checking the listener can expose a port without fixing
+the cause.
   </div>
   <TechnicalFigure
     src="/diagrams/module13/lesson-01.svg"

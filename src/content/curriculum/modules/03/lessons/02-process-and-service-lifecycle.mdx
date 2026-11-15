@@ -19,6 +19,11 @@ systemd starts unit ──▶ service account process ──▶ listening socket
 Signals request a process action: `SIGTERM` allows a program to shut down cleanly, while `SIGKILL` stops it
 immediately and gives it no cleanup opportunity. Prefer the service manager's stop action over killing arbitrary
 PIDs; the manager owns the lifecycle it started.
+
+Compare `systemctl is-enabled status-api.service` with `systemctl is-active status-api.service`, then make an
+appropriate local request. The first reports boot configuration, the second reports systemd's current state, and
+the request exercises more of the application path. A unit can be active while returning an application error.
+See the [systemd `systemctl` reference](https://www.freedesktop.org/software/systemd/man/latest/systemctl.html).
   </div>
   <TechnicalFigure
     src="/diagrams/module03/lesson-02.svg"

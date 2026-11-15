@@ -9,6 +9,21 @@ export const lessonTitle = "DNS and transport protocols";
 DNS resolves names to records such as addresses. A successful lookup tells you which answer a resolver returned;
 it does not create a connection. TCP performs connection setup and provides an ordered byte stream; UDP sends
 datagrams without TCP's delivery and ordering guarantees. The application protocol decides what the data means.
+
+Use a staged check rather than treating one successful command as proof of the whole path:
+
+```bash
+HOST=api.lab.test
+getent ahosts "$HOST"
+curl -v --connect-timeout 3 "https://$HOST/health"
+```
+
+Replace the reserved example name with a hostname configured in your lab. No address from `getent` points first
+to name resolution or local resolver configuration. A curl name-resolution error, timeout, refused connection,
+certificate error and HTTP response describe different stages; exact wording varies by system. A timeout alone
+cannot distinguish a dropped packet from an unavailable route or slow endpoint. An HTTP response means an HTTP
+server or proxy answered, not necessarily that the intended application is healthy. For protocol details, see
+[RFC 1034](https://www.rfc-editor.org/rfc/rfc1034.html) and [RFC 9293](https://www.rfc-editor.org/rfc/rfc9293.html).
   </div>
   <TechnicalFigure
     src="/diagrams/module04/lesson-02.svg"

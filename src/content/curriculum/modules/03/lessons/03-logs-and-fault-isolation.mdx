@@ -10,6 +10,11 @@ When a service fails, compare the unit state, recent journal, process and listen
 `systemctl status status-api.service` shows the unit state, `journalctl -u status-api.service --since "10 min ago"`
 narrows the log window, and `ss -ltn` shows TCP listeners. Then request the local health endpoint. This moves from
 process evidence toward application behavior without treating a restart as a diagnosis.
+
+Interpret the combination. An active unit with no expected listener directs the next check toward process startup,
+binding and recent logs. A listener that returns HTTP `503` shows that an HTTP component answered, but it does not
+identify whether the application, proxy or a dependency produced the response. Compare timestamps and the exact
+request path before choosing a corrective action.
   </div>
   <TechnicalFigure
     src="/diagrams/module03/lesson-03.svg"

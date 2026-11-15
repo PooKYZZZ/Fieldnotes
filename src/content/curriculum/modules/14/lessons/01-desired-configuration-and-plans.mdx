@@ -7,6 +7,20 @@ Terraform configuration describes resources and relationships; a provider transl
 operations for a platform. `terraform init` installs provider dependencies, `validate` checks configuration shape,
 and `plan` compares the desired configuration with the current state and provider observations. Read each planned
 create, update and destroy. A plan is a preview, not a reservation: external changes can occur before apply.
+
+In a disposable local lab, a saved plan can make review easier:
+
+```bash
+terraform fmt -check
+terraform validate
+terraform plan -out=tfplan
+terraform show tfplan
+```
+
+Ask which resources will be created, changed or destroyed, and whether any contain persistent data. A saved plan
+can become stale if configuration, state or real infrastructure changes; review a fresh plan immediately before
+acting. Plan files and state can contain sensitive values, so keep them out of public version control and protect
+their storage. See HashiCorp's [state guidance](https://developer.hashicorp.com/terraform/language/state).
   </div>
   <TechnicalFigure
     src="/diagrams/module14/lesson-01.svg"

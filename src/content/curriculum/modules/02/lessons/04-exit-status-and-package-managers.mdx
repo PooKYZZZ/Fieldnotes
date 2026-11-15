@@ -10,6 +10,26 @@ Commands normally return status `0` for success and nonzero for a failure or spe
 useful, but scripts should also check status before acting on output. Package managers track installed versions,
 dependencies and repository origin. Copying a binary into a directory does not update that inventory, so the system
 cannot reliably upgrade, verify or remove it later.
+
+For GNU `grep`, a no-match result is different from a command error. Capture the status before running another
+command:
+
+```bash
+if grep -q -- 'timeout' app.log; then
+  echo "matching line found"
+else
+  status=$?
+  if [ "$status" -eq 1 ]; then
+    echo "no matching line"
+  else
+    echo "grep failed with status $status" >&2
+  fi
+fi
+```
+
+This lets a script handle an expected absence separately from a missing file or another error. Package inventory
+answers a different question from `command -v curl`: one checks what the package database records, the other checks
+what executable the shell can find on its current `PATH`. See the [Bash manual on exit status](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html).
   </div>
   <TechnicalFigure
     src="/diagrams/module02/lesson-04.svg"

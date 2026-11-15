@@ -14,6 +14,14 @@ high-cardinality series and can overwhelm a time-series database.
 | Request/error counter | Is the issue isolated or increasing? |
 | Latency histogram | Is the tail of response time getting worse? |
 | Trace spans | Which service or operation consumed the time? |
+
+Imagine a checkout dashboard shows an average response time of 120 ms while its 95th percentile is 900 ms. The
+average hides a slow tail that some users experience. Use a latency histogram and a clearly defined time window to
+inspect that tail; the percentile is an estimate from the observations and bucket configuration, not a guarantee
+about every request. A rising error-rate metric shows the issue is broader than one log line, while a trace can help
+locate time spent across services. Keep request IDs in logs or trace context rather than metric labels, where each
+unique value would create another time series. See [OpenTelemetry context propagation](https://opentelemetry.io/docs/concepts/context-propagation/)
+and [Google SRE monitoring](https://sre.google/sre-book/monitoring-distributed-systems/).
   </div>
   <TechnicalFigure
     src="/diagrams/module16/lesson-02.svg"

@@ -4,6 +4,7 @@ export const lessonTitle = "From scrape to decision";
 <ConceptSection layout="split">
   <div className="learning-concept-copy">
     <p>Prometheus periodically scrapes a configured endpoint and stores time-series samples. Grafana queries those series to render panels; alert rules evaluate conditions over time and can notify an operator. A missing scrape is a monitoring failure, not proof that the target is healthy. Show the scrape target state beside the application-level signal so missing data is visible.</p>
+    <p>Prometheus records <code>up</code> as <code>1</code> when a target scrape succeeds and <code>0</code> when it fails. Neither value is the same as a user-facing health check: <code>up = 1</code> means the metrics endpoint was scraped, not that checkout works. An absent series is different from a measured zero; a target may no longer be discovered, an application metric may not be emitted, or a query may exclude the series. Check target state, timestamps and application signals before drawing a conclusion. See Prometheus's <a href="https://prometheus.io/docs/concepts/jobs_instances/">jobs and instances documentation</a>.</p>
   </div>
   <TechnicalFigure src="/diagrams/module17/lesson-01.svg" alt="Service metrics flow to Prometheus for storage; the stored time series feed Grafana panels and alert rules as separate consumers." caption="Prometheus stores scraped samples. Grafana dashboards and alert rules query the same time series independently." />
 </ConceptSection>

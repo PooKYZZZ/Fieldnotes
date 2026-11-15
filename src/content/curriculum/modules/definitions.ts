@@ -8,7 +8,7 @@ const definitions = [
     "level": "Core",
     "prerequisites": "None; curiosity and a PC are enough.",
     "intro": "Build a mental model of what happens between starting a program and a service handling a request. You will use it to investigate Linux processes, storage, and common failures throughout the rest of this curriculum.",
-    "overview": "",
+    "overview": "Start with a computer as a set of cooperating parts: programs, processes, memory, storage, the kernel and devices. Follow one application from launch through a wait or failure, and use observations to explain what happened. These mental models support the Linux and service investigations that follow.",
     "learningQuestion": "What changes inside a computer when you start an application, and how does it safely use memory, files, and devices?",
     "concepts": [
       {
@@ -84,7 +84,7 @@ const definitions = [
     "level": "Core",
     "prerequisites": "Module 01 or equivalent OS understanding.",
     "intro": "Use the terminal confidently enough to inspect a system without guessing what each command will\nchange.",
-    "overview": "",
+    "overview": "Treat the shell as a parser that prepares arguments before a command runs. Learn how paths resolve, how streams move through pipes and files, and how exit statuses distinguish success from expected conditions such as no matches. Practice read-only inspection before changing anything.",
     "learningQuestion": "How can a short command pipeline find a useful clue in system files without changing the evidence you are inspecting?",
     "concepts": [
       {
@@ -140,7 +140,7 @@ const definitions = [
     "level": "Core",
     "prerequisites": "Module 02: safe command-line use.",
     "intro": "Move from using Linux to administering a service: identities, permissions, lifecycle, logging and\ntroubleshooting.",
-    "overview": "",
+    "overview": "A service problem can involve identity and permissions, a systemd unit, a process, a log, a listener or the application itself. Work from low-risk observations toward the next useful check, and distinguish boot configuration, current service state and a real request result.",
     "learningQuestion": "When a web service is unavailable, how can you tell whether the problem is its identity, process, service manager, log, or network listener?",
     "concepts": [
       {
@@ -196,7 +196,7 @@ const definitions = [
     "level": "Core",
     "prerequisites": "Basic Linux CLI (Modules 01-03).",
     "intro": "Understand how a request gets from one host to another; this is the foundation for debugging\ncloud networks and container networking.",
-    "overview": "",
+    "overview": "A network request passes through name resolution, route selection, transport, filtering and an application endpoint. Each check narrows the next question: a DNS answer, route or ping result alone does not establish that the intended service accepted a request.",
     "learningQuestion": "If a hostname resolves but a browser cannot open the service, which part of the path should you test next and what evidence would distinguish the causes?",
     "concepts": [
       {
@@ -244,7 +244,7 @@ const definitions = [
     "level": "Core",
     "prerequisites": "Module 04 networking.",
     "intro": "Learn the application request path behind many backend and infrastructure tasks, without needing\nto master frontend development.",
-    "overview": "",
+    "overview": "Follow an HTTP request through TLS, a proxy and an upstream service. Status codes and connection errors describe particular stages of that path; use them to choose the next check while keeping server identity, application authorization and user-visible health distinct.",
     "learningQuestion": "When the browser displays an error, how can you locate the exact boundary that failed between name lookup and the application response?",
     "concepts": [
       {

@@ -7,6 +7,19 @@ Treat code from external pull requests as untrusted input. Give the workflow tok
 that event and job; a test job rarely needs repository write access. Do not expose deployment secrets to unreviewed
 code. Avoid privileged triggers that check out and execute pull-request content under the base repository's
 authority. Review action versions and protect workflow files like application code.
+
+The trigger changes the trust boundary:
+
+- `pull_request` is the usual place to run checks on proposed code from a fork. GitHub restricts the token and
+  withholds repository secrets for fork pull requests by default.
+- `pull_request_target` runs the workflow from the base repository's default branch with base-repository trust.
+  It can access repository secrets and a token with the permissions granted to the job. Do not check out the fork's
+  revision and run its scripts in this privileged workflow.
+
+Keep untrusted tests read-only and secret-free. Put deployment in a separate protected workflow or environment that
+runs only after review, and grant it only the required deployment permissions. GitHub's [security guidance for
+`pull_request_target`](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target)
+explains the dangerous checkout-and-execute pattern.
   </div>
   <TechnicalFigure
     src="/diagrams/module10/lesson-03.svg"

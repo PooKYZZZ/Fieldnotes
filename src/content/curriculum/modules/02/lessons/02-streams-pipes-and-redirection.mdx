@@ -10,6 +10,19 @@ Each process can read standard input and write standard output and standard erro
 output to the next process's input; redirection sends a stream to a file or another destination. The shell opens
 redirection targets before starting the command, so `>` can truncate an existing file even if the command later
 fails. Use a new report path or append with `>>` when that is intended.
+
+For example, `grep` can send matches and diagnostics to different files:
+
+```bash
+grep -n -- 'timeout' app.log > matches.txt 2>search.err
+status=$?
+echo "grep status: $status"
+```
+
+For GNU `grep`, status `0` means it selected a line, `1` means no line matched, and `2` or greater indicates
+an error. The files alone do not tell you whether “no match” was expected, so check the status immediately after
+the command. The [Bash manual on redirections](https://www.gnu.org/software/bash/manual/html_node/Redirections.html)
+explains how the shell opens each destination.
   </div>
   <TechnicalFigure
     src="/diagrams/module02/lesson-02.svg"

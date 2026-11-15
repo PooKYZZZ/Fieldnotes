@@ -10,6 +10,19 @@ Linux presents one directory tree rooted at `/`. A mounted disk or network files
 that tree, so the path does not reveal which device stores the bytes. An absolute path starts at `/`; a relative path
 starts from the process's current working directory. `pwd` answers where a shell is operating, while `find` and
 `stat` help inspect files and metadata.
+
+Suppose `pwd` prints `/srv/app`. Then `./data/report.txt` refers to `/srv/app/data/report.txt`. If that directory
+is meant to contain a separate data disk, inspect the mount as well as the file:
+
+```text
+$ findmnt --target /srv/app/data
+TARGET         SOURCE    FSTYPE OPTIONS
+/srv/app/data  /dev/vdb1 ext4   rw,relatime
+```
+
+This illustrative result says which filesystem currently backs that path. It does not establish that the expected
+file is present, current, or the one the application should use. A missing mount can expose an ordinary directory
+beneath the intended mount point. See the Linux [path resolution manual](https://man7.org/linux/man-pages/man7/path_resolution.7.html).
   </div>
   <TechnicalFigure
     src="/diagrams/module02/lesson-01.svg"

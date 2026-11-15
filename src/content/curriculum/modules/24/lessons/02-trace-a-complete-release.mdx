@@ -4,6 +4,7 @@ export const lessonTitle = "Trace a complete release";
 <ConceptSection layout="split">
   <div className="learning-concept-copy">
     <p>Follow one change end to end: commit and review, tests, build inputs, artifact digest, deployment approval, runtime configuration, health check, telemetry, incident path and recovery. At each step record who can act, what evidence is produced and what could be changed without detection.</p>
+    <p>A useful comparison is the digest tested in CI versus the digest the running workload reports. If they differ, the test result does not describe the deployed artifact. If they match, you have linked those two artifacts, but still need to check runtime configuration, user-facing health and recovery readiness. For each gap, write down the next evidence you would collect and who is allowed to change it.</p>
   </div>
   <TechnicalFigure src="/diagrams/module24/lesson-02.svg" alt="Trace a reviewed commit through CI evidence, artifact identity and deployment, then verify runtime health and recovery." caption="Follow one change from review through build and deployment to observable health and recovery evidence." />
 </ConceptSection>

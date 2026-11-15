@@ -13,6 +13,11 @@ TLS succeeds, or the application authorizes the user.
 Work through evidence in order: resolve the name, inspect the selected IP and route, check the listener, check host
 and network filters, then make an application-level request. Keep home-router rules, cloud network rules, host
 firewalls and application authentication distinct because each has different logs and owners.
+
+For a service on your own VM, `ss -ltn` can show whether a TCP socket is listening locally, and a request to the
+local address can test the HTTP path from that host. A local success does not prove a remote client can pass every
+firewall or reach the same address. A failed ping is also inconclusive because ICMP may be filtered while the
+application port remains available.
   </div>
   <TechnicalFigure
     src="/diagrams/module04/lesson-03.svg"

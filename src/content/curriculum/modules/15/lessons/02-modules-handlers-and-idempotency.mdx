@@ -7,6 +7,18 @@ Idempotency means that repeating the same operation against the same inputs conv
 the host. It is not a promise that every task is harmless to repeat; custom shell commands can still append duplicate
 data or restart a service on every run. Handlers run when notified by a changed task, which is useful for a service
 restart after its configuration changes.
+
+For a managed configuration file, an illustrative pair of Ansible summaries might be:
+
+```text
+First run:  changed=1, failed=0
+Second run: changed=0, failed=0
+```
+
+The first run brought the host toward the declared state; the second found no further change. If a second run still
+reports a change, inspect the task and its inputs. A shell command that appends the same line every time is not
+idempotent just because it is inside an Ansible playbook. A handler should run only when a relevant task reports a
+change. See the Ansible documentation on [handlers](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_handlers.html).
   </div>
   <TechnicalFigure
     src="/diagrams/module15/lesson-02.svg"
