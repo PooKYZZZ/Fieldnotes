@@ -990,7 +990,7 @@ body { font-size: 15px; }
 .activity-library, .cross-module-section { scroll-margin-top: 22px; }
 
 /* Activity pages use one quiet, numbered learning sequence instead of nested cards. */
-.activity-lesson-shell { width: 100%; max-width: 1120px; min-width: 0; margin-inline: auto; }
+.activity-lesson-shell { width: 100%; max-width: 1440px; min-width: 0; margin-inline: auto; }
 .activity-lesson-header { margin-bottom: 10px; }
 .activity-lesson-header .page-description { max-width: 76ch; }
 .activity-header-tools { display: grid; flex: 0 0 auto; justify-items: end; gap: 5px; max-width: 400px; }
@@ -1119,8 +1119,7 @@ body { font-size: 15px; }
   .activity-library--catalog .practice-card { min-height: 0; }
 }
 
-/* A01 keeps task guidance and its one editable notebook in the same working view. */
-.activity-lesson-shell--a01 { max-width: 1440px; }
+/* Activities keep task guidance and the matching editable notebook in the same working view. */
 .activity-a01-experience .activity-stage { padding: 29px 0 31px; }
 .activity-a01-experience .activity-stage h2 { margin-bottom: 9px; font-size: 24px; line-height: 1.3; }
 .activity-a01-experience .activity-stage h3 { font-size: 16px; }
@@ -1128,7 +1127,10 @@ body { font-size: 15px; }
 .activity-a01-understand h2 { max-width: 30ch; color: #29494a; }
 .activity-a01-understand .activity-scenario-text { max-width: 95ch; margin-bottom: 11px; font-size: 16px; line-height: 1.6; }
 .activity-a01-goal { max-width: 92ch; margin: 0; color: #40575a; font-size: 14px; line-height: 1.55; }
-.activity-a01-goal strong { color: #315e58; }
+.activity-a01-goal { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+.activity-a01-goal > strong { flex: 0 0 auto; color: #315e58; }
+.activity-a01-goal .article-copy { max-width: none; margin: 0; color: inherit; font-size: inherit; line-height: inherit; }
+.activity-a01-goal .article-copy > :last-child { margin-bottom: 0; }
 .activity-a01-objectives { margin-top: 11px; }
 .activity-a01-objectives > summary { color: #456965; cursor: pointer; font-size: 12px; font-weight: 700; }
 .activity-a01-objectives .article-copy { max-width: 90ch; margin-top: 7px; color: #526568; font-size: 13px; line-height: 1.5; }
@@ -1144,6 +1146,11 @@ body { font-size: 15px; }
 .activity-a01-section-heading { max-width: 92ch; margin: 0 0 19px; }
 .activity-a01-section-heading h2 { margin-bottom: 5px !important; }
 .activity-a01-section-heading > p:last-child { margin: 0; color: #536668; font-size: 14px; line-height: 1.55; }
+.activity-a01-inline-checks { display: grid; gap: 0; max-width: 90ch; margin-top: 15px; border-top: 1px solid #e1e8e5; }
+.activity-a01-inline-checks details { border-bottom: 1px solid #e1e8e5; padding: 10px 0; }
+.activity-a01-inline-checks summary { color: #456965; cursor: pointer; font-size: 12px; font-weight: 700; }
+.activity-a01-inline-checks .article-copy { max-width: none; margin-top: 8px; color: #526568; font-size: 13px; line-height: 1.55; }
+.activity-a01-inline-checks .article-copy > :last-child { margin-bottom: 0; }
 .activity-a01-workspace { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(340px, .95fr); align-items: start; gap: clamp(24px, 2.6vw, 38px); }
 .activity-a01-instructions, .activity-a01-notebook { min-width: 0; }
 .activity-a01-instructions .article-copy { max-width: none; font-size: 15px; line-height: 1.62; }
@@ -1225,10 +1232,10 @@ body { font-size: 15px; }
   .activity-a01-workspace { grid-template-columns: minmax(0, 1fr); }
   .activity-a01-notebook { position: fixed; z-index: 60; inset: auto 14px calc(12px + env(safe-area-inset-bottom)) 14px; }
   .activity-a01-notebook--closed .activity-a01-notebook-panel { display: none; }
-  .activity-a01-notebook--open { top: auto; bottom: calc(10px + env(safe-area-inset-bottom)); display: grid; grid-template-rows: auto minmax(0, 1fr); height: min(84dvh, 760px); max-height: min(84dvh, 760px); overflow: hidden; border: 1px solid #cddbd5; border-radius: 14px; background: #fff; padding: 8px; box-shadow: 0 15px 45px rgb(21 44 44 / 25%); }
-  .activity-a01-notebook--open .activity-a01-notebook-panel { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100%; min-height: 0; overflow: hidden; border: 0; border-radius: 9px; background: #f5f8f6; padding: 14px; box-shadow: none; }
-  .activity-a01-notebook--open .activity-a01-notebook-body { min-height: 0; overflow-y: auto; }
-  .activity-a01-notebook--open .activity-a01-notebook-footer { border-top: 1px solid #d9e3de; background: #f5f8f6; padding-top: 10px; }
+  .activity-a01-notebook--open { top: auto; bottom: calc(10px + env(safe-area-inset-bottom)); display: grid; grid-template-rows: auto auto; height: auto; max-height: min(84dvh, 760px); overflow: hidden; border: 1px solid #cddbd5; border-radius: 14px; background: #fff; padding: 8px; box-shadow: 0 15px 45px rgb(21 44 44 / 25%); }
+  .activity-a01-notebook--open .activity-a01-notebook-panel { display: grid; grid-template-rows: auto auto; height: auto; max-height: calc(min(84dvh, 760px) - 64px); min-height: 0; overflow-y: auto; border: 0; border-radius: 9px; background: #f5f8f6; padding: 14px; box-shadow: none; }
+  .activity-a01-notebook--open .activity-a01-notebook-body { min-height: 0; overflow: visible; }
+  .activity-a01-notebook--open .activity-a01-notebook-footer { position: sticky; bottom: 0; border-top: 1px solid #d9e3de; background: #f5f8f6; padding-top: 10px; }
   .activity-a01-mobile-notebook-controls { display: block; }
   .activity-a01-mobile-notebook-toggle { display: flex; width: 100%; min-height: 50px; justify-content: flex-start; background: #fff; box-shadow: 0 6px 22px rgb(21 44 44 / 16%); }
   .activity-a01-notebook--open .activity-a01-mobile-notebook-toggle { justify-content: flex-end; min-height: 40px; border: 0; box-shadow: none; }
@@ -1261,7 +1268,7 @@ body { font-size: 15px; }
 .activity-a01-visible-task strong { color: #344f50; font-size: 11px; font-weight: 750; }
 .activity-a01-visible-task > span > span { color: #657571; }
 .activity-a01-visible-task button { flex: 0 0 auto; border: 0; background: transparent; padding: 3px; color: #285f58; cursor: pointer; font-size: 11px; font-weight: 750; text-align: right; text-decoration: underline; text-underline-offset: 2px; }
-.activity-task-record { display: inline-flex; align-items: center; gap: 7px; margin: 7px 0 2px; border: 1px solid #c9dbd2; border-radius: 7px; background: #f5f8f6; padding: 7px 10px; color: #285f58; cursor: pointer; font-size: 12px; font-weight: 750; line-height: 1.3; }
+.activity-task-record { display: flex; width: fit-content; align-items: center; gap: 7px; margin: 7px 0 2px; border: 1px solid #c9dbd2; border-radius: 7px; background: #f5f8f6; padding: 7px 10px; color: #285f58; cursor: pointer; font-size: 12px; font-weight: 750; line-height: 1.3; }
 .activity-task-record:hover { border-color: #91b3a3; background: #eaf2ee; }
 .activity-task-record:focus-visible { outline: 2px solid #176b99; outline-offset: 2px; }
 .activity-a01-task-picker { display: grid; gap: 4px; margin-bottom: 12px; }

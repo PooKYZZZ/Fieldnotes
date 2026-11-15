@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { activities } from "@/content";
 import { formatStatus } from "@/features/progress/model";
 import { progressImportSchema, progressSchema } from "@/features/progress/validation";
 
@@ -37,13 +38,20 @@ describe("progressSchema", () => {
     expect(progressSchema.safeParse({ ...validProgress, itemType: "lesson", itemId: "M99-L01" }).success).toBe(false);
   });
 
-  it("accepts bounded task observations only on A01 records", () => {
+  it("accepts bounded task observations only for the activity's stable task IDs", () => {
     const a01 = { ...validProgress, itemType: "activity", itemId: "A01", taskObservations: { "compare-proc": "The PID and effective UID matched." } };
     expect(progressSchema.safeParse(a01).success).toBe(true);
     expect(progressSchema.safeParse({ ...a01, taskObservations: { unknown: "No task" } }).success).toBe(false);
     expect(progressSchema.safeParse({ ...a01, taskObservations: { "compare-proc": "x".repeat(1201) } }).success).toBe(false);
     expect(progressSchema.safeParse({ ...a01, taskObservations: { "confirm-account": "x".repeat(1200), "choose-process": "x".repeat(1200), "compare-proc": "x".repeat(1200), "check-systemd": "x".repeat(1200), "explain-boundary": "x".repeat(1201) } }).success).toBe(false);
     expect(progressSchema.safeParse({ ...validProgress, taskObservations: { "compare-proc": "Not an A01 record." } }).success).toBe(false);
+
+    const a02 = { ...validProgress, itemType: "activity", itemId: "A02", taskObservations: { "a02-predict-the-inventory": "The empty file should report zero bytes." } };
+    expect(progressSchema.safeParse(a02).success).toBe(true);
+    expect(progressSchema.safeParse({ ...a02, taskObservations: { "compare-proc": "Wrong activity task." } }).success).toBe(false);
+    const a02TaskIds = activities.find(({ id }) => id === "A02")!.investigationTasks!.map(({ id }) => id);
+    expect(a02TaskIds).toHaveLength(7);
+    expect(progressSchema.safeParse({ ...a02, taskObservations: Object.fromEntries(a02TaskIds.map((id) => [id, "x".repeat(1200)])) }).success).toBe(true);
   });
 
   it("uses clear labels for each persisted status", () => {

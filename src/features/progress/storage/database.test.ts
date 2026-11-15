@@ -123,6 +123,36 @@ describe("local progress database", () => {
     migrated.close();
   });
 
+  it("stores task-linked observations for another activity without replacing its existing record fields", () => {
+    const databasePath = makePath();
+    const first = createProgressDatabase(databasePath, migrationDirectory);
+    const oldA02: ProgressInput = {
+      ...record,
+      itemType: "activity",
+      itemId: "A02",
+      status: "in_progress",
+      notes: "Older A02 reflection stays available.",
+      evidence: "Earlier directory inventory evidence.",
+      repositoryUrl: "https://example.test/a02",
+    };
+    first.save(oldA02);
+    const linked = first.save({
+      ...oldA02,
+      taskObservations: { "a02-predict-the-inventory": "The empty file should report zero bytes." },
+    });
+    expect(linked).toMatchObject({
+      notes: oldA02.notes,
+      evidence: oldA02.evidence,
+      repositoryUrl: oldA02.repositoryUrl,
+      taskObservations: { "a02-predict-the-inventory": "The empty file should report zero bytes." },
+    });
+    first.close();
+
+    const reopened = createProgressDatabase(databasePath, migrationDirectory);
+    expect(reopened.find("activity", "A02")).toMatchObject(linked);
+    reopened.close();
+  });
+
   it("merges a batch in one transaction while preserving unrelated saved items", () => {
     const database = createProgressDatabase(makePath(), migrationDirectory);
     database.save(record);

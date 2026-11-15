@@ -55,8 +55,10 @@ export function MarkdownContent({
         }
       : {}),
     ...(taskIds ? {
-      ol: ({ children: listChildren, ...props }) => (
-        <ol {...props}>
+      ol: ({ children: listChildren, node, ...props }) => {
+        const isTaskList = taskIds && node?.position?.start.column === 1;
+        if (!isTaskList) return <ol {...props}>{listChildren}</ol>;
+        return <ol {...props}>
           {Children.toArray(listChildren).map((child) => {
             if (!isValidElement<{ children?: ReactNode }>(child) || child.type !== "li") return child;
             const taskPosition = taskIndex;
@@ -90,8 +92,8 @@ export function MarkdownContent({
               </li>
             );
           })}
-        </ol>
-      ),
+        </ol>;
+      },
     } : {}),
     pre: ({ children: content }) => {
       const code = Array.isArray(content) ? content[0] : content;

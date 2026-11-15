@@ -10,12 +10,30 @@ import type { ModuleDefinition } from "@/content/module-definitions";
 export { milestonesForProjects, type ProjectMilestone } from "@/content/project-milestones";
 
 const curriculumDirectory = path.join(process.cwd(), "src", "content", "curriculum");
+const investigationTaskSchema = z.object({
+  id: z.string().regex(/^a\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  title: z.string().trim().min(3).max(120),
+});
 const activityMetadataSchema = z.object({
   id: z.string().regex(/^A\d{2}$/),
   moduleId: z.number().int().positive(),
+  investigationTasks: z.array(investigationTaskSchema).min(1).max(12).optional(),
   taskHints: z.record(z.string(), z.string().max(1200)).optional(),
   taskDetails: z.record(z.string(), z.string().max(2400)).optional(),
 }).superRefine((metadata, context) => {
+  if (metadata.id === "A01" && metadata.investigationTasks) {
+    context.addIssue({ code: "custom", path: ["investigationTasks"], message: "Activity A01 keeps its established stable task IDs." });
+  }
+  if (metadata.id !== "A01" && !metadata.investigationTasks) {
+    context.addIssue({ code: "custom", path: ["investigationTasks"], message: "Each activity needs stable task-linked notebook entries." });
+  }
+  const taskIds = (metadata.investigationTasks ?? []).map(({ id }) => id);
+  if (new Set(taskIds).size !== taskIds.length) {
+    context.addIssue({ code: "custom", path: ["investigationTasks"], message: "Investigation task IDs must be unique within an activity." });
+  }
+  if (taskIds.some((taskId) => !taskId.startsWith(`${metadata.id.toLowerCase()}-`))) {
+    context.addIssue({ code: "custom", path: ["investigationTasks"], message: "Investigation task IDs must include their activity ID." });
+  }
   for (const field of ["taskHints", "taskDetails"] as const) {
     const entries = metadata[field];
     if (entries && metadata.id !== "A01") {
@@ -52,6 +70,7 @@ export type ActivityRecord = {
   prerequisite: string;
   environment?: string;
   steps?: string;
+  investigationTasks?: { id: string; title: string }[];
   taskHints?: Partial<Record<A01TaskId, string>>;
   taskDetails?: Partial<Record<A01TaskId, string>>;
   expectedObservations: string;
@@ -130,6 +149,19 @@ function optionalSection(document: MarkdownDocument, name: string): string | und
   return document.sections.get(name)?.trim() || undefined;
 }
 
+function countTopLevelSteps(markdown: string): number {
+  let inFence = false;
+  let count = 0;
+  for (const line of markdown.split(/\r?\n/)) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (!inFence && /^\d+\.\s+/.test(line)) count += 1;
+  }
+  return count;
+}
+
 function readMarkdownDirectory<T>(directory: string, parse: (filename: string, document: MarkdownDocument) => T): T[] {
   return readdirSync(path.join(curriculumDirectory, directory))
     .filter((filename) => filename.endsWith(".md"))
@@ -145,6 +177,10 @@ export const activities: ActivityRecord[] = readMarkdownDirectory("activities", 
   const build = requiredSection(document, filename, "Build outcome");
   const submit = requiredSection(document, filename, "Evidence to record");
   const selfCheck = requiredSection(document, filename, "Self-check");
+  const steps = optionalSection(document, "Lab steps");
+  if (metadata.id !== "A01" && metadata.investigationTasks?.length !== countTopLevelSteps(steps ?? "")) {
+    throw new Error(`${filename} must define one stable investigation task for every numbered lab step.`);
+  }
   return {
     ...metadata,
     title: document.title,
@@ -152,7 +188,8 @@ export const activities: ActivityRecord[] = readMarkdownDirectory("activities", 
     objectives: requiredSection(document, filename, "Learning objectives"),
     prerequisite: requiredSection(document, filename, "Prerequisites"),
     environment: optionalSection(document, "Environment"),
-    steps: optionalSection(document, "Lab steps"),
+    steps,
+    investigationTasks: metadata.investigationTasks,
     taskHints: metadata.taskHints as Partial<Record<A01TaskId, string>> | undefined,
     taskDetails: metadata.taskDetails as Partial<Record<A01TaskId, string>> | undefined,
     expectedObservations: requiredSection(document, filename, "Expected observations"),

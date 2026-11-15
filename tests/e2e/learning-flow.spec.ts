@@ -380,7 +380,7 @@ test("career priorities link to the related roadmap, practice, and project work"
 
 test("activity brief and source PDFs are available", async ({ page }) => {
   await page.goto("/activities/A02");
-  const prerequisite = page.locator(".activity-prerequisite");
+  const prerequisite = page.locator(".activity-a01-prerequisite");
   const bashReference = prerequisite.getByRole("link", { name: "GNU Bash pipelines" });
   await expect(bashReference).toHaveAttribute("href", "https://www.gnu.org/software/bash/manual/html_node/Pipelines.html");
   await expect(prerequisite).not.toContainText("https://");
@@ -388,7 +388,7 @@ test("activity brief and source PDFs are available", async ({ page }) => {
   await page.goto("/activities/A08");
   await expect(page.getByRole("heading", { level: 1, name: "Container fundamentals with Docker" })).toBeVisible();
   await expect(page.getByText(/Build the A05 Status API image/)).toBeVisible();
-  await expect(page.getByRole("link", { name: /Activity reference PDF/ })).toHaveAttribute("href", "/library/04_Activities_and_Practice.pdf");
+  await expect(page.locator(".activity-resource-links")).toHaveCount(0);
   const response = await page.request.get("/library/04_Activities_and_Practice.pdf");
   expect(response.ok()).toBeTruthy();
   expect(response.headers()["content-type"]).toContain("application/pdf");
@@ -560,6 +560,139 @@ test("module learning flow links directly to practice and readable activity evid
   await page.screenshot({ path: path.join(screenshotDirectory, "module-01-small-mobile.png"), fullPage: true });
 
   });
+
+test("other activities link each practical step to one shared saved notebook", async ({ page, request }) => {
+  const legacyA02 = await request.put(testOrigin + "/api/progress", {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: {
+      itemType: "activity",
+      itemId: "A02",
+      status: "in_progress",
+      comfort: "guided",
+      notes: "Earlier A02 reflection remains unassigned.",
+      evidence: "Earlier inventory evidence remains attached.",
+      repositoryUrl: "https://example.test/a02-notes",
+    },
+  });
+  expect(legacyA02.ok()).toBeTruthy();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/activities/A02");
+  await expect(page.getByRole("heading", { level: 1, name: "Linux command line and filesystems" })).toBeVisible();
+  const steps = page.locator("#activity-steps [data-task-id]");
+  const notebook = page.locator(".activity-a01-notebook");
+  const observation = page.getByRole("textbox", { name: "Task observation" });
+  const review = page.locator("#activity-record");
+  await expect(steps).toHaveCount(7);
+  await expect(notebook).toBeVisible();
+  await expect(observation).toBeVisible();
+  await expect(steps.nth(0)).toHaveAttribute("data-task-id", "a02-predict-the-inventory");
+  await expect(steps.nth(0)).toContainText("Predict the inventory");
+  await expect(steps.nth(1)).toContainText("Create a bounded fixture");
+  await expect(page.getByRole("button", { name: /Earlier saved note/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review the work you recorded" })).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a02-1440-top.png") });
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a02-1440-full.png"), fullPage: true });
+
+  const layout = await page.evaluate(() => {
+    const instructions = document.querySelector(".activity-a01-instructions")!.getBoundingClientRect();
+    const notebookPanel = document.querySelector(".activity-a01-notebook-panel")!.getBoundingClientRect();
+    return { instructionWidth: instructions.width, notebookWidth: notebookPanel.width, gap: notebookPanel.left - instructions.right };
+  });
+  expect(layout.instructionWidth).toBeGreaterThan(500);
+  expect(layout.notebookWidth).toBeGreaterThanOrEqual(340);
+  expect(layout.gap).toBeGreaterThan(0);
+  expect(layout.gap).toBeLessThan(60);
+
+  await observation.fill("Prediction: three files; the empty file should be zero bytes.");
+  await steps.nth(1).getByRole("button", { name: "Record Task 2 in the investigation notebook" }).click();
+  await expect(observation).toBeFocused();
+  await observation.fill("Created two text files, one empty file, and one nested directory in a fresh temporary folder.");
+  await notebook.getByRole("button", { name: /Predict the inventory/ }).click();
+  await expect(observation).toHaveValue("Prediction: three files; the empty file should be zero bytes.");
+  await steps.nth(2).getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
+  await expect(notebook.getByRole("button", { name: /Build the inventory/ })).toHaveAttribute("aria-pressed", "true");
+  await observation.fill("The sorted report listed three files with relative paths, file type, byte size, and owner.");
+  await notebook.getByRole("button", { name: /Earlier saved note/ }).click();
+  await expect(page.getByLabel("Earlier notes")).toHaveValue("Earlier A02 reflection remains unassigned.");
+  await expect(page.getByLabel("Earlier evidence")).toHaveValue("Earlier inventory evidence remains attached.");
+  await expect(page.getByLabel("Earlier reference link")).toHaveValue("https://example.test/a02-notes");
+
+  await steps.nth(2).getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
+  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  type ActivityRows = Array<{ status: string; notes: string; evidence: string; repositoryUrl: string; taskObservations: Record<string, string> }>;
+  let rows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A02")).json() as ActivityRows;
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    status: "in_progress",
+    notes: "Earlier A02 reflection remains unassigned.",
+    evidence: "Earlier inventory evidence remains attached.",
+    repositoryUrl: "https://example.test/a02-notes",
+    taskObservations: {
+      "a02-predict-the-inventory": "Prediction: three files; the empty file should be zero bytes.",
+      "a02-create-a-bounded-fixture": "Created two text files, one empty file, and one nested directory in a fresh temporary folder.",
+      "a02-build-the-inventory": "The sorted report listed three files with relative paths, file type, byte size, and owner.",
+    },
+  });
+
+  await page.reload();
+  await expect(observation).toHaveValue("Prediction: three files; the empty file should be zero bytes.");
+  await steps.nth(2).getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
+  await expect(observation).toHaveValue("The sorted report listed three files with relative paths, file type, byte size, and owner.");
+  await page.locator(".activity-workflow-nav a").nth(3).click();
+  await expect(review.locator(".activity-a01-review-task[data-task-id]")).toHaveCount(7);
+  await expect(review.locator(".activity-a01-review-task--legacy")).toHaveCount(1);
+  await expect(review).toContainText("Prediction: three files; the empty file should be zero bytes.");
+  await expect(review).toContainText("Earlier A02 reflection remains unassigned.");
+  await expect(review.getByRole("button", { name: "Edit Task 3" })).toBeVisible();
+  await review.getByRole("button", { name: "Edit Task 3" }).click();
+  await expect(observation).toBeFocused();
+  await expect(observation).toHaveValue("The sorted report listed three files with relative paths, file type, byte size, and owner.");
+  await observation.fill("Refined: sorted rows show the expected paths and metadata; the empty fixture has zero bytes.");
+  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  await page.locator(".activity-workflow-nav a").nth(3).click();
+  await expect(review).toContainText("Refined: sorted rows show the expected paths and metadata");
+
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("3 of 7 tasks");
+    await dialog.dismiss();
+  });
+  await review.getByRole("button", { name: "Mark activity complete" }).click();
+  await expect(review.locator(".activity-a01-status")).toHaveText("In progress");
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("3 of 7 tasks");
+    expect(dialog.message()).toContain("self-report");
+    await dialog.accept();
+  });
+  await review.getByRole("button", { name: "Mark activity complete" }).click();
+  await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
+  rows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A02")).json() as ActivityRows;
+  expect(rows[0].status).toBe("completed");
+  expect(rows[0].taskObservations["a02-build-the-inventory"]).toContain("Refined:");
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/activities/A02");
+  await expect(notebook).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a02-1920-top.png") });
+  await page.locator(".activity-a01-workspace").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a02-1920-workspace.png") });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/activities/A02");
+  const mobileStep = page.locator("#activity-steps [data-task-id]").nth(2);
+  await mobileStep.getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
+  await expect(page.locator(".activity-a01-notebook--open")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Task observation" })).toHaveValue("Refined: sorted rows show the expected paths and metadata; the empty fixture has zero bytes.");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a02-mobile-viewport.png") });
+  await page.screenshot({ path: path.join(screenshotDirectory, "activity-a02-mobile-notebook.png"), fullPage: true });
+  await page.getByRole("button", { name: "Close notebook" }).click();
+  await expect(page.locator(".activity-a01-notebook--closed")).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 780 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});
 
 test("A01 keeps task observations in one notebook through save, review, and reopen", async ({ page, request }) => {
   const legacyA01 = await request.put(testOrigin + "/api/progress", {
@@ -918,30 +1051,30 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
     await page.goto(`/activities/${activityId}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.locator("#activity-scenario")).toBeVisible();
-    if (activityId !== "A01") await expect(page.locator(".activity-objectives ul li").first()).toBeVisible();
     if (activityId === "A01") {
       await expect(page.getByRole("heading", { name: "Before you begin" })).toBeVisible();
       await expect(page.locator(".activity-a01-safety-note")).toBeVisible();
       await expect(page.getByRole("heading", { name: "Follow one process across Linux views" })).toBeVisible();
     } else {
-      await expect(page.getByRole("heading", { name: "Prepare" })).toBeVisible();
-      await expect(page.locator(".activity-environment")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Perform & verify" })).toBeVisible();
+      await expect(page.locator(".activity-a01-objectives > summary")).toHaveText("What you’ll practice");
+      await expect(page.locator(".activity-a01-notebook")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Work through the lab steps" })).toBeVisible();
     }
-    expect(await page.locator("#activity-steps ol > li").count()).toBeGreaterThan(0);
+    const taskSteps = page.locator("#activity-steps [data-task-id]");
+    const taskChoices = page.locator(".activity-a01-task-choice:not(.activity-a01-task-choice--legacy)");
+    await expect(taskSteps).toHaveCount(await taskChoices.count());
+    expect(await taskSteps.count(), `${activityId} needs task-linked notebook entries`).toBeGreaterThan(0);
+    await expect(page.getByRole("textbox", { name: "Task observation" })).toBeVisible();
+    await expect(page.locator(`#progress-editor-${activityId}`)).toBeVisible();
+    await expect(page.getByRole("heading", { name: activityId === "A01" ? "Review the observations you recorded" : "Review the work you recorded" })).toBeVisible();
     if (activityId === "A01") {
-      await expect(page.getByRole("heading", { name: "Review the observations you recorded" })).toBeVisible();
-      await expect(page.getByRole("textbox", { name: "Task observation" })).toBeVisible();
       await expect(page.locator(".activity-a01-task-choice:not(.activity-a01-task-choice--legacy)")).toHaveCount(5);
     } else {
-      await expect(page.getByRole("heading", { name: "Expected observations" })).toBeVisible();
-      await expect(page.locator(".activity-expected-observations .article-copy")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Check the result" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Record your work" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Evidence to include" })).toBeVisible();
-      await expect(page.locator(`#progress-editor-${activityId}`)).toBeVisible();
-      await expect(page.locator(`#notes-help-${activityId}`)).toContainText(activityId);
+      await expect(page.locator("#activity-record .activity-a01-review-task[data-task-id]")).toHaveCount(await taskSteps.count());
     }
+    await expect(page.getByRole("link", { name: "Begin investigation" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Review findings" })).toHaveCount(0);
+    await expect(page.locator(".activity-header-tools")).toHaveCount(0);
   }
 
   for (const viewport of [

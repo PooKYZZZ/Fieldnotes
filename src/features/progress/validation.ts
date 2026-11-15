@@ -38,19 +38,24 @@ export const progressSchema = z.object({
     context.addIssue({ code: "custom", path: ["itemId"], message: "Select a learning item from this workspace." });
   }
   if (record.taskObservations === undefined) return;
-  if (record.itemType !== "activity" || record.itemId !== "A01") {
-    context.addIssue({ code: "custom", path: ["taskObservations"], message: "Task observations are only supported for Activity A01." });
+  if (record.itemType !== "activity") {
+    context.addIssue({ code: "custom", path: ["taskObservations"], message: "Task observations are only supported for activity records." });
     return;
   }
+  const activity = activities.find(({ id }) => id === record.itemId);
+  const allowedTaskIds: readonly string[] = activity?.id === "A01"
+    ? a01TaskIds
+    : activity?.investigationTasks?.map(({ id }) => id) ?? [];
   const taskIds = Object.keys(record.taskObservations);
-  if (taskIds.some((taskId) => !(a01TaskIds as readonly string[]).includes(taskId))) {
-    context.addIssue({ code: "custom", path: ["taskObservations"], message: "Choose a task from Activity A01." });
+  if (taskIds.some((taskId) => !allowedTaskIds.includes(taskId))) {
+    context.addIssue({ code: "custom", path: ["taskObservations"], message: "Choose a task from this activity." });
   }
-  if (taskIds.length > a01TaskIds.length) {
-    context.addIssue({ code: "custom", path: ["taskObservations"], message: "An A01 record can contain at most five task observations." });
+  if (taskIds.length > allowedTaskIds.length) {
+    context.addIssue({ code: "custom", path: ["taskObservations"], message: "An activity record can contain only its defined task observations." });
   }
-  if (Object.values(record.taskObservations).reduce((length, value) => length + value.length, 0) > 6000) {
-    context.addIssue({ code: "custom", path: ["taskObservations"], message: "A01 task observations must total 6,000 characters or fewer." });
+  const maxCharacters = Math.min(allowedTaskIds.length * 1200, 12000);
+  if (Object.values(record.taskObservations).reduce((length, value) => length + value.length, 0) > maxCharacters) {
+    context.addIssue({ code: "custom", path: ["taskObservations"], message: `Task observations must total ${maxCharacters.toLocaleString()} characters or fewer.` });
   }
 }) satisfies z.ZodType<ProgressInput>;
 

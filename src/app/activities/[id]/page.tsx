@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActivityLesson } from "@/features/activities/activity-lesson";
-import { activities, modules } from "@/content";
+import { activities } from "@/content";
 
 export const dynamicParams = false;
 
@@ -22,9 +22,8 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
   const activity = activities.find((item) => item.id === id);
   if (!activity) notFound();
 
-  const relatedModule = modules.find((item) => item.id === activity.moduleId);
   const activityIndex = activities.findIndex((item) => item.id === activity.id);
   const previousActivity = activities[activityIndex - 1];
   const nextActivity = activities[activityIndex + 1];
-  return <ActivityLesson activity={activity} relatedModule={relatedModule} previousActivity={previousActivity} nextActivity={nextActivity} />;
+  return <ActivityLesson activity={activity} previousActivity={previousActivity} nextActivity={nextActivity} />;
 }

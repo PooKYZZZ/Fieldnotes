@@ -70,6 +70,19 @@ describe("learning content integrity", () => {
     }
   });
 
+  it("links every practical step to one stable activity-specific notebook entry", () => {
+    for (const activity of activities) {
+      if (activity.id === "A01") continue;
+      const taskIds = activity.investigationTasks?.map(({ id }) => id) ?? [];
+      const taskTitles = activity.investigationTasks?.map(({ title }) => title) ?? [];
+      const stepCount = (activity.steps?.match(/^\d+\.\s+/gm) ?? []).length;
+      expect(taskIds.length, `${activity.id} notebook entries`).toBe(stepCount);
+      expect(new Set(taskIds).size, `${activity.id} stable IDs`).toBe(taskIds.length);
+      expect(taskIds.every((id) => id.startsWith(`${activity.id.toLowerCase()}-`)), `${activity.id} task ownership`).toBe(true);
+      expect(taskTitles.every((title) => title.trim().length > 0), `${activity.id} task labels`).toBe(true);
+    }
+  });
+
   it("grounds each activity in technical references and keeps cross-activity claims aligned", () => {
     const byId = new Map(activities.map((activity) => [activity.id, activity]));
     for (const activity of activities) {

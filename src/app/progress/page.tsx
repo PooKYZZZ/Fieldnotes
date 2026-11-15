@@ -3,6 +3,7 @@ import { NotebookPen, ShieldCheck } from "lucide-react";
 import { ProgressBackup } from "@/features/progress/progress-backup";
 import { ProgressNotebook, type NotebookItem } from "@/features/progress/progress-notebook";
 import { activities, majorProjects, modules, projectMilestones, smallProjects } from "@/content";
+import { a01Tasks } from "@/features/activities/a01-task-catalog";
 import { moduleDefinitions } from "@/content/curriculum/modules/definitions";
 
 export const metadata: Metadata = { title: "Progress notebook" };
@@ -22,7 +23,8 @@ export default function ProgressPage() {
     })),
     ...activities.map((item) => {
       const href = `/activities/${item.id}`;
-      return { itemType: "activity" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#progress-editor-${item.id}`, kind: "Activity" };
+      const investigationTasks = item.id === "A01" ? a01Tasks : item.investigationTasks ?? [];
+      return { itemType: "activity" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#progress-editor-${item.id}`, kind: "Activity", investigationTasks: investigationTasks.map(({ id, title }) => ({ id, title })) };
     }),
     ...smallProjects.map((item) => {
       const href = `/projects/${item.id}`;

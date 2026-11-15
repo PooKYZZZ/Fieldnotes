@@ -40,11 +40,11 @@ function fromRow(row: typeof schema.learningProgress.$inferSelect): ProgressReco
     repositoryUrl: row.repositoryUrl,
     updatedAt: row.updatedAt,
   };
-  if (row.itemType === "activity" && row.itemId === "A01") {
+  if (row.itemType === "activity") {
     const taskObservations: unknown = JSON.parse(row.taskObservations);
     if (typeof taskObservations !== "object" || taskObservations === null || Array.isArray(taskObservations)
       || !Object.values(taskObservations).every((value) => typeof value === "string")) {
-      throw new Error("The saved A01 task observations are invalid.");
+      throw new Error(`The saved ${row.itemId} task observations are invalid.`);
     }
     record.taskObservations = taskObservations as Record<string, string>;
   }
@@ -61,8 +61,8 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
   const orm = drizzle(sqlite, { schema });
 
   function upsert(input: ProgressInput, now: number): ProgressRecord {
-    const isA01 = input.itemType === "activity" && input.itemId === "A01";
-    const existingTaskObservations = isA01 && input.taskObservations === undefined
+    const isActivity = input.itemType === "activity";
+    const existingTaskObservations = isActivity && input.taskObservations === undefined
       ? orm.select({ taskObservations: schema.learningProgress.taskObservations })
         .from(schema.learningProgress)
         .where(and(eq(schema.learningProgress.itemType, input.itemType), eq(schema.learningProgress.itemId, input.itemId)))
@@ -86,7 +86,7 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
         },
       })
       .run();
-    return { ...input, ...(isA01 ? { taskObservations } : {}), updatedAt: now };
+    return { ...input, ...(isActivity ? { taskObservations } : {}), updatedAt: now };
   }
 
   return {
