@@ -4,27 +4,27 @@ export const a01Tasks = [
   {
     id: "confirm-account",
     title: "Confirm your account",
-    prompt: "Record the numeric UID used for this investigation. Keep your account name only if it helps you interpret the result.",
+    prompt: "Record the numeric UID used for this investigation and how it will scope your process search. Keep your account name only if it helps interpret the result.",
   },
   {
     id: "choose-process",
     title: "Choose a process you own",
-    prompt: "Before running the command, predict which values might change in another snapshot. Then record one familiar process and its sanitized row values.",
+    prompt: "Record one familiar process and its sanitized row values. Compare them with your prediction about what might change in another snapshot.",
   },
   {
     id: "compare-proc",
     title: "Compare the process with /proc",
-    prompt: "Record which fields agree, what changed or was unavailable, and one descriptor's role. Do not save private paths.",
+    prompt: "Observed: which fields agreed, changed, or were unavailable? Interpretation: what does that suggest? Limitation: what does it not establish? Include one descriptor role, not its private target path.",
   },
   {
     id: "check-systemd",
     title: "Check its systemd unit",
-    prompt: "Record the unit type and name, or what prevented a result. A scope or no unit is a finding, not proof that the process failed.",
+    prompt: "Record the unit type and name, or the exact limitation. Explain what that relationship suggests; a scope or no mapping is not proof that the process failed.",
   },
   {
     id: "explain-boundary",
     title: "Explain what the evidence supports",
-    prompt: "Connect one observation to the system-call diagram. State what it supports and one thing it cannot prove.",
+    prompt: "Use your earlier observations to write a concise conclusion for the teammate: what the evidence supports, one thing it cannot prove, and a useful next check.",
   },
 ] as const satisfies readonly { id: A01TaskId; title: string; prompt: string }[];
 

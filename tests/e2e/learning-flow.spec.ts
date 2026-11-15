@@ -574,6 +574,9 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await page.goto("/activities/A01");
   await expect(page.getByRole("heading", { level: 1, name: "Investigate a running Linux process" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Review the observations you recorded" })).toBeVisible();
+  const beginInvestigation = page.getByRole("link", { name: "Begin investigation" });
+  await expect(beginInvestigation).toHaveAttribute("href", "#activity-task-confirm-account");
+  await beginInvestigation.click();
   const steps = page.locator("#activity-steps [data-task-id]");
   const review = page.locator("#activity-record");
   await expect(steps).toHaveCount(5);
@@ -583,12 +586,23 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await expect(review.locator(".activity-a01-review-task[data-task-id]")).toHaveCount(0);
   await expect(review.getByText("No task notes yet.")).toBeVisible();
   await expect(review.getByRole("button", { name: "Open Task 1 · Confirm your account" })).toBeVisible();
-  await expect(steps.nth(1)).toContainText("Before running the command, predict");
-  await expect(steps.nth(2)).toContainText("Expect:");
-  await expect(steps.nth(2)).toContainText("Meaning:");
-  await expect(steps.nth(2)).toContainText("Record:");
-  await expect(page.locator("#activity-steps [data-task-id=compare-proc] .activity-task-help")).toContainText("If access is denied");
-  await expect(page.getByRole("img", { name: /Application code calls a library/ })).toHaveCount(1);
+  await expect(steps.nth(1)).toContainText("Before looking at the rows, predict");
+  await expect(steps.nth(2)).toContainText("Compare that PID with");
+  await expect(steps.nth(2)).toContainText("which fields agreed, changed, or were unavailable");
+  await expect(steps.nth(2)).toContainText("descriptor's role or resource type");
+  const task3Help = page.locator("#activity-steps [data-task-id=compare-proc] .activity-task-help");
+  await expect(task3Help.locator("summary")).toHaveText("Command notes and troubleshooting");
+  await expect(task3Help).not.toHaveAttribute("open", "");
+  await task3Help.locator("summary").click();
+  await expect(task3Help).toContainText("commands take separate snapshots");
+  await expect(task3Help).toContainText("If your result differs");
+  await expect(page.getByRole("link", { name: "Processes and threads in Module 01" })).toHaveAttribute("href", "/modules/01/lessons/m01-l02");
+  await expect(page.locator("#activity-steps [data-task-id=explain-boundary]")).toContainText("No new command is needed");
+  await expect(page.locator("#activity-steps")).toContainText("A01 does not trace that path");
+  const relatedConcept = page.locator(".activity-a01-instructions .module-diagram img");
+  await relatedConcept.scrollIntoViewIfNeeded();
+  await expect(relatedConcept).toHaveCount(1);
+  await expect.poll(() => relatedConcept.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
 
   const notebook = page.locator(".activity-a01-notebook");
   const editor = page.locator("#progress-editor-A01");
@@ -685,6 +699,8 @@ test("A01 keeps task observations in one notebook through save, review, and reop
 
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review).toBeInViewport();
+  await expect(review.locator(".activity-a01-transfer-prompt")).toContainText("what would you check next");
+  await expect(review).toContainText("Fieldnotes does not inspect your VM or verify command output");
   await expect(review.locator(".activity-a01-review-record")).toContainText("The PID and effective UID matched.");
   await expect(review.locator(".activity-a01-review-record")).toContainText("Prediction: RSS may change");
   await expect(review.locator(".activity-a01-review-task[data-task-id]")).toHaveCount(3);
@@ -879,11 +895,13 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.locator("#activity-scenario")).toBeVisible();
     if (activityId !== "A01") await expect(page.locator(".activity-objectives ul li").first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Prepare" })).toBeVisible();
-    await expect(page.locator(".activity-environment")).toBeVisible();
     if (activityId === "A01") {
-      await expect(page.getByRole("heading", { name: /Follow one process from ps to \/proc/ })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Before you begin" })).toBeVisible();
+      await expect(page.locator(".activity-a01-safety-note")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Follow one process across Linux views" })).toBeVisible();
     } else {
+      await expect(page.getByRole("heading", { name: "Prepare" })).toBeVisible();
+      await expect(page.locator(".activity-environment")).toBeVisible();
       await expect(page.getByRole("heading", { name: "Perform & verify" })).toBeVisible();
     }
     expect(await page.locator("#activity-steps ol > li").count()).toBeGreaterThan(0);

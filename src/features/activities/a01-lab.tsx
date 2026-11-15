@@ -6,28 +6,19 @@ export function A01Lab({ activity }: { activity: ActivityRecord }) {
   return (
     <div className="activity-experience activity-a01-experience">
       <section className="activity-stage activity-a01-understand" id="activity-scenario" aria-labelledby="activity-scenario-title">
-        <p className="eyebrow">Understand the mission</p>
-        <h2 id="activity-scenario-title">What can one process snapshot tell you?</h2>
+        <h2 id="activity-scenario-title">Investigate before you restart</h2>
         <p className="activity-scenario-text">{activity.scenario}</p>
-        <dl className="activity-a01-mission-outcome">
-          <div>
-            <dt>Your investigation</dt>
-            <dd><MarkdownContent>{activity.challenge}</MarkdownContent></dd>
-          </div>
-          <div>
-            <dt>What you will keep</dt>
-            <dd><MarkdownContent>{activity.build}</MarkdownContent></dd>
-          </div>
-        </dl>
+        <p className="activity-a01-goal"><strong>Your goal:</strong> {activity.build}</p>
+        <details className="activity-a01-objectives">
+          <summary>What you’ll practice</summary>
+          <MarkdownContent>{activity.objectives}</MarkdownContent>
+        </details>
       </section>
 
       <section className="activity-stage activity-a01-prepare" id="activity-prepare" aria-labelledby="activity-prepare-title">
-        <div className="activity-a01-setup-heading">
-          <p className="eyebrow">Before you begin</p>
-          <h2 id="activity-prepare-title">Prepare your VM</h2>
-          <p className="activity-prerequisite">{activity.prerequisite}</p>
-        </div>
-        {activity.environment && <div className="activity-environment"><MarkdownContent>{activity.environment}</MarkdownContent></div>}
+        <h2 id="activity-prepare-title">Before you begin</h2>
+        <div className="activity-a01-prerequisite"><MarkdownContent>{activity.prerequisite}</MarkdownContent></div>
+        {activity.environment && <aside className="activity-a01-safety-note" aria-label="Environment note"><MarkdownContent>{activity.environment}</MarkdownContent></aside>}
       </section>
 
       <A01InvestigationWorkbench activity={activity} />

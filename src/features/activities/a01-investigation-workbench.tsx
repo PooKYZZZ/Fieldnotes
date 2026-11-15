@@ -289,13 +289,13 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
       <section className="activity-stage activity-a01-investigate" id="activity-perform" aria-labelledby="activity-perform-title">
         <div className="activity-a01-section-heading">
           <p className="eyebrow">Investigate and record</p>
-          <h2 id="activity-perform-title">Follow one process from <code>ps</code> to <code>/proc</code></h2>
+          <h2 id="activity-perform-title">Follow one process across Linux views</h2>
           <p>Run each read-only check in your VM. Use its Record button to open the matching notebook entry.</p>
         </div>
 
         <div className="activity-a01-workspace">
           <div className="activity-a01-instructions" id="activity-steps">
-            {activity.steps && <MarkdownContent copyable taskIds={a01TaskIds} taskHints={activity.taskHints} onRecordTask={recordTask}>{activity.steps}</MarkdownContent>}
+            {activity.steps && <MarkdownContent copyable taskIds={a01TaskIds} taskHints={activity.taskHints} taskDetails={activity.taskDetails} onRecordTask={recordTask}>{activity.steps}</MarkdownContent>}
           </div>
 
           <aside id="a01-notebook" className={`activity-a01-notebook${mobileNotebookOpen ? " activity-a01-notebook--open" : " activity-a01-notebook--closed"}`} aria-label="A01 investigation notebook">
@@ -304,6 +304,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                 id="a01-mobile-notebook-toggle"
                 className="button button-outline activity-a01-mobile-notebook-toggle"
                 type="button"
+                aria-label={mobileNotebookOpen ? "Close notebook" : "Open investigation notebook"}
                 aria-expanded={mobileNotebookOpen}
                 aria-controls={`progress-editor-${activity.id}`}
                 onClick={(event) => {
@@ -316,7 +317,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                 }}
               >
                 {mobileNotebookOpen ? <X size={16} aria-hidden="true" /> : <BookOpen size={16} aria-hidden="true" />}
-                {mobileNotebookOpen ? "Close notebook" : "Open investigation notebook"}
+                {mobileNotebookOpen ? "Close notebook" : "Open notebook"}
                 {!mobileNotebookOpen && <span className="activity-a01-notebook-state">{notebookState}</span>}
               </Button>
             </div>
@@ -460,7 +461,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         <p className="activity-a01-review-progress">
           {recordedCount === 0
             ? "No task notes yet. You can save a partial draft at any time."
-            : `${recordedCount} of ${a01Tasks.length} tasks have notes in this investigation. These are self-reported; Fieldnotes does not verify VM results.`}
+            : `${recordedCount} of ${a01Tasks.length} tasks have notes in this investigation.`}
         </p>
         <div className="activity-a01-review-record" role="group" aria-label="Task observations in the shared notebook">
           {recordedCount === 0 && <div className="activity-a01-review-empty">
@@ -502,6 +503,11 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         <div className="activity-a01-review-prompt">
           <h3>Before you finish</h3>
           <MarkdownContent>{activity.selfCheck}</MarkdownContent>
+          {activity.verification && <p className="activity-a01-review-verification">{activity.verification}</p>}
+          <div className="activity-a01-transfer-prompt">
+            <strong>Think ahead</strong>
+            <MarkdownContent>{activity.independencePrompt}</MarkdownContent>
+          </div>
           <label htmlFor={`comfort-${activity.id}`}>How independently did this work feel? <span>(optional self-assessment)</span></label>
           <select
             id={`comfort-${activity.id}`}
@@ -515,7 +521,6 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             <option value="guided">Guided</option>
             <option value="independent">Independent</option>
           </select>
-          <p className="field-hint">Completion is your self-report. Your notes remain editable afterward.</p>
         </div>
 
         <div className="activity-a01-review-footer">

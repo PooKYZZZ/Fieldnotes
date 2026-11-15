@@ -36,15 +36,20 @@ describe("learning content integrity", () => {
   it("provides concrete, safe, verifiable practice guidance for every activity", () => {
     const activity = activities.find((item) => item.id === "A01");
     expect(activity).toMatchObject({
-      scenario: expect.stringContaining("cannot establish about a service's responsiveness"),
-      environment: expect.stringContaining("disposable Ubuntu VM"),
+      scenario: expect.stringContaining("cannot tell you about the application"),
+      environment: expect.stringContaining("disposable VM"),
       steps: expect.stringContaining("ps -u \"$(id -u)\" -o pid,ppid,euid,stat,rss,comm"),
-      expectedObservations: expect.stringContaining("a session scope"),
-      verification: expect.stringContaining("sanitized PID, PPID"),
+      expectedObservations: expect.stringContaining("a scope"),
+      verification: expect.stringContaining("does not inspect your VM"),
       cleanup: expect.stringContaining("shut down the disposable VM"),
     });
-    expect(Object.keys(activity?.taskHints ?? {}).sort()).toEqual([...a01TaskIds].filter((id) => id !== "confirm-account").sort());
-    expect(activity?.taskHints?.["compare-proc"]).toContain("without using `sudo`");
+    expect(Object.keys(activity?.taskHints ?? {}).sort()).toEqual([...a01TaskIds].sort());
+    expect(activity?.taskHints?.["compare-proc"]).toContain("without `sudo`");
+    expect(Object.keys(activity?.taskDetails ?? {}).sort()).toEqual(["check-systemd", "choose-process", "compare-proc"]);
+    expect(activity?.taskDetails?.["compare-proc"]).toContain("separate snapshots");
+    expect(activity?.steps).toContain('systemctl status "$PID" --no-pager');
+    expect(activity?.steps).toContain("A01 does **not** trace that path");
+    expect(activity?.independencePrompt).toContain("what would you check next");
     for (const item of activities) {
       expect(item.scenario, item.id).toBeTruthy();
       expect(item.objectives, item.id).toMatch(/^- /m);

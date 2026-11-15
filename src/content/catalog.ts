@@ -14,13 +14,17 @@ const activityMetadataSchema = z.object({
   id: z.string().regex(/^A\d{2}$/),
   moduleId: z.number().int().positive(),
   taskHints: z.record(z.string(), z.string().max(1200)).optional(),
+  taskDetails: z.record(z.string(), z.string().max(2400)).optional(),
 }).superRefine((metadata, context) => {
-  if (metadata.taskHints && metadata.id !== "A01") {
-    context.addIssue({ code: "custom", path: ["taskHints"], message: "Task-specific hints are only supported for Activity A01." });
-  }
-  for (const taskId of Object.keys(metadata.taskHints ?? {})) {
-    if (!(a01TaskIds as readonly string[]).includes(taskId)) {
-      context.addIssue({ code: "custom", path: ["taskHints", taskId], message: "Choose a stable Activity A01 task ID." });
+  for (const field of ["taskHints", "taskDetails"] as const) {
+    const entries = metadata[field];
+    if (entries && metadata.id !== "A01") {
+      context.addIssue({ code: "custom", path: [field], message: "Task-specific guidance is only supported for Activity A01." });
+    }
+    for (const taskId of Object.keys(entries ?? {})) {
+      if (!(a01TaskIds as readonly string[]).includes(taskId)) {
+        context.addIssue({ code: "custom", path: [field, taskId], message: "Choose a stable Activity A01 task ID." });
+      }
     }
   }
 });
@@ -49,6 +53,7 @@ export type ActivityRecord = {
   environment?: string;
   steps?: string;
   taskHints?: Partial<Record<A01TaskId, string>>;
+  taskDetails?: Partial<Record<A01TaskId, string>>;
   expectedObservations: string;
   challenge: string;
   build: string;
@@ -149,6 +154,7 @@ export const activities: ActivityRecord[] = readMarkdownDirectory("activities", 
     environment: optionalSection(document, "Environment"),
     steps: optionalSection(document, "Lab steps"),
     taskHints: metadata.taskHints as Partial<Record<A01TaskId, string>> | undefined,
+    taskDetails: metadata.taskDetails as Partial<Record<A01TaskId, string>> | undefined,
     expectedObservations: requiredSection(document, filename, "Expected observations"),
     challenge,
     build,

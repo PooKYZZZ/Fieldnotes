@@ -1118,18 +1118,21 @@ body { font-size: 15px; }
 .activity-a01-experience .activity-stage h3 { font-size: 16px; }
 .activity-a01-experience .eyebrow { display: flex; align-items: center; gap: 6px; margin: 0 0 7px; color: #4e7770; font-size: 11px; letter-spacing: .055em; }
 .activity-a01-understand h2 { max-width: 30ch; color: #29494a; }
-.activity-a01-understand .activity-scenario-text { max-width: 95ch; margin-bottom: 16px; font-size: 16px; line-height: 1.6; }
-.activity-a01-mission-outcome { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 30px; margin: 0; }
-.activity-a01-mission-outcome > div { min-width: 0; border-left: 2px solid #bdd3ca; padding-left: 12px; }
-.activity-a01-mission-outcome dt { margin-bottom: 2px; color: #52746d; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-.activity-a01-mission-outcome dd { margin: 0; color: #465b5e; font-size: 14px; line-height: 1.5; }
-.activity-a01-mission-outcome .article-copy { max-width: 76ch; font-size: inherit; line-height: inherit; }
-.activity-a01-mission-outcome .article-copy p:last-child { margin-bottom: 0; }
-.activity-a01-prepare { display: grid; grid-template-columns: minmax(210px, .72fr) minmax(0, 1.5fr); align-items: center; gap: clamp(20px, 3vw, 40px); }
-.activity-a01-prepare .activity-prerequisite { max-width: 46ch; font-size: 14px; }
-.activity-a01-prepare .activity-environment { max-width: none; margin: 0; border: 1px solid #e8e2ce; border-left: 3px solid #b19350; border-radius: 9px; background: #fbfaf5; padding: 12px 15px; color: #5d594a; }
-.activity-a01-prepare .activity-environment .article-copy { font-size: 13px; line-height: 1.55; }
-.activity-a01-prepare .activity-environment .article-copy p:last-child { margin-bottom: 0; }
+.activity-a01-understand .activity-scenario-text { max-width: 95ch; margin-bottom: 11px; font-size: 16px; line-height: 1.6; }
+.activity-a01-goal { max-width: 92ch; margin: 0; color: #40575a; font-size: 14px; line-height: 1.55; }
+.activity-a01-goal strong { color: #315e58; }
+.activity-a01-objectives { margin-top: 11px; }
+.activity-a01-objectives > summary { color: #456965; cursor: pointer; font-size: 12px; font-weight: 700; }
+.activity-a01-objectives .article-copy { max-width: 90ch; margin-top: 7px; color: #526568; font-size: 13px; line-height: 1.5; }
+.activity-a01-objectives .article-copy ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 24px; margin: 0; padding-left: 19px; }
+.activity-a01-objectives .article-copy li::marker { color: #3d7770; }
+.activity-a01-prepare { display: block; padding-top: 17px !important; padding-bottom: 19px !important; }
+.activity-a01-prepare > h2 { margin-bottom: 4px !important; font-size: 16px !important; }
+.activity-a01-prerequisite .article-copy { max-width: 95ch; margin: 0; color: #526366; font-size: 13px; line-height: 1.55; }
+.activity-a01-prerequisite .article-copy > :last-child { margin-bottom: 0; }
+.activity-a01-safety-note { max-width: 95ch; margin-top: 7px; border-left: 2px solid #91aaa2; padding-left: 10px; color: #596d6b; }
+.activity-a01-safety-note .article-copy { margin: 0; font-size: 12px; line-height: 1.5; }
+.activity-a01-safety-note .article-copy > :last-child { margin-bottom: 0; }
 .activity-a01-section-heading { max-width: 92ch; margin: 0 0 19px; }
 .activity-a01-section-heading h2 { margin-bottom: 5px !important; }
 .activity-a01-section-heading > p:last-child { margin: 0; color: #536668; font-size: 14px; line-height: 1.55; }
@@ -1144,7 +1147,7 @@ body { font-size: 15px; }
 .activity-a01-instructions .article-copy > ol > li > p:has(> strong:first-child) { color: #526568; font-size: 13px; line-height: 1.55; }
 .activity-a01-instructions .article-copy > ol > li > p > strong:first-child { color: #315e58; }
 .activity-a01-instructions .article-copy > ol > li > .copyable-code-block { margin-block: 10px 12px; }
-.activity-a01-instructions .article-copy > ol > li > .copyable-code-block > pre { font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.activity-a01-instructions .article-copy > ol > li > .copyable-code-block > pre { max-width: 100%; font-size: 12px; white-space: pre; overflow-x: auto; overflow-wrap: normal; }
 .activity-a01-instructions .article-copy > ol > li > :last-child { margin-bottom: 0; }
 .activity-a01-instructions .article-copy .module-diagram { max-width: 82ch; margin: 13px 0; }
 .activity-a01-instructions .article-copy .module-diagram img { display: block; max-width: 100%; height: auto; }
@@ -1189,6 +1192,11 @@ body { font-size: 15px; }
 .activity-a01-review-prompt h3 { margin: 0; color: #365653; font-size: 14px; }
 .activity-a01-review-prompt .article-copy { max-width: 90ch; color: #4d6263; font-size: 13px; line-height: 1.5; }
 .activity-a01-review-prompt .article-copy > :last-child { margin-bottom: 0; }
+.activity-a01-review-verification { max-width: 90ch; margin: 1px 0 0; color: #617170; font-size: 11px; line-height: 1.45; }
+.activity-a01-transfer-prompt { display: grid; gap: 3px; margin-top: 2px; border-left: 2px solid #bdd3ca; padding-left: 10px; color: #526568; }
+.activity-a01-transfer-prompt > strong { color: #365653; font-size: 12px; }
+.activity-a01-transfer-prompt .article-copy { max-width: 90ch; font-size: 12px; line-height: 1.5; }
+.activity-a01-transfer-prompt .article-copy > :last-child { margin-bottom: 0; }
 .activity-a01-review-prompt label { margin-top: 3px; color: #344f50; font-size: 12px; font-weight: 750; }
 .activity-a01-review-prompt label span { color: #617170; font-weight: 500; }
 .activity-a01-review-prompt .form-select { max-width: 300px; min-height: 39px; border-color: #cfdcd6; background: #fff; font-size: 13px; }
@@ -1224,15 +1232,12 @@ body { font-size: 15px; }
   .activity-a01-experience .activity-stage { padding: 22px 0 24px; }
   .activity-a01-experience .activity-stage h2 { font-size: 22px; }
   .activity-a01-understand .activity-scenario-text { font-size: 15px; }
-  .activity-a01-mission-outcome { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .activity-a01-prepare { grid-template-columns: minmax(0, 1fr); gap: 13px; }
-  .activity-a01-prepare .activity-prerequisite { max-width: none; }
-  .activity-a01-prepare .activity-environment { padding: 10px 12px; }
+  .activity-a01-objectives .article-copy ul { grid-template-columns: minmax(0, 1fr); }
   .activity-a01-section-heading h2 { font-size: 21px !important; }
   .activity-a01-instructions .article-copy { font-size: 14px; }
   .activity-a01-instructions .article-copy > ol { padding-left: 25px; }
   .activity-a01-instructions .article-copy > ol > li { padding: 14px 0 16px 3px; }
-  .activity-a01-instructions .article-copy > ol > li > p:has(> strong:first-child) { font-size: 12px; }
+  .activity-a01-instructions .article-copy > ol > li > p:has(> strong:first-child) { font-size: 13px; }
   .activity-a01-review-heading { align-items: flex-start; flex-direction: column; gap: 7px; }
   .activity-a01-review-heading h2 { font-size: 21px; }
   .activity-a01-review-record { grid-template-columns: minmax(0, 1fr); gap: 13px; padding: 14px; }
@@ -1301,13 +1306,16 @@ body { font-size: 15px; }
   .activity-a01-notebook-panel { max-height: calc(100dvh - 40px); overflow-y: auto; }
 }
 
-@media (min-width: 1181px) and (max-height: 820px) {
+@media (min-width: 1181px) and (max-height: 960px) {
   .activity-a01-notebook-panel { height: calc(100dvh - 40px); min-height: 0; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
   .activity-a01-notebook-body { min-height: 0; overflow-y: auto; }
   .activity-a01-notebook-footer { border-top: 1px solid #d9e3de; background: #f5f8f6; padding-top: 10px; }
 }
 
 @media (max-width: 620px) {
+  .activity-a01-notebook--closed { right: 12px; left: auto; width: max-content; max-width: calc(100vw - 24px); }
+  .activity-a01-notebook--closed .activity-a01-mobile-notebook-toggle { width: auto; max-width: 100%; padding-inline: 12px; }
+  .activity-a01-notebook--closed .activity-a01-notebook-state { display: none; }
   .activity-a01-visible-task { align-items: flex-start; flex-direction: column; gap: 5px; }
   .activity-a01-visible-task button { padding: 2px 0; text-align: left; }
   .activity-a01-task-choice-copy strong { font-size: 10px; }

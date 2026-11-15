@@ -34,6 +34,7 @@ export function MarkdownContent({
   copyable = false,
   taskIds,
   taskHints,
+  taskDetails,
   onRecordTask,
 }: {
   children: string;
@@ -41,6 +42,7 @@ export function MarkdownContent({
   copyable?: boolean;
   taskIds?: readonly string[];
   taskHints?: Partial<Record<string, string>>;
+  taskDetails?: Partial<Record<string, string>>;
   onRecordTask?: (taskId: string) => void;
 }) {
   let taskIndex = 0;
@@ -62,6 +64,11 @@ export function MarkdownContent({
             if (!taskId) return child;
             taskIndex += 1;
             const item = child as ReactElement<{ children?: ReactNode }>;
+            const taskHint = taskHints?.[taskId];
+            const taskDetail = taskDetails?.[taskId];
+            const guidanceLabel = taskDetail && taskHint
+              ? "Command notes and troubleshooting"
+              : taskDetail ? "Explain these commands" : "Need help with this task?";
             return (
               <li key={item.key ?? taskId} id={`activity-task-${taskId}`} data-task-id={taskId}>
                 {item.props.children}
@@ -73,9 +80,12 @@ export function MarkdownContent({
                 >
                   Record Task {taskPosition + 1}<ArrowRight size={14} aria-hidden="true" />
                 </button>}
-                {taskHints?.[taskId] && <details className="activity-task-help">
-                  <summary>Need help with this task?</summary>
-                  <div className="activity-task-help-content"><MarkdownContent>{taskHints[taskId]}</MarkdownContent></div>
+                {(taskDetail || taskHint) && <details className="activity-task-help">
+                  <summary>{guidanceLabel}</summary>
+                  <div className="activity-task-help-content">
+                    {taskDetail && <div className="activity-task-detail-copy"><MarkdownContent>{taskDetail}</MarkdownContent></div>}
+                    {taskHint && <div className="activity-task-hint-copy">{taskDetail && <strong>If your result differs</strong>}<MarkdownContent>{taskHint}</MarkdownContent></div>}
+                  </div>
                 </details>}
               </li>
             );

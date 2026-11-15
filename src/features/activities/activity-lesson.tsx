@@ -25,7 +25,7 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
           </div>
           <div className="activity-header-tools">
             <div className="activity-header-actions" aria-label="Activity actions">
-              <a className="button button-primary" href="#activity-scenario">Start activity <ArrowRight size={14} /></a>
+              <a className="button button-primary" href={isA01 ? "#activity-task-confirm-account" : "#activity-scenario"}>{isA01 ? "Begin investigation" : "Start activity"} <ArrowRight size={14} /></a>
               <a className="button button-outline" href={isA01 ? "#activity-record" : `#progress-editor-${activity.id}`}>{isA01 ? "Review findings" : "Record your work"}</a>
             </div>
             <nav className="activity-resource-links" aria-label="Activity references">
