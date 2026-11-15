@@ -23,16 +23,16 @@ export function ActivityLesson({ activity, relatedModule, previousActivity, next
             <p className="eyebrow">Activity {activity.id} · Module {String(activity.moduleId).padStart(2, "0")}</p>
             <h1>{activity.title}</h1>
           </div>
-          <div className="activity-header-tools">
+          {!isA01 && <div className="activity-header-tools">
             <div className="activity-header-actions" aria-label="Activity actions">
-              <a className="button button-primary" href={isA01 ? "#activity-prepare" : "#activity-scenario"}>{isA01 ? "Begin investigation" : "Start activity"} <ArrowRight size={14} /></a>
-              <a className="button button-outline" href={isA01 ? "#activity-record" : `#progress-editor-${activity.id}`}>{isA01 ? "Review findings" : "Record your work"}</a>
+              <a className="button button-primary" href="#activity-scenario">Start activity <ArrowRight size={14} /></a>
+              <a className="button button-outline" href={`#progress-editor-${activity.id}`}>Record your work</a>
             </div>
             <nav className="activity-resource-links" aria-label="Activity references">
               {relatedModule && <Link href={modulePath}>Review Module {String(relatedModule.id).padStart(2, "0")} · {relatedModule.title}</Link>}
               <a href="/library/04_Activities_and_Practice.pdf" target="_blank" rel="noreferrer">Activity reference PDF <FileText size={14} /></a>
             </nav>
-          </div>
+          </div>}
         </header>
 
         <nav className="activity-workflow-nav" aria-label="Activity steps">

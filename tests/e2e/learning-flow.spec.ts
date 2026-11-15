@@ -574,28 +574,25 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await page.goto("/activities/A01");
   await expect(page.getByRole("heading", { level: 1, name: "Investigate a running Linux process" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Review the observations you recorded" })).toBeVisible();
-  const beginInvestigation = page.getByRole("link", { name: "Begin investigation" });
-  const reviewFindings = page.getByRole("link", { name: "Review findings" });
-  await expect(beginInvestigation).toHaveAttribute("href", "#activity-prepare");
-  await expect(beginInvestigation).toBeVisible();
-  await expect(page.locator(".activity-header-tools")).toHaveCount(1);
-  await expect(page.getByRole("link", { name: /Review Module 01/ })).toHaveAttribute("href", "/modules/01");
+  await expect(page.getByRole("link", { name: "Begin investigation" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Review findings" })).toHaveCount(0);
+  await expect(page.locator(".activity-header-tools")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Review Module 01 · How computers and operating systems work/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Activity reference PDF" })).toHaveCount(0);
   await expect(page.locator(".activity-a01-start-panel")).toHaveCount(0);
-  const headerLayout = await page.evaluate(() => {
-    const title = document.querySelector(".activity-lesson-header h1")!.getBoundingClientRect();
-    const tools = document.querySelector(".activity-header-tools")!.getBoundingClientRect();
-    const primary = document.querySelector<HTMLAnchorElement>(".activity-header-actions .button-primary")!.getBoundingClientRect();
-    return { titleRight: title.right, toolsLeft: tools.left, buttonHeight: primary.height };
-  });
-  expect(headerLayout.toolsLeft).toBeGreaterThanOrEqual(headerLayout.titleRight);
-  expect(headerLayout.buttonHeight).toBeGreaterThanOrEqual(44);
+  const workflowNav = page.locator(".activity-workflow-nav a");
+  await expect(workflowNav).toHaveCount(4);
+  await expect(workflowNav.nth(1)).toHaveAttribute("href", "#activity-prepare");
+  await expect(workflowNav.nth(3)).toHaveAttribute("href", "#activity-record");
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-start-1440x900.png") });
-  await reviewFindings.click();
-  await expect(page).toHaveURL(/#activity-record$/);
-  await expect(page.locator("#activity-record")).toBeInViewport();
-  await beginInvestigation.click();
+  await workflowNav.nth(1).click();
   await expect(page).toHaveURL(/#activity-prepare$/);
   await expect(page.locator("#activity-prepare")).toBeInViewport();
+  await workflowNav.nth(3).click();
+  await expect(page).toHaveURL(/#activity-record$/);
+  await expect(page.locator("#activity-record")).toBeInViewport();
+  await workflowNav.nth(2).click();
+  await expect(page).toHaveURL(/#activity-perform$/);
   const steps = page.locator("#activity-steps [data-task-id]");
   const review = page.locator("#activity-record");
   await expect(steps).toHaveCount(5);
@@ -834,15 +831,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   ]) {
     await page.setViewportSize(viewport);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
-    if (viewport.width <= 620) {
-      const actionSizes = await page.locator(".activity-header-actions .button").evaluateAll((buttons) => buttons.map((button) => {
-        const { width, height } = button.getBoundingClientRect();
-        return { width, height };
-      }));
-      expect(actionSizes).toHaveLength(2);
-      expect(actionSizes[0].height).toBeGreaterThanOrEqual(44);
-      expect(actionSizes[1].height).toBeGreaterThanOrEqual(44);
-    }
+    await expect(page.locator(".activity-header-tools")).toHaveCount(0);
     await page.getByRole("button", { name: /Open investigation notebook/ }).click();
     await expect(taskObservation).toBeVisible();
     const mobileTaskPicker = page.locator(".activity-a01-task-picker-mobile");
