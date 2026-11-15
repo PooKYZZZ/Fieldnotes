@@ -578,17 +578,17 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   const reviewFindings = page.getByRole("link", { name: "Review findings" });
   await expect(beginInvestigation).toHaveAttribute("href", "#activity-prepare");
   await expect(beginInvestigation).toBeVisible();
-  await expect(page.locator(".activity-header-tools")).toHaveCount(0);
+  await expect(page.locator(".activity-header-tools")).toHaveCount(1);
   await expect(page.getByRole("link", { name: /Review Module 01/ })).toHaveAttribute("href", "/modules/01");
-  const overviewLayout = await page.evaluate(() => {
-    const copy = document.querySelector(".activity-a01-understand-copy")!.getBoundingClientRect();
-    const actions = document.querySelector(".activity-a01-start-panel")!.getBoundingClientRect();
-    const primary = document.querySelector<HTMLAnchorElement>(".activity-a01-start-actions .button-primary")!.getBoundingClientRect();
-    return { copyRight: copy.right, actionsLeft: actions.left, actionsWidth: actions.width, buttonHeight: primary.height };
+  await expect(page.locator(".activity-a01-start-panel")).toHaveCount(0);
+  const headerLayout = await page.evaluate(() => {
+    const title = document.querySelector(".activity-lesson-header h1")!.getBoundingClientRect();
+    const tools = document.querySelector(".activity-header-tools")!.getBoundingClientRect();
+    const primary = document.querySelector<HTMLAnchorElement>(".activity-header-actions .button-primary")!.getBoundingClientRect();
+    return { titleRight: title.right, toolsLeft: tools.left, buttonHeight: primary.height };
   });
-  expect(overviewLayout.actionsLeft).toBeGreaterThanOrEqual(overviewLayout.copyRight);
-  expect(overviewLayout.actionsWidth).toBeGreaterThan(300);
-  expect(overviewLayout.buttonHeight).toBeGreaterThanOrEqual(44);
+  expect(headerLayout.toolsLeft).toBeGreaterThanOrEqual(headerLayout.titleRight);
+  expect(headerLayout.buttonHeight).toBeGreaterThanOrEqual(44);
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-start-1440x900.png") });
   await reviewFindings.click();
   await expect(page).toHaveURL(/#activity-record$/);
@@ -835,14 +835,13 @@ test("A01 keeps task observations in one notebook through save, review, and reop
     await page.setViewportSize(viewport);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
     if (viewport.width <= 620) {
-      await expect(page.locator(".activity-a01-start-actions")).toHaveCSS("display", "grid");
-      const actionSizes = await page.locator(".activity-a01-start-actions .button").evaluateAll((buttons) => buttons.map((button) => {
+      const actionSizes = await page.locator(".activity-header-actions .button").evaluateAll((buttons) => buttons.map((button) => {
         const { width, height } = button.getBoundingClientRect();
         return { width, height };
       }));
       expect(actionSizes).toHaveLength(2);
-      expect(actionSizes[0].height).toBeGreaterThanOrEqual(48);
-      expect(actionSizes[1].width).toBe(actionSizes[0].width);
+      expect(actionSizes[0].height).toBeGreaterThanOrEqual(44);
+      expect(actionSizes[1].height).toBeGreaterThanOrEqual(44);
     }
     await page.getByRole("button", { name: /Open investigation notebook/ }).click();
     await expect(taskObservation).toBeVisible();
