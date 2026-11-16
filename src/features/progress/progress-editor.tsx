@@ -37,14 +37,15 @@ export function ProgressEditor({
   bare?: boolean;
   recordContext?: string;
   reflectionPrompt?: string;
-  variant?: "full" | "module-summary" | "lesson-status" | "activity-lab";
+  variant?: "full" | "module-summary" | "lesson-status" | "activity-lab" | "project-workbench";
 }) {
   const isModuleSummary = variant === "module-summary";
   const isLessonStatus = variant === "lesson-status";
   const isActivityLab = variant === "activity-lab";
+  const isProjectWorkbench = variant === "project-workbench";
   const isPracticeRecord = itemType === "activity" || itemType === "troubleshooting";
   const isCompact = isModuleSummary || isLessonStatus;
-  const EditorTitle = bare || isActivityLab ? "h3" : "h2";
+  const EditorTitle = bare || isActivityLab || isProjectWorkbench ? "h3" : "h2";
   const noteHintId = `notes-help-${itemId}`;
   const noteReflectionId = `notes-reflection-${itemId}`;
   const evidenceHintId = `evidence-help-${itemId}`;
@@ -143,10 +144,12 @@ export function ProgressEditor({
   }
 
   return (
-    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${bare ? " editor-card--bare" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}${isActivityLab ? " progress-editor--activity-lab" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
+    <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${bare ? " editor-card--bare" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}${isActivityLab ? " progress-editor--activity-lab" : ""}${isProjectWorkbench ? " progress-editor--project-workbench" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
       <EditorTitle id={`editor-title-${itemId}`}>{title}</EditorTitle>
       <p className="editor-intro">{isActivityLab
         ? "Record sanitized findings and the commands that support them. Save partial work at any time; choose Completed only when you want to record that status yourself."
+        : isProjectWorkbench
+        ? "Keep design decisions, useful evidence, and open questions in this one project record. Save partial work whenever you need; completion remains your self-report."
         : bare && isPracticeRecord
         ? "This self-reported record is saved in this Fieldnotes workspace; it does not prove mastery."
         : isLessonStatus
@@ -170,7 +173,8 @@ export function ProgressEditor({
           <select id={`status-${itemId}`} className="form-select" value={form.status} onChange={(event) => update("status", event.target.value as ProgressInput["status"])}>
             {progressStatuses.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
           </select>
-          {isActivityLab && <span className="field-hint">Saving keeps this choice; it never marks the activity complete automatically.</span>}
+        {isActivityLab && <span className="field-hint">Saving keeps this choice; it never marks the activity complete automatically.</span>}
+        {isProjectWorkbench && <span className="field-hint">Set the status that reflects your work. Checkpoints do not automatically change it.</span>}
         </div>
         )}
         {!isCompact && showComfort && (
@@ -194,21 +198,23 @@ export function ProgressEditor({
           <>
         <div className="progress-long-fields">
           <div className="form-field">
-            <label htmlFor={`notes-${itemId}`}>{isActivityLab ? "Findings and reflection" : "Learning note"}</label>
+            <label htmlFor={`notes-${itemId}`}>{isActivityLab ? "Findings and reflection" : isProjectWorkbench ? "Engineering log" : "Learning note"}</label>
             <span className="field-hint" id={noteHintId}>{isActivityLab
               ? `For ${recordContext ?? itemId}, interpret the process state, memory, and unit result. Separate what you observed from what you infer.`
+              : isProjectWorkbench ? "Capture a decision, why you chose it, what changed, or what remains uncertain."
               : itemType === "activity" && recordContext
               ? `For ${recordContext}, describe what you attempted, what you expected, what you observed, and what you learned.`
               : isPracticeRecord ? "Describe what you attempted, expected, observed, and learned." : "Capture your goal, what you observed, any troubleshooting, and the lesson you took away."}</span>
-            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isActivityLab ? "Process and finding: …\nWhat it suggests: …\nWhat remains uncertain: …" : isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
+            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isActivityLab ? "Process and finding: …\nWhat it suggests: …\nWhat remains uncertain: …" : isProjectWorkbench ? "Decision or progress: …\nReasoning: …\nOpen question: …" : isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
             {reflectionPrompt && <span className="field-hint" id={noteReflectionId}>Reflection prompt: {reflectionPrompt}</span>}
           </div>
           <div className="form-field">
-            <label htmlFor={`evidence-${itemId}`}>{isActivityLab ? "Commands and evidence" : "Evidence or verification"}</label>
+            <label htmlFor={`evidence-${itemId}`}>{isActivityLab ? "Commands and evidence" : isProjectWorkbench ? "Verification and evidence" : "Evidence or verification"}</label>
             <span className="field-hint" id={evidenceHintId}>{isActivityLab
               ? "Record the commands and sanitized results that support your process and systemd observations."
+              : isProjectWorkbench ? "Name the check, expected and observed results, and what the evidence does or does not prove."
               : itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : itemType === "activity" ? "Use the evidence checklist above. Note the relevant command or setting, what it showed, and how you confirmed your interpretation." : "Record commands or configuration, expected and observed results, and how you checked them."}</span>
-            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isActivityLab ? "Command and relevant result: …\nVerification: …" : isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
+            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isActivityLab ? "Command and relevant result: …\nVerification: …" : isProjectWorkbench ? "Check: …\nExpected: …\nObserved: …\nWhat it demonstrates: …" : isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
             <span className="field-hint" id={evidencePrivacyId}>Keep saved evidence small and sanitized; omit passwords, tokens, private addresses, and personal data.</span>
           </div>
         </div>
@@ -231,7 +237,7 @@ export function ProgressEditor({
         <div className="form-footer progress-form-footer">
           <span className="field-hint">{loading ? "Loading saved progress…" : loadFailed ? "Saved progress could not be loaded" : isDirty ? `Unsaved changes${updatedAt ? ` · last saved ${new Date(updatedAt).toLocaleString()}` : ""}` : updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet"}</span>
           <Button className="button button-primary" type="submit" disabled={saving || loading || loadFailed}>
-            <Save size={15} aria-hidden="true" />{saving ? "Saving…" : isModuleSummary ? "Save module progress" : "Save learning record"}
+            <Save size={15} aria-hidden="true" />{saving ? "Saving…" : isModuleSummary ? "Save module progress" : isProjectWorkbench ? "Save project notebook" : "Save learning record"}
           </Button>
         </div>
         {loadFailed && <Button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} /> Retry loading</Button>}

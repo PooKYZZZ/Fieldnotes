@@ -290,8 +290,8 @@ test("projects and progress notebook reflect saved milestone evidence", async ({
   await page.goto("/projects/P1");
   const projectLearningRecord = page.locator("#progress-editor-P1");
   await expect(projectLearningRecord).toBeVisible();
-  expect(await projectLearningRecord.getByLabel("Learning note").evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(150);
-  expect(await projectLearningRecord.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(await page.locator(".project-guide-rail").evaluate((element) => element.getBoundingClientRect().width));
+  expect(await projectLearningRecord.getByLabel("Engineering log").evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(95);
+  expect(await page.locator(".project-build-main").evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(await page.locator(".project-notebook").evaluate((element) => element.getBoundingClientRect().width));
 
   await page.goto("/projects");
   await expect(page.locator(".major-build-card")).toHaveCount(3);
@@ -346,10 +346,16 @@ test("focused project checkpoints survive refresh and remain in the progress not
   await expect(page.getByRole("heading", { name: "Log explorer", level: 1 })).toBeVisible();
   const checkpoint = page.locator('[id="milestone-check-S01.1"]');
   await expect(checkpoint).toBeVisible();
+  await expect(checkpoint).toBeEnabled();
+  if (await checkpoint.isChecked()) {
+    await checkpoint.uncheck();
+    await expect(page.getByText("Checkpoint progress saved.")).toBeVisible();
+  }
   await checkpoint.check();
   await expect(page.getByText("Checkpoint progress saved.")).toBeVisible();
 
   await page.reload();
+  await page.getByLabel("Current checkpoint").selectOption("S01.1");
   await expect(page.locator('[id="milestone-check-S01.1"]')).toBeChecked();
   await page.goto("/projects");
   const projectCard = page.locator('[data-project-id="S01"]');
@@ -362,21 +368,23 @@ test("focused project checkpoints survive refresh and remain in the progress not
   await expect(page.locator(".progress-record")).toHaveCount(1);
 });
 
-test("every project has a complete engineering brief and reviewable checkpoints", async ({ page }) => {
+test("every project follows the four-stage engineering learning flow", async ({ page }) => {
   const projectIds = ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "P1", "P2", "P3"];
   for (const projectId of projectIds) {
     await page.goto(`/projects/${projectId}`);
     await expect(page.locator(".project-detail-header h1")).toBeVisible();
     await expect(page.getByRole("heading", { name: "The engineering assignment" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Project milestones" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Understand the assignment" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Prepare and make design decisions" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Build in reviewable checkpoints" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Prove it works" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Definition of done" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Capture the work you can show" })).toBeVisible();
-    await expect(page.locator(".project-milestone").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Review your saved project notes" })).toBeVisible();
+    await expect(page.locator(".project-active-milestone").first()).toBeVisible();
   }
 });
 
-test("project playbooks use the workspace across desktop and reflow cleanly on mobile", async ({ page }) => {
+test("project build instructions and notebook share the workspace across desktop and mobile", async ({ page }) => {
   await page.goto("/projects");
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.locator(".project-overview-stats")).not.toContainText("Loading saved progress");
@@ -389,8 +397,8 @@ test("project playbooks use the workspace across desktop and reflow cleanly on m
     await page.setViewportSize(viewport);
     await page.evaluate(() => window.scrollTo(0, 0));
     const desktopLayout = await page.evaluate(() => {
-      const main = document.querySelector<HTMLElement>(".project-playbook-main")!.getBoundingClientRect();
-      const rail = document.querySelector<HTMLElement>(".project-guide-rail")!.getBoundingClientRect();
+      const main = document.querySelector<HTMLElement>(".project-build-main")!.getBoundingClientRect();
+      const rail = document.querySelector<HTMLElement>(".project-notebook")!.getBoundingClientRect();
       return {
         documentWidth: document.documentElement.scrollWidth,
         viewportWidth: document.documentElement.clientWidth,
@@ -401,24 +409,102 @@ test("project playbooks use the workspace across desktop and reflow cleanly on m
     });
     expect(desktopLayout.documentWidth).toBeLessThanOrEqual(desktopLayout.viewportWidth);
     expect(desktopLayout.mainWidth).toBeGreaterThan(600);
-    expect(desktopLayout.railWidth).toBeGreaterThanOrEqual(280);
+    expect(desktopLayout.railWidth).toBeGreaterThanOrEqual(320);
     expect(desktopLayout.railStartsAfterMain).toBe(true);
     await page.screenshot({ path: path.join(screenshotDirectory, `project-P3-${viewport.width}x${viewport.height}.png`) });
   }
 
+  await page.goto("/projects/P3");
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator(".project-workflow-nav").getByRole("link", { name: "Build & verify" }).click();
+    await expect(page).toHaveURL(/#project-build$/);
+    await page.waitForFunction(() => {
+      const stage = document.querySelector<HTMLElement>("#project-build");
+      const stageTop = stage?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+      return stageTop >= 55 && stageTop < 140;
+    });
+    const buildStageTop = await page.locator("#project-build").evaluate((element) => element.getBoundingClientRect().top);
+    expect(buildStageTop).toBeGreaterThanOrEqual(55);
+    expect(buildStageTop).toBeLessThan(140);
+    await expect(page.locator(".project-active-milestone")).toBeVisible();
+    await expect(page.locator("#progress-editor-P3")).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotDirectory, `project-P3-build-${viewport.width}x${viewport.height}.png`) });
+  }
+
   for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 780 }]) {
     await page.setViewportSize(viewport);
+    await page.goto("/projects/P3#project-build");
+    await expect(page.locator(".project-active-milestone")).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     const mobileLayout = await page.evaluate(() => ({
       documentWidth: document.documentElement.scrollWidth,
       viewportWidth: document.documentElement.clientWidth,
-      railWidth: document.querySelector<HTMLElement>(".project-guide-rail")!.getBoundingClientRect().width,
-      mainWidth: document.querySelector<HTMLElement>(".project-playbook-main")!.getBoundingClientRect().width,
+      railWidth: document.querySelector<HTMLElement>(".project-notebook")!.getBoundingClientRect().width,
+      mainWidth: document.querySelector<HTMLElement>(".project-build-main")!.getBoundingClientRect().width,
     }));
     expect(mobileLayout.documentWidth).toBeLessThanOrEqual(mobileLayout.viewportWidth);
     expect(Math.abs(mobileLayout.railWidth - mobileLayout.mainWidth)).toBeLessThan(2);
     await page.screenshot({ path: path.join(screenshotDirectory, `project-P3-${viewport.width}x${viewport.height}.png`), fullPage: true });
+    if (viewport.width === 390) {
+      await page.getByRole("button", { name: /Open project notebook/ }).click();
+      await expect(page.getByRole("dialog", { name: "Project notebook" })).toBeVisible();
+      await page.screenshot({ path: path.join(screenshotDirectory, "project-P3-notebook-390x844.png") });
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+    }
   }
+});
+
+test("project notebook saves once, survives refresh, and appears in final review", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/projects/S02");
+  const checkpointSelect = page.getByLabel("Current checkpoint");
+  await checkpointSelect.selectOption({ index: 0 });
+  const activeTitle = await page.locator(".project-active-milestone h3").textContent();
+  await expect(page.locator(".project-active-milestone")).toContainText(activeTitle ?? "");
+  await expect(page.locator(".project-notebook-context")).toContainText(activeTitle ?? "");
+  const notebook = page.locator("#progress-editor-S02");
+  await notebook.getByLabel("Engineering log").fill("Unsaved checkpoint note stays in the shared record while I switch steps.");
+  await checkpointSelect.selectOption({ index: 1 });
+  await expect(page.locator(".project-notebook-context")).toContainText(await page.locator(".project-active-milestone h3").textContent() ?? "");
+  await expect(notebook.getByLabel("Engineering log")).toHaveValue("Unsaved checkpoint note stays in the shared record while I switch steps.");
+  await checkpointSelect.selectOption({ index: 0 });
+
+  await notebook.getByLabel("Status").selectOption("in_progress");
+  await notebook.getByLabel("Engineering log").fill("Chose a small service boundary and recorded the reason for the trade-off.");
+  await notebook.getByLabel("Verification and evidence").fill("The focused test passed; the integration check still needs to run.");
+  await notebook.getByRole("button", { name: "Save project notebook" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Saved on this device.");
+
+  await page.reload();
+  await expect(page.locator("#progress-editor-S02").getByLabel("Engineering log")).toHaveValue("Chose a small service boundary and recorded the reason for the trade-off.");
+  await page.getByRole("link", { name: "Review & hand off" }).click();
+  const review = page.locator(".project-record-review");
+  await expect(review).toContainText("In progress");
+  await expect(review.getByRole("heading", { name: "Build checkpoints" })).toBeVisible();
+  await expect(review).toContainText("Chose a small service boundary and recorded the reason for the trade-off.");
+  await expect(review).toContainText("The focused test passed; the integration check still needs to run.");
+  await review.getByRole("link", { name: "Review checkpoint" }).nth(1).click();
+  await expect(page.getByLabel("Current checkpoint")).toHaveValue("S02.2");
+  await page.getByRole("link", { name: "Review & hand off" }).click();
+  await review.getByRole("link", { name: "Edit in the build notebook" }).click();
+  await expect(page.locator("#project-build")).toBeInViewport();
+  await expect(page.locator("#progress-editor-S02").getByLabel("Verification and evidence")).toHaveValue("The focused test passed; the integration check still needs to run.");
+});
+
+test("mobile project notebook opens as an accessible drawer", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/projects/S03");
+  const openNotebook = page.getByRole("button", { name: /Open project notebook/ });
+  await expect(openNotebook).toBeVisible();
+  await openNotebook.click();
+  const dialog = page.getByRole("dialog", { name: "Project notebook" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Engineering log")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(openNotebook).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
 });
 
 test("resource library searches PDFs, official documentation, and glossary terms", async ({ page }) => {
