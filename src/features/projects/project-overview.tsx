@@ -10,6 +10,10 @@ export type MajorProjectSummary = {
   id: string;
   title: string;
   purpose: string;
+  track: string;
+  estimatedTime: string;
+  relevantModules: string;
+  tools: string[];
   milestones: { id: string; label: string }[];
 };
 
@@ -17,7 +21,11 @@ export type SmallProjectSummary = {
   id: string;
   title: string;
   problem: string;
+  track: string;
+  estimatedTime: string;
   relevantModules: string;
+  tools: string[];
+  milestones: { id: string; label: string }[];
 };
 
 function SavedStatus({ status, loaded, loadError }: { status?: ProgressStatus; loaded: boolean; loadError: boolean }) {
@@ -31,6 +39,7 @@ function MajorBuildCard({
   status,
   completedMilestones,
   nextMilestone,
+  active,
   loaded,
   loadError,
 }: {
@@ -38,35 +47,42 @@ function MajorBuildCard({
   status?: ProgressStatus;
   completedMilestones: number;
   nextMilestone?: { id: string; label: string };
+  active: boolean;
   loaded: boolean;
   loadError: boolean;
 }) {
   const tone = project.id === "P2" ? "teal" : project.id === "P3" ? "earth" : "charcoal";
-  return <Link className={`major-build-card major-build-card--${tone}${nextMilestone ? " major-build-card--active" : ""}`} data-project-id={project.id} href={`/projects/${project.id}`}>
+  return <Link className={`major-build-card major-build-card--${tone}${active ? " major-build-card--active" : ""}`} data-project-id={project.id} href={`/projects/${project.id}`}>
     <div className="major-build-band"><span>{project.id} <i aria-hidden="true">·</i> Major build</span><ArrowRight size={17} aria-hidden="true" /></div>
     <div className="major-build-content">
       <div className="major-build-heading"><h3>{project.title}</h3><SavedStatus status={status} loaded={loaded} loadError={loadError} /></div>
       <p>{project.purpose}</p>
-      {nextMilestone && <div className="major-build-next"><span>Next milestone</span><strong>{nextMilestone.id}</strong><span>{nextMilestone.label}</span></div>}
+      <div className="project-card-meta"><span>{project.track}</span><span>{project.estimatedTime}</span><span>Modules {project.relevantModules}</span></div>
+      {project.tools.length > 0 && <p className="project-card-tools">Core stack: {project.tools.slice(0, 3).join(" · ")}{project.tools.length > 3 ? " · more" : ""}</p>}
+      {nextMilestone && <div className="major-build-next"><span>{active ? "Next checkpoint" : "First checkpoint"}</span><strong>{nextMilestone.id}</strong><span>{nextMilestone.label}</span></div>}
       <div className="major-build-progress">
         {loaded && !loadError ? <>
-          <div className="major-build-progress-label"><span><CheckCircle2 size={15} aria-hidden="true" />Milestones self-marked complete</span><strong>{completedMilestones} / {project.milestones.length}</strong></div>
-          <div className="major-build-progress-track" role="progressbar" aria-label={`${project.title} milestones self-marked complete`} aria-valuemin={0} aria-valuemax={project.milestones.length} aria-valuenow={completedMilestones}>
+          <div className="major-build-progress-label"><span><CheckCircle2 size={15} aria-hidden="true" />Checkpoints self-reported</span><strong>{completedMilestones} / {project.milestones.length}</strong></div>
+          <div className="major-build-progress-track" role="progressbar" aria-label={`${project.title} checkpoints self-reported`} aria-valuemin={0} aria-valuemax={project.milestones.length} aria-valuenow={completedMilestones}>
             <span style={{ width: `${project.milestones.length ? (completedMilestones / project.milestones.length) * 100 : 0}%` }} />
           </div>
         </> : <span className="major-build-progress-unavailable">{loadError ? "Saved milestone progress could not be read." : "Loading saved milestones…"}</span>}
       </div>
-      <div className="major-build-footer"><span>{project.milestones.length} milestones · evidence checklist</span><span>Open project brief <ArrowRight size={14} /></span></div>
+      <div className="major-build-footer"><span>{project.milestones.length} guided checkpoints</span><span>Open project plan <ArrowRight size={14} /></span></div>
     </div>
   </Link>;
 }
 
-function SmallToolCard({ project, status, loaded, loadError }: { project: SmallProjectSummary; status?: ProgressStatus; loaded: boolean; loadError: boolean }) {
-  return <Link className="small-tool-card" href={`/projects/${project.id}`}>
+function SmallToolCard({ project, status, completedMilestones, nextMilestone, active, loaded, loadError }: { project: SmallProjectSummary; status?: ProgressStatus; completedMilestones: number; nextMilestone?: { id: string; label: string }; active: boolean; loaded: boolean; loadError: boolean }) {
+  return <Link className="small-tool-card" data-project-id={project.id} href={`/projects/${project.id}`}>
     <div className="small-tool-top"><span className="small-tool-id">{project.id}</span><SavedStatus status={status} loaded={loaded} loadError={loadError} /></div>
     <h3>{project.title}</h3>
     <p>{project.problem}</p>
-    <div className="small-tool-footer"><span>{project.relevantModules}</span><span>Open brief <ArrowRight size={14} aria-hidden="true" /></span></div>
+    <div className="project-card-meta"><span>{project.track}</span><span>{project.estimatedTime}</span><span>Modules {project.relevantModules}</span><span>{project.milestones.length} checkpoints</span></div>
+    {project.tools.length > 0 && <p className="project-card-tools">{project.tools.slice(0, 2).join(" · ")}{project.tools.length > 2 ? " · more" : ""}</p>}
+    {nextMilestone && <div className="small-project-next"><span>{active ? "Next checkpoint" : "First checkpoint"} · {nextMilestone.id}</span><strong>{nextMilestone.label}</strong></div>}
+    {loaded && !loadError && <div className="small-project-progress"><span>{completedMilestones} of {project.milestones.length} checkpoints self-reported</span><span className="major-build-progress-track" role="progressbar" aria-label={`${project.title} checkpoints self-reported`} aria-valuemin={0} aria-valuemax={project.milestones.length} aria-valuenow={completedMilestones}><i style={{ width: `${project.milestones.length ? (completedMilestones / project.milestones.length) * 100 : 0}%` }} /></span></div>}
+    <div className="small-tool-footer"><span>Open project plan</span><ArrowRight size={14} aria-hidden="true" /></div>
   </Link>;
 }
 
@@ -117,7 +133,8 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
     const projectStatus = new Map(records
       .filter((record) => record.itemType === "project" || record.itemType === "small_project")
       .map((record) => [record.itemId, record.status]));
-    const milestoneProjectById = new Map(majorProjects.flatMap((project) => project.milestones.map((milestone) => [milestone.id, project.id] as const)));
+    const allProjects = [...majorProjects, ...smallProjects];
+    const milestoneProjectById = new Map(allProjects.flatMap((project) => project.milestones.map((milestone) => [milestone.id, project.id] as const)));
     const active = new Set([...projectStatus]
       .filter(([, status]) => status === "in_progress" || status === "needs_review")
       .map(([id]) => id));
@@ -131,12 +148,12 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
       activeProjectIds: active,
       projectProgress: { completed, active: active.size },
     };
-  }, [majorProjects, records]);
+  }, [majorProjects, smallProjects, records]);
   const orderedMajorProjects = useMemo(() => [...majorProjects].sort((left, right) => Number(activeProjectIds.has(right.id)) - Number(activeProjectIds.has(left.id))), [activeProjectIds, majorProjects]);
   const orderedSmallProjects = useMemo(() => [...smallProjects].sort((left, right) => Number(activeProjectIds.has(right.id)) - Number(activeProjectIds.has(left.id))), [activeProjectIds, smallProjects]);
 
-  function statusForProjectCard(projectId: string): ProgressStatus | undefined {
-    const savedStatus = recordByItem.get(`project:${projectId}`)?.status;
+  function statusForProjectCard(projectId: string, itemType: "project" | "small_project"): ProgressStatus | undefined {
+    const savedStatus = recordByItem.get(`${itemType}:${projectId}`)?.status;
     return activeProjectIds.has(projectId) && (!savedStatus || savedStatus === "not_started")
       ? "in_progress"
       : savedStatus;
@@ -145,7 +162,7 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
   return <>
     <div className="project-overview-stats" aria-label="Project collection summary">
       <div><Rocket size={18} aria-hidden="true" /><strong>{majorProjects.length}</strong><span>major builds</span></div>
-      <div><Layers3 size={18} aria-hidden="true" /><strong>{smallProjects.length}</strong><span>small tools</span></div>
+      <div><Layers3 size={18} aria-hidden="true" /><strong>{smallProjects.length}</strong><span>focused builds</span></div>
       {loaded && !loadError ? <>
         <div><Circle size={17} aria-hidden="true" /><strong>{projectProgress.active}</strong><span>active projects</span></div>
         <div><CheckCircle2 size={17} aria-hidden="true" /><strong>{projectProgress.completed}</strong><span>marked complete</span></div>
@@ -158,9 +175,10 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
         {orderedMajorProjects.map((project) => <MajorBuildCard
           key={project.id}
           project={project}
-          status={statusForProjectCard(project.id)}
+          status={statusForProjectCard(project.id, "project")}
           completedMilestones={project.milestones.filter((milestone) => completedMilestones.has(milestone.id)).length}
-          nextMilestone={activeProjectIds.has(project.id) ? project.milestones.find((milestone) => !completedMilestones.has(milestone.id)) : undefined}
+          nextMilestone={statusForProjectCard(project.id, "project") === "completed" ? undefined : project.milestones.find((milestone) => !completedMilestones.has(milestone.id))}
+          active={activeProjectIds.has(project.id)}
           loaded={loaded}
           loadError={loadError}
         />)}
@@ -168,9 +186,13 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
     </section>
 
     <section className="project-section" aria-labelledby="small-tools-title">
-      <div className="project-section-heading"><div><p className="eyebrow">Build a useful thing first</p><h2 id="small-tools-title">Small tools</h2><p>Focused ideas that turn one operational concept into a reproducible tool.</p></div><span className="project-count-tag">{smallProjects.length} ideas</span></div>
+      <div className="project-section-heading"><div><p className="eyebrow">Start with one operational problem</p><h2 id="small-tools-title">Focused builds</h2><p>Shorter projects that turn one operational concept into a reproducible, reviewable tool.</p></div><span className="project-count-tag">{smallProjects.length} projects</span></div>
       <div className="small-tool-grid">
-        {orderedSmallProjects.map((project) => <SmallToolCard key={project.id} project={project} status={recordByItem.get(`small_project:${project.id}`)?.status} loaded={loaded} loadError={loadError} />)}
+        {orderedSmallProjects.map((project) => {
+          const status = statusForProjectCard(project.id, "small_project");
+          const nextMilestone = status === "completed" ? undefined : project.milestones.find((milestone) => !completedMilestones.has(milestone.id));
+          return <SmallToolCard key={project.id} project={project} status={status} completedMilestones={project.milestones.filter((milestone) => completedMilestones.has(milestone.id)).length} nextMilestone={nextMilestone} active={activeProjectIds.has(project.id)} loaded={loaded} loadError={loadError} />;
+        })}
       </div>
     </section>
   </>;

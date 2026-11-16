@@ -30,8 +30,12 @@ export function getDashboardContent(): {
     majorProjects: majorProjects.map(({ id, title, details }) => ({
       id,
       title,
-      details: { Milestones: details.Milestones ?? "" },
+      details: { "Build milestones": details["Build milestones"] ?? "" },
     })),
-    smallProjects: smallProjects.map(({ id, title }) => ({ id, title })),
+    smallProjects: smallProjects.map(({ id, title, details }) => ({
+      id,
+      title,
+      details: { "Build milestones": details["Build milestones"] ?? "" },
+    })),
   };
 }

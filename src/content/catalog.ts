@@ -49,8 +49,11 @@ const activityMetadataSchema = z.object({
 
 const identifiedMetadataSchema = z.object({ id: z.string().min(2).max(8) });
 
-const smallProjectMetadataSchema = identifiedMetadataSchema.extend({
-  relevantModules: z.string().min(1),
+const projectMetadataSchema = identifiedMetadataSchema.extend({
+  track: z.enum(["Focused build", "Integrated build", "Capstone"]),
+  estimatedTime: z.string().trim().min(3).max(40),
+  relevantModules: z.string().trim().min(1).max(100),
+  tools: z.array(z.string().trim().min(2).max(80)).min(2).max(8),
 });
 
 export type ActivityTaskKind = "challenge" | "lab" | "evidence" | "reflection";
@@ -96,10 +99,18 @@ export type TroubleshootingRecord = {
   completion: string;
 };
 
-export type SmallProjectRecord = {
+export type ProjectRecordBase = {
   id: string;
   title: string;
+  track: "Focused build" | "Integrated build" | "Capstone";
+  estimatedTime: string;
   relevantModules: string;
+  tools: string[];
+  details: Record<string, string>;
+};
+
+export type SmallProjectRecord = ProjectRecordBase & {
+  kind: "small";
   problem: string;
   requirements: string;
   deliverables: string;
@@ -109,7 +120,7 @@ export type SmallProjectRecord = {
   technicalReference: string;
 };
 
-export type MajorProjectRecord = { id: string; title: string; details: Record<string, string> };
+export type MajorProjectRecord = ProjectRecordBase & { kind: "major" };
 
 type MarkdownDocument = {
   metadata: Record<string, unknown>;
@@ -147,6 +158,27 @@ function requiredSection(document: MarkdownDocument, filename: string, name: str
 
 function optionalSection(document: MarkdownDocument, name: string): string | undefined {
   return document.sections.get(name)?.trim() || undefined;
+}
+
+const requiredProjectSections = [
+  "Scenario",
+  "Why this matters",
+  "Learning objectives",
+  "Prerequisites and setup",
+  "Requirements and boundaries",
+  "Architecture and decisions",
+  "Build milestones",
+  "Verification plan",
+  "Acceptance criteria",
+  "Troubleshooting",
+  "Portfolio deliverables",
+  "Stretch goals",
+  "Technical references",
+] as const;
+
+function validateProjectSections(document: MarkdownDocument, filename: string): Record<string, string> {
+  for (const section of requiredProjectSections) requiredSection(document, filename, section);
+  return Object.fromEntries(document.sections);
 }
 
 function countTopLevelSteps(markdown: string): number {
@@ -225,27 +257,32 @@ export const troubleshooting: TroubleshootingRecord[] = readMarkdownDirectory("t
 });
 
 export const smallProjects: SmallProjectRecord[] = readMarkdownDirectory("projects/small", (filename, document) => {
-  const metadata = smallProjectMetadataSchema.parse(document.metadata);
+  const metadata = projectMetadataSchema.parse(document.metadata);
+  const details = validateProjectSections(document, filename);
   return {
     ...metadata,
+    kind: "small",
     title: document.title,
-    problem: requiredSection(document, filename, "Problem"),
-    requirements: requiredSection(document, filename, "Requirements"),
-    deliverables: requiredSection(document, filename, "Deliverables"),
+    details,
+    problem: requiredSection(document, filename, "Scenario"),
+    requirements: requiredSection(document, filename, "Requirements and boundaries"),
+    deliverables: requiredSection(document, filename, "Portfolio deliverables"),
     acceptance: requiredSection(document, filename, "Acceptance criteria"),
-    likelyChallenge: requiredSection(document, filename, "Likely challenge"),
-    optionalExtension: requiredSection(document, filename, "Optional extension"),
-    technicalReference: requiredSection(document, filename, "Technical reference"),
+    likelyChallenge: requiredSection(document, filename, "Troubleshooting"),
+    optionalExtension: requiredSection(document, filename, "Stretch goals"),
+    technicalReference: requiredSection(document, filename, "Technical references"),
   };
 });
 
 export const majorProjects: MajorProjectRecord[] = readMarkdownDirectory("projects/major", (filename, document) => {
-  const metadata = identifiedMetadataSchema.parse(document.metadata);
+  const metadata = projectMetadataSchema.parse(document.metadata);
+  const details = validateProjectSections(document, filename);
   return {
-    id: metadata.id,
+    ...metadata,
+    kind: "major",
     title: document.title,
-    details: Object.fromEntries(document.sections),
+    details,
   };
 });
 
-export const projectMilestones = milestonesForProjects(majorProjects);
+export const projectMilestones = milestonesForProjects([...smallProjects, ...majorProjects]);

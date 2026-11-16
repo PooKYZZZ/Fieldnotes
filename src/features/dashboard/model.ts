@@ -40,7 +40,7 @@ export type DashboardModel = {
 export type DashboardModule = ModuleSummary & Pick<ModuleRecord, "activityId">;
 export type DashboardActivity = { id: string; moduleId: number; title: string };
 export type DashboardMajorProject = { id: string; title: string; details: Record<string, string> };
-export type DashboardSmallProject = Pick<SmallProjectRecord, "id" | "title">;
+export type DashboardSmallProject = Pick<SmallProjectRecord, "id" | "title" | "details">;
 
 const moduleKey = (id: number) => `M${String(id).padStart(2, "0")}`;
 const moduleHref = (id: number) => `/modules/${String(id).padStart(2, "0")}`;
@@ -103,8 +103,9 @@ function makeNextItems(
     }
   }
 
-  const projectById = new Map(majorProjects.map((project) => [project.id, project]));
-  const milestones = new Map(milestonesForProjects(majorProjects).map((milestone) => [milestone.id, milestone]));
+  const allProjects = [...majorProjects, ...smallProjects];
+  const projectById = new Map(allProjects.map((project) => [project.id, project]));
+  const milestones = new Map(milestonesForProjects(allProjects).map((milestone) => [milestone.id, milestone]));
   const milestoneRecords = new Map(records.filter((record) => record.itemType === "milestone" && record.status === "completed").map((record) => [record.itemId, record]));
   const startedProjects = new Set(records
     .filter((record) => (record.itemType === "project" || record.itemType === "small_project") && ["in_progress", "needs_review"].includes(record.status))
@@ -141,7 +142,7 @@ function makeNextItems(
 }
 
 function makeRecentItems(records: ProgressRecord[], modules: DashboardModule[], activities: DashboardActivity[], projects: DashboardMajorProject[], smallProjects: DashboardSmallProject[], excludedRecord?: string): DashboardRecentItem[] {
-  const milestones = new Map(milestonesForProjects(projects).map((milestone) => [milestone.id, milestone]));
+  const milestones = new Map(milestonesForProjects([...projects, ...smallProjects]).map((milestone) => [milestone.id, milestone]));
   const labels = new Map<string, { title: string; href: string; type: string }>();
   for (const learningModule of modules) labels.set(`module:${moduleKey(learningModule.id)}`, { title: learningModule.title, href: moduleHref(learningModule.id), type: "Module" });
   for (const learningModule of modules) for (const lesson of learningModule.lessons) labels.set(`lesson:${lesson.id}`, {

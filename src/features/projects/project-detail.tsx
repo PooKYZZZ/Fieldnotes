@@ -1,53 +1,142 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CheckCircle2, FileText } from "lucide-react";
-import { projectMilestones, type MajorProjectRecord, type SmallProjectRecord } from "@/content";
+import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, GitBranch, Hammer, ShieldCheck } from "lucide-react";
+import { projectMilestones, type MajorProjectRecord, type ProjectMilestone, type ProjectRecordBase, type SmallProjectRecord } from "@/content";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import { MilestoneChecklist } from "@/features/projects/milestone-checklist";
 import { ProgressEditor } from "@/features/progress/progress-editor";
 
 type Project = MajorProjectRecord | SmallProjectRecord;
 
+type ProjectSectionDefinition = { key: string; id: string; title: string; eyebrow: string };
+
+const playbookSections: ProjectSectionDefinition[] = [
+  { key: "Scenario", id: "project-brief", title: "The engineering assignment", eyebrow: "Scenario" },
+  { key: "Why this matters", id: "project-why", title: "Why it matters", eyebrow: "Real-world value" },
+  { key: "Learning objectives", id: "project-outcomes", title: "Skills you will demonstrate", eyebrow: "Learning outcomes" },
+  { key: "Prerequisites and setup", id: "project-prerequisites", title: "Before you begin", eyebrow: "Prerequisites and environment" },
+  { key: "Requirements and boundaries", id: "project-requirements", title: "What the system must do", eyebrow: "Requirements and guardrails" },
+  { key: "Architecture and decisions", id: "project-architecture", title: "Design the system", eyebrow: "Architecture and trade-offs" },
+];
+
+const handoffSections: ProjectSectionDefinition[] = [
+  { key: "Verification plan", id: "project-verification", title: "Prove it works", eyebrow: "Verification plan" },
+  { key: "Acceptance criteria", id: "project-acceptance", title: "Definition of done", eyebrow: "Acceptance criteria" },
+  { key: "Troubleshooting", id: "project-troubleshooting", title: "When a check fails", eyebrow: "Troubleshooting" },
+  { key: "Portfolio deliverables", id: "project-portfolio", title: "Prepare the handoff", eyebrow: "Portfolio and documentation" },
+  { key: "Stretch goals", id: "project-stretch", title: "After the core build", eyebrow: "Optional extensions" },
+  { key: "Technical references", id: "project-references", title: "Primary references", eyebrow: "Documentation to consult" },
+];
+
 function isMajorProject(project: Project): project is MajorProjectRecord {
-  return "details" in project;
+  return project.kind === "major";
 }
 
-function MajorProjectContent({ project }: { project: MajorProjectRecord }) {
-  const milestones = projectMilestones.filter((milestone) => milestone.projectId === project.id);
-  const detailEntries = Object.entries(project.details)
-    .filter((entry): entry is [string, string] => entry[0] !== "Milestones" && typeof entry[1] === "string");
-
-  return <>
-    {detailEntries.map(([label, value]) => <section className="card lesson-section" key={label}><h2>{label}</h2><p style={{ whiteSpace: "pre-line", marginBottom: 0 }}>{value}</p></section>)}
-    {milestones.length > 0 && <section className="card lesson-section"><h2>Project milestones</h2><p className="course-detail">Check a milestone after you can show its work. Your checklist is saved with this local project.</p><MilestoneChecklist projectId={project.id} milestones={milestones} /></section>}
-    <section className="card lesson-section"><h2>Self-review rubric</h2><p>Score each criterion from 0 (not shown) to 2 (demonstrated). The maximum is 12; it is a personal reflection aid, not a certification.</p><div className="checklist-grid"><div className="checklist-item"><CheckCircle2 size={15} />Function: all acceptance paths pass</div><div className="checklist-item"><CheckCircle2 size={15} />Repeatability: clean setup is documented</div><div className="checklist-item"><CheckCircle2 size={15} />Security: controls are tested and bounded</div><div className="checklist-item"><CheckCircle2 size={15} />Reliability: rollback and restore are demonstrated</div><div className="checklist-item"><CheckCircle2 size={15} />Operations: alert and diagnosis evidence exist</div><div className="checklist-item"><CheckCircle2 size={15} />Understanding: trade-offs can be defended independently</div></div></section>
-  </>;
+function ProjectSection({ project, section }: { project: ProjectRecordBase; section: ProjectSectionDefinition }) {
+  const content = project.details[section.key];
+  if (!content) return null;
+  return <section className="project-playbook-section" id={section.id} aria-labelledby={`${section.id}-title`}>
+    <p className="eyebrow">{section.eyebrow}</p>
+    <h2 id={`${section.id}-title`}>{section.title}</h2>
+    <MarkdownContent>{content}</MarkdownContent>
+  </section>;
 }
 
-function SmallProjectContent({ project }: { project: SmallProjectRecord }) {
-  return <>
-    <section className="card lesson-section"><h2><CheckCircle2 size={19} /> Project brief</h2><div className="lesson-meta"><div className="meta-item"><strong>Relevant modules</strong><span>{project.relevantModules}</span></div><div className="meta-item"><strong>Problem</strong><span>{project.problem}</span></div><div className="meta-item"><strong>Likely challenge</strong><span>{project.likelyChallenge}</span></div></div></section>
-    <section className="card lesson-section"><h2>What to build</h2><p>{project.requirements}</p><h3>Deliverables</h3><p>{project.deliverables}</p><div className="callout-blue"><strong>Acceptance check:</strong> {project.acceptance}</div></section>
-    {project.optionalExtension && <section className="card lesson-section"><h2>Optional extension</h2><p>{project.optionalExtension}</p><p className="course-detail">Technical reference: {project.technicalReference}</p></section>}
-  </>;
+function ProjectFlowNav() {
+  return <nav className="project-flow-nav" aria-label="Project guide sections">
+    <a href="#project-brief"><span>01</span>Assignment</a>
+    <a href="#project-architecture"><span>02</span>Design</a>
+    <a href="#project-milestones"><span>03</span>Build plan</a>
+    <a href="#project-verification"><span>04</span>Verify</a>
+    <a href="#project-portfolio"><span>05</span>Handoff</a>
+    <a href="#project-record"><span>06</span>Save progress</a>
+  </nav>;
+}
+
+function ProjectGuideRail({ milestones, tools }: { milestones: { id: string; label: string }[]; tools: string[] }) {
+  return <aside className="project-guide-rail" aria-label="Project guide">
+    <div className="project-guide-card">
+      <p className="eyebrow"><BookOpen size={13} aria-hidden="true" /> Project map</p>
+      <p className="project-guide-intro">Work from the problem to a reviewable result. Make one technical decision at each stage and keep evidence as you go.</p>
+      <nav className="project-guide-links" aria-label="Jump to a project section">
+        <a href="#project-brief">Understand the assignment</a>
+        <a href="#project-architecture">Choose the design</a>
+        <a href="#project-milestones">Build in checkpoints <span>{milestones.length}</span></a>
+        <a href="#project-verification">Test the result</a>
+        <a href="#project-portfolio">Prepare the handoff</a>
+      </nav>
+    </div>
+    <div className="project-guide-card project-guide-card--tools">
+      <p className="eyebrow"><Hammer size={13} aria-hidden="true" /> Suggested tools</p>
+      <ul>{tools.map((tool) => <li key={tool}>{tool}</li>)}</ul>
+      <a className="project-guide-record-link" href="#project-record">Save a project note <ArrowDown size={13} aria-hidden="true" /></a>
+    </div>
+    <div className="project-guide-note">
+      <ShieldCheck size={16} aria-hidden="true" />
+      <p>Use synthetic data and a disposable environment. Keep secrets out of Git, logs, screenshots, and saved notes.</p>
+    </div>
+  </aside>;
+}
+
+function ProjectMilestoneSection({ milestones }: { milestones: ProjectMilestone[] }) {
+  return <section className="project-playbook-section project-milestone-section" id="project-milestones" aria-labelledby="project-milestones-title">
+    <div className="project-section-title-row">
+      <div><p className="eyebrow">Build in reviewable increments</p><h2 id="project-milestones-title">Project milestones</h2></div>
+      <span className="project-milestone-count">{milestones.length} checkpoints</span>
+    </div>
+    <p className="project-section-lead">Each checkpoint names the goal, work, evidence, and a test for deciding whether to continue. Mark it complete after you can show the evidence; progress is self-reported.</p>
+    <MilestoneChecklist milestones={milestones} />
+  </section>;
+}
+
+function projectMilestonesForProject(projectId: string) {
+  return projectMilestones.filter((milestone) => milestone.projectId === projectId);
 }
 
 export function ProjectDetail({ project }: { project: Project }) {
   const major = isMajorProject(project);
   const itemType = major ? "project" : "small_project";
-  const description = major ? project.details.Purpose ?? project.details["Problem statement"] : project.problem;
+  const milestones = projectMilestonesForProject(project.id);
+  const navigationMilestones = milestones.map(({ id, label }) => ({ id, label }));
 
   return <>
-    <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/projects">Projects</Link><span aria-hidden="true">/</span><span>{project.id}</span></nav>
-    <header className="page-header"><div><p className="eyebrow">{major ? "Major build" : "Small project"} · {project.id}</p><h1>{project.title}</h1><p className="page-description">{description}</p></div><a className="button button-outline header-action" href="/library/05_Projects_and_Portfolio.pdf" target="_blank" rel="noreferrer">Source brief <FileText size={14} /></a></header>
-    <div className="lesson-layout">
-      <div className="lesson-main">
-        {major ? <MajorProjectContent project={project} /> : <SmallProjectContent project={project} />}
+    <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/projects">Projects &amp; builds</Link><span aria-hidden="true">/</span><span>{project.id}</span></nav>
+    <header className="page-header project-detail-header">
+      <div>
+        <p className="eyebrow">{project.track} · {project.id}</p>
+        <h1>{project.title}</h1>
+        <p className="page-description">Move from a defined operational problem to a tested, documented handoff. Choose an approach, explain the trade-offs, and show the evidence behind your result.</p>
+        <div className="project-detail-meta">
+          <span><Clock3 size={14} aria-hidden="true" />{project.estimatedTime} · learner-paced</span>
+          <span><GitBranch size={14} aria-hidden="true" />Modules {project.relevantModules}</span>
+          <span><CheckCircle2 size={14} aria-hidden="true" />{milestones.length} reviewable checkpoints</span>
+        </div>
       </div>
-      <aside className="lesson-aside">
-        {major && <div className="notice"><CheckCircle2 size={15} /><p>Build for the smallest useful scope. Use synthetic data, keep credentials out of Git, restrict exposure, and document cleanup for any billable resources.</p></div>}
-        {!major && <div className="card card-pad"><p className="eyebrow">Start with the outcome</p><p className="course-detail">Prove the acceptance test with known input and one controlled failure before adding optional features.</p><Link href="/activities" style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 11, fontSize: 11, fontWeight: 700 }}>Browse practice activities <ArrowRight size={13} /></Link></div>}
-      </aside>
+      <Link className="button button-primary project-header-action" href="#project-record">Record project work <ArrowRight size={15} aria-hidden="true" /></Link>
+    </header>
+
+    <ProjectFlowNav />
+
+    <div className="project-playbook-layout">
+      <main className="project-playbook-main">
+        {playbookSections.map((section) => <ProjectSection key={section.key} project={project} section={section} />)}
+        <ProjectMilestoneSection milestones={milestones} />
+        {handoffSections.map((section) => <ProjectSection key={section.key} project={project} section={section} />)}
+        {major && project.details["Self-review rubric"] && <ProjectSection project={project} section={{ key: "Self-review rubric", id: "project-self-review", title: "Reflect on your engineering judgment", eyebrow: "Self-review" }} />}
+      </main>
+      <ProjectGuideRail milestones={navigationMilestones} tools={project.tools} />
     </div>
-    <ProgressEditor itemType={itemType} itemId={project.id} title="Project learning record" wide />
-    <Link className="button button-outline" href="/projects"><ArrowLeft size={14} /> Back to projects</Link>
+
+    <section className="project-record-section" id="project-record" aria-labelledby="project-record-title">
+      <div className="project-record-heading">
+        <div><p className="eyebrow">Your saved project record</p><h2 id="project-record-title">Capture the work you can show</h2><p>Save partial work, decisions, test results, and a repository link. Completion remains your self-report.</p></div>
+        <Link href="/progress?type=project" className="project-record-history">View progress notebook <ArrowRight size={14} aria-hidden="true" /></Link>
+      </div>
+      <ProgressEditor itemType={itemType} itemId={project.id} title="Project learning record" wide />
+    </section>
+
+    <nav className="project-detail-footer" aria-label="Project navigation">
+      <Link className="button button-outline" href="/projects"><ArrowLeft size={14} aria-hidden="true" /> Back to Projects &amp; builds</Link>
+      <Link className="project-next-action" href="#project-brief">Return to the assignment <ArrowDown size={14} aria-hidden="true" /></Link>
+    </nav>
   </>;
 }

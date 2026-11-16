@@ -39,7 +39,7 @@ describe("dashboard learning model", () => {
     expect(model.nextItems[0]).toMatchObject({ id: "M03-L02", href: "/modules/03/lessons/m03-l02" });
     expect(model.nextItems.some((item) => item.href === "/modules/03/lessons/m03-l01")).toBe(false);
     expect(model.nextItems.some((item) => item.id === "P1.2")).toBe(true);
-    expect(model.recentItems[0]).toMatchObject({ title: "requirements and diagram", detail: "Milestone completed" });
+    expect(model.recentItems[0]).toMatchObject({ title: "Define service, release, and recovery contracts", detail: "Milestone completed" });
   });
 
   it("resumes the actual activity when it is the learner's most recently updated work", () => {

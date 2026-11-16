@@ -9,20 +9,35 @@ export default function ProjectsPage() {
   const majorProjectSummaries = majorProjects.map((project) => ({
     id: project.id,
     title: project.title,
-    purpose: project.details.Purpose ?? project.details["Problem statement"] ?? "",
+    purpose: project.details.Scenario,
+    track: project.track,
+    estimatedTime: project.estimatedTime,
+    relevantModules: project.relevantModules,
+    tools: project.tools,
     milestones: projectMilestones
       .filter((milestone) => milestone.projectId === project.id)
       .map(({ id, label }) => ({ id, label })),
   }));
-  const smallProjectSummaries = smallProjects.map(({ id, title, problem, relevantModules }) => ({ id, title, problem, relevantModules }));
+  const smallProjectSummaries = smallProjects.map((project) => ({
+    id: project.id,
+    title: project.title,
+    problem: project.details.Scenario,
+    track: project.track,
+    estimatedTime: project.estimatedTime,
+    relevantModules: project.relevantModules,
+    tools: project.tools,
+    milestones: projectMilestones
+      .filter((milestone) => milestone.projectId === project.id)
+      .map(({ id, label }) => ({ id, label })),
+  }));
 
   return <>
     <header className="page-header project-page-header">
-      <div><p className="eyebrow">Portfolio workspace</p><h1>Projects &amp; builds</h1><p className="page-description">Apply skills across the roadmap, keep the work reproducible, and save evidence as you go. These project ideas come from your learning plan.</p></div>
+      <div><p className="eyebrow">Portfolio workspace</p><h1>Projects &amp; builds</h1><p className="page-description">Choose a focused build to make one operational tool, or take on a major project that combines delivery, reliability, security, and recovery.</p></div>
       <a className="button button-outline header-action" href="/library/05_Projects_and_Portfolio.pdf" target="_blank" rel="noreferrer">Portfolio guide <ArrowRight size={14} aria-hidden="true" /></a>
     </header>
 
-    <div className="project-principle"><ClipboardCheck size={20} aria-hidden="true" /><p><strong>A project is evidence, not just a checked box.</strong> Save a reproducible result, explain your choices, and note what you would improve. Completion states are self-reported and do not independently verify mastery.</p></div>
+    <div className="project-principle"><ClipboardCheck size={20} aria-hidden="true" /><p><strong>Build in reviewable steps.</strong> Each brief moves from an engineering scenario through technical decisions, checkpoints, verification, and a portfolio handoff. Progress is self-reported; use the evidence to explain what you actually tested.</p></div>
 
     <ProjectOverview majorProjects={majorProjectSummaries} smallProjects={smallProjectSummaries} />
 

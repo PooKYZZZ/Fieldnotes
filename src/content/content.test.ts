@@ -21,6 +21,29 @@ describe("learning content integrity", () => {
     ]) {
       expect(new Set<string | number>(ids).size).toBe(ids.length);
     }
+
+    for (const project of [...smallProjects, ...majorProjects]) {
+      expect(project.track).toMatch(/^(Focused build|Integrated build|Capstone)$/);
+      expect(project.estimatedTime.length).toBeGreaterThan(4);
+      expect(project.tools.length).toBeGreaterThanOrEqual(2);
+      for (const section of [
+        "Scenario",
+        "Why this matters",
+        "Learning objectives",
+        "Prerequisites and setup",
+        "Requirements and boundaries",
+        "Architecture and decisions",
+        "Build milestones",
+        "Verification plan",
+        "Acceptance criteria",
+        "Troubleshooting",
+        "Portfolio deliverables",
+        "Stretch goals",
+        "Technical references",
+      ]) {
+        expect(project.details[section], `${project.id} has ${section}`).toBeTruthy();
+      }
+    }
   });
 
   it("keeps every module paired with its matching activity and module", () => {
@@ -213,9 +236,15 @@ describe("learning content integrity", () => {
     expect(new Set(terms).size).toBe(terms.length);
   });
 
-  it("derives unique milestones only for listed major projects", () => {
-    expect(projectMilestones.length).toBeGreaterThan(0);
+  it("derives detailed, uniquely identified checkpoints for all projects", () => {
+    const projects = [...smallProjects, ...majorProjects];
+    expect(projectMilestones.length).toBeGreaterThan(40);
     expect(new Set(projectMilestones.map((item) => item.id)).size).toBe(projectMilestones.length);
-    expect(projectMilestones.every((item) => majorProjects.some((project) => project.id === item.projectId))).toBe(true);
+    expect(projectMilestones.every((item) => projects.some((project) => project.id === item.projectId))).toBe(true);
+    expect(projects.every((project) => projectMilestones.filter((item) => item.projectId === project.id).length >= 4)).toBe(true);
+    expect(projectMilestones.every((item) => item.guidance.includes("**Purpose:**") && item.guidance.includes("**Checkpoint:**") && item.guidance.includes("**Evidence:**"))).toBe(true);
+    expect(projectMilestones.filter((item) => item.projectId === "P1").map((item) => item.id)).toEqual(["P1.1", "P1.2", "P1.3", "P1.4", "P1.5", "P1.6", "P1.7", "P1.8"]);
+    expect(projectMilestones.filter((item) => item.projectId === "P2").map((item) => item.id)).toEqual(["P2.1", "P2.2", "P2.3", "P2.4", "P2.5", "P2.6", "P2.7"]);
+    expect(projectMilestones.filter((item) => item.projectId === "P3").map((item) => item.id)).toEqual(["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"]);
   });
 });
