@@ -169,8 +169,19 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
       </> : <div className="project-stats-loading" role="status"><RefreshCw size={16} aria-hidden="true" />{loadError ? "Saved progress unavailable" : "Loading saved progress"}</div>}
     </div>
 
+    <section className="project-section" aria-labelledby="small-tools-title">
+      <div className="project-section-heading"><div><p className="eyebrow">Start with one operational problem</p><h2 id="small-tools-title">Focused builds</h2><p>Shorter projects (4–9 hours) that turn one operational concept into a reproducible, reviewable tool.</p></div><span className="project-count-tag">{smallProjects.length} projects</span></div>
+      <div className="small-tool-grid">
+        {orderedSmallProjects.map((project) => {
+          const status = statusForProjectCard(project.id, "small_project");
+          const nextMilestone = status === "completed" ? undefined : project.milestones.find((milestone) => !completedMilestones.has(milestone.id));
+          return <SmallToolCard key={project.id} project={project} status={status} completedMilestones={project.milestones.filter((milestone) => completedMilestones.has(milestone.id)).length} nextMilestone={nextMilestone} active={activeProjectIds.has(project.id)} loaded={loaded} loadError={loadError} />;
+        })}
+      </div>
+    </section>
+
     <section className="project-section" aria-labelledby="major-builds-title">
-      <div className="project-section-heading"><div><p className="eyebrow">Combine skills across the roadmap</p><h2 id="major-builds-title">Major builds</h2><p>Progressive portfolio projects with milestones, evidence, and a self-review rubric.</p></div><span className="project-count-tag">{majorProjects.length} tracks</span></div>
+      <div className="project-section-heading"><div><p className="eyebrow">Combine skills across the roadmap</p><h2 id="major-builds-title">Integrated builds and capstone</h2><p>Longer portfolio work that combines delivery, reliability, security, and recovery.</p></div><span className="project-count-tag">{majorProjects.length} tracks</span></div>
       <div className="major-build-grid">
         {orderedMajorProjects.map((project) => <MajorBuildCard
           key={project.id}
@@ -182,17 +193,6 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
           loaded={loaded}
           loadError={loadError}
         />)}
-      </div>
-    </section>
-
-    <section className="project-section" aria-labelledby="small-tools-title">
-      <div className="project-section-heading"><div><p className="eyebrow">Start with one operational problem</p><h2 id="small-tools-title">Focused builds</h2><p>Shorter projects that turn one operational concept into a reproducible, reviewable tool.</p></div><span className="project-count-tag">{smallProjects.length} projects</span></div>
-      <div className="small-tool-grid">
-        {orderedSmallProjects.map((project) => {
-          const status = statusForProjectCard(project.id, "small_project");
-          const nextMilestone = status === "completed" ? undefined : project.milestones.find((milestone) => !completedMilestones.has(milestone.id));
-          return <SmallToolCard key={project.id} project={project} status={status} completedMilestones={project.milestones.filter((milestone) => completedMilestones.has(milestone.id)).length} nextMilestone={nextMilestone} active={activeProjectIds.has(project.id)} loaded={loaded} loadError={loadError} />;
-        })}
       </div>
     </section>
   </>;
