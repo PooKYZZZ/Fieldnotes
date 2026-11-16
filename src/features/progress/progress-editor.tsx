@@ -27,6 +27,7 @@ export function ProgressEditor({
   bare = false,
   recordContext,
   reflectionPrompt,
+  checkpointContext,
   variant = "full",
 }: {
   itemType: ProgressInput["itemType"];
@@ -37,6 +38,7 @@ export function ProgressEditor({
   bare?: boolean;
   recordContext?: string;
   reflectionPrompt?: string;
+  checkpointContext?: { id: string; label: string };
   variant?: "full" | "module-summary" | "lesson-status" | "activity-lab" | "project-workbench";
 }) {
   const isModuleSummary = variant === "module-summary";
@@ -54,6 +56,7 @@ export function ProgressEditor({
   const [updatedAt, setUpdatedAt] = useState<number>();
   const [isDirty, setIsDirty] = useState(false);
   const [repositoryOpen, setRepositoryOpen] = useState(false);
+  const [projectWideFieldsOpen, setProjectWideFieldsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -78,10 +81,14 @@ export function ProgressEditor({
             notes: saved.notes,
             evidence: saved.evidence,
             repositoryUrl: saved.repositoryUrl,
+            ...(saved.taskObservations ? { taskObservations: saved.taskObservations } : itemType === "project" || itemType === "small_project" ? { taskObservations: {} } : {}),
           });
           setUpdatedAt(saved.updatedAt);
           setIsDirty(false);
           setRepositoryOpen(Boolean(saved.repositoryUrl));
+          if ((itemType === "project" || itemType === "small_project") && (saved.notes || saved.evidence || saved.repositoryUrl)) {
+            setProjectWideFieldsOpen(true);
+          }
         }
       })
       .catch(() => {
@@ -143,6 +150,42 @@ export function ProgressEditor({
     setMessage("");
   }
 
+  function updateCheckpointObservation(value: string) {
+    if (!checkpointContext) return;
+    setForm((current) => ({
+      ...current,
+      taskObservations: {
+        ...(current.taskObservations ?? {}),
+        [checkpointContext.id]: value,
+      },
+    }));
+    setIsDirty(true);
+    setError(false);
+    setMessage("");
+  }
+
+  function renderProjectWideFields() {
+    return <>
+      <div className="progress-long-fields">
+        <div className="form-field">
+          <label htmlFor={`notes-${itemId}`}>Engineering log</label>
+          <span className="field-hint" id={noteHintId}>Capture decisions that affect the whole project, why you chose them, and what remains uncertain.</span>
+          <Textarea id={`notes-${itemId}`} aria-describedby={noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Project-wide decision: …\nReasoning: …\nOpen question: …" />
+        </div>
+        <div className="form-field">
+          <label htmlFor={`evidence-${itemId}`}>Final verification summary</label>
+          <span className="field-hint" id={evidenceHintId}>Summarize the end-to-end checks that support your handoff and what they do not prove.</span>
+          <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder="End-to-end check: …\nExpected: …\nObserved: …\nLimit: …" />
+          <span className="field-hint" id={evidencePrivacyId}>Keep saved evidence small and sanitized; omit passwords, tokens, private addresses, and personal data.</span>
+        </div>
+      </div>
+      <div className="form-field progress-repository-field">
+        <label htmlFor={`repository-${itemId}`}>Repository or project URL <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
+        <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
+      </div>
+    </>;
+  }
+
   return (
     <section id={`progress-editor-${itemId}`} className={`card editor-card${wide ? " editor-card--wide" : ""}${bare ? " editor-card--bare" : ""}${isModuleSummary ? " progress-editor--module-summary" : ""}${isLessonStatus ? " progress-editor--lesson-status" : ""}${isActivityLab ? " progress-editor--activity-lab" : ""}${isProjectWorkbench ? " progress-editor--project-workbench" : ""}`} aria-labelledby={`editor-title-${itemId}`}>
       <EditorTitle id={`editor-title-${itemId}`}>{title}</EditorTitle>
@@ -177,6 +220,20 @@ export function ProgressEditor({
         {isProjectWorkbench && <span className="field-hint">Set the status that reflects your work. Checkpoints do not automatically change it.</span>}
         </div>
         )}
+        {isProjectWorkbench && checkpointContext && <div className="form-field project-checkpoint-observation-field">
+          <label htmlFor={`checkpoint-observation-${itemId}-${checkpointContext.id}`}>Checkpoint note <span>· {checkpointContext.id}</span></label>
+          <span className="field-hint" id={`checkpoint-observation-help-${itemId}`}>This note is saved under this checkpoint in the same project record. Record the decision or change, what you observed, and what remains uncertain.</span>
+          <Textarea
+            id={`checkpoint-observation-${itemId}-${checkpointContext.id}`}
+            aria-describedby={`checkpoint-observation-help-${itemId}`}
+            className="form-textarea"
+            maxLength={1200}
+            value={form.taskObservations?.[checkpointContext.id] ?? ""}
+            onChange={(event) => updateCheckpointObservation(event.target.value)}
+            placeholder={`${checkpointContext.id} · ${checkpointContext.label}\nDecision or change: …\nObserved result: …\nStill uncertain: …`}
+          />
+          <span className="field-hint project-checkpoint-observation-count">{(form.taskObservations?.[checkpointContext.id] ?? "").length} / 1,200 characters</span>
+        </div>}
         {!isCompact && showComfort && (
           <div className="form-field">
             <label htmlFor={`comfort-${itemId}`}>How independently can you do this?</label>
@@ -196,25 +253,31 @@ export function ProgressEditor({
           ) : null
         ) : (
           <>
+        {isProjectWorkbench ? <details
+          className="progress-project-wide-details"
+          open={projectWideFieldsOpen}
+          onToggle={(event) => setProjectWideFieldsOpen(event.currentTarget.open)}
+        >
+          <summary>Project-wide notes and final evidence <span>Optional</span></summary>
+          {renderProjectWideFields()}
+        </details> : <>
         <div className="progress-long-fields">
           <div className="form-field">
-            <label htmlFor={`notes-${itemId}`}>{isActivityLab ? "Findings and reflection" : isProjectWorkbench ? "Engineering log" : "Learning note"}</label>
+            <label htmlFor={`notes-${itemId}`}>{isActivityLab ? "Findings and reflection" : "Learning note"}</label>
             <span className="field-hint" id={noteHintId}>{isActivityLab
               ? `For ${recordContext ?? itemId}, interpret the process state, memory, and unit result. Separate what you observed from what you infer.`
-              : isProjectWorkbench ? "Capture a decision, why you chose it, what changed, or what remains uncertain."
               : itemType === "activity" && recordContext
               ? `For ${recordContext}, describe what you attempted, what you expected, what you observed, and what you learned.`
               : isPracticeRecord ? "Describe what you attempted, expected, observed, and learned." : "Capture your goal, what you observed, any troubleshooting, and the lesson you took away."}</span>
-            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isActivityLab ? "Process and finding: …\nWhat it suggests: …\nWhat remains uncertain: …" : isProjectWorkbench ? "Decision or progress: …\nReasoning: …\nOpen question: …" : isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
+            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isActivityLab ? "Process and finding: …\nWhat it suggests: …\nWhat remains uncertain: …" : isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
             {reflectionPrompt && <span className="field-hint" id={noteReflectionId}>Reflection prompt: {reflectionPrompt}</span>}
           </div>
           <div className="form-field">
-            <label htmlFor={`evidence-${itemId}`}>{isActivityLab ? "Commands and evidence" : isProjectWorkbench ? "Verification and evidence" : "Evidence or verification"}</label>
+            <label htmlFor={`evidence-${itemId}`}>{isActivityLab ? "Commands and evidence" : "Evidence or verification"}</label>
             <span className="field-hint" id={evidenceHintId}>{isActivityLab
               ? "Record the commands and sanitized results that support your process and systemd observations."
-              : isProjectWorkbench ? "Name the check, expected and observed results, and what the evidence does or does not prove."
               : itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : itemType === "activity" ? "Use the evidence checklist above. Note the relevant command or setting, what it showed, and how you confirmed your interpretation." : "Record commands or configuration, expected and observed results, and how you checked them."}</span>
-            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isActivityLab ? "Command and relevant result: …\nVerification: …" : isProjectWorkbench ? "Check: …\nExpected: …\nObserved: …\nWhat it demonstrates: …" : isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
+            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isActivityLab ? "Command and relevant result: …\nVerification: …" : isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
             <span className="field-hint" id={evidencePrivacyId}>Keep saved evidence small and sanitized; omit passwords, tokens, private addresses, and personal data.</span>
           </div>
         </div>
@@ -232,6 +295,7 @@ export function ProgressEditor({
             <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
           </div>
         )}
+        </>}
           </>
         )}
         <div className="form-footer progress-form-footer">

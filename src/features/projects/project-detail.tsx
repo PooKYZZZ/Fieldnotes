@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowRight, CheckCircle2, Clock3, GitBranch } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, GitBranch } from "lucide-react";
 import { projectMilestones, type MajorProjectRecord, type ProjectMilestone, type ProjectRecordBase, type SmallProjectRecord } from "@/content";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { ProjectMilestoneWorkbench } from "@/features/projects/milestone-checklist";
 import { ProjectRecordReview } from "@/features/projects/project-record-review";
+import { ProjectFlowNav } from "@/features/projects/project-flow-nav";
 
 type Project = MajorProjectRecord | SmallProjectRecord;
 
@@ -44,26 +45,23 @@ function ProjectContent({ project, section }: { project: ProjectRecordBase; sect
   </section>;
 }
 
-function ProjectFlowNav() {
-  return <nav className="activity-workflow-nav project-workflow-nav" aria-label="Project stages">
-    <a href="#project-assignment"><span>01</span><strong>Understand</strong></a>
-    <a href="#project-design"><span>02</span><strong>Prepare &amp; design</strong></a>
-    <a href="#project-build"><span>03</span><strong>Build &amp; verify</strong></a>
-    <a href="#project-review"><span>04</span><strong>Review &amp; hand off</strong></a>
-  </nav>;
-}
-
-function ProjectStage({ id, title, eyebrow, children, className = "" }: {
+function ProjectStage({ id, title, eyebrow, children, className = "", previous, next }: {
   id: string;
   title: string;
   eyebrow: string;
   children: React.ReactNode;
   className?: string;
+  previous?: { href: string; label: string };
+  next?: { href: string; label: string };
 }) {
   return <section className={`activity-stage project-stage ${className}`} id={id} aria-labelledby={`${id}-title`}>
     <p className="eyebrow">{eyebrow}</p>
     <h2 id={`${id}-title`}>{title}</h2>
     {children}
+    {(previous || next) && <nav className="project-stage-actions" aria-label={`${title} navigation`}>
+      {previous ? <Link className="button button-outline" href={previous.href}><ArrowLeft size={14} aria-hidden="true" />{previous.label}</Link> : <span />}
+      {next && <Link className="button button-primary" href={next.href}>{next.label}<ArrowRight size={14} aria-hidden="true" /></Link>}
+    </nav>}
   </section>;
 }
 
@@ -91,29 +89,29 @@ export function ProjectDetail({ project }: { project: Project }) {
       <ProjectFlowNav />
 
       <div className="project-experience-content">
-        <ProjectStage id="project-assignment" title="Understand the assignment" eyebrow="01 · Problem and outcome" className="project-assignment-stage">
+      <ProjectStage id="project-assignment" title="Understand the assignment" eyebrow="01 · Problem and outcome" className="project-assignment-stage" next={{ href: "#project-design", label: "Prepare and design" }}>
           {assignmentSections.map((section) => <ProjectContent key={section.key} project={project} section={section} />)}
         </ProjectStage>
 
-        <ProjectStage id="project-design" title="Prepare and make design decisions" eyebrow="02 · Setup and system design" className="project-design-stage">
+      <ProjectStage id="project-design" title="Prepare and make design decisions" eyebrow="02 · Setup and system design" className="project-design-stage" previous={{ href: "#project-assignment", label: "Back to assignment" }} next={{ href: "#project-build", label: "Start the build" }}>
           {designSections.map((section) => <ProjectContent key={section.key} project={project} section={section} />)}
         </ProjectStage>
 
-        <ProjectStage id="project-build" title="Build in reviewable checkpoints" eyebrow="03 · Implement and record" className="project-build-stage">
+      <ProjectStage id="project-build" title="Build in reviewable checkpoints" eyebrow="03 · Implement and record" className="project-build-stage" previous={{ href: "#project-design", label: "Back to design" }} next={{ href: "#project-review", label: "Review your work" }}>
           <p className="project-stage-intro">Choose a checkpoint to see its working instructions. Keep the project notebook open beside the work; it saves one shared project record.</p>
           <ProjectMilestoneWorkbench projectId={project.id} projectType={itemType} milestones={milestones} />
         </ProjectStage>
 
-        <ProjectStage id="project-review" title="Review the result and prepare the handoff" eyebrow="04 · Verify, reflect, and share" className="project-review-stage">
+      <ProjectStage id="project-review" title="Review the result and prepare the handoff" eyebrow="04 · Verify, reflect, and share" className="project-review-stage" previous={{ href: "#project-build", label: "Back to the build" }}>
+          <ProjectRecordReview projectId={project.id} projectType={itemType} milestones={milestones} />
           {reviewSections.map((section) => <ProjectContent key={section.key} project={project} section={section} />)}
           {major && project.details["Self-review rubric"] && <ProjectContent project={project} section={{ key: "Self-review rubric", id: "project-self-review", title: "Reflect on your engineering judgment", eyebrow: "Self-review" }} />}
-          <ProjectRecordReview projectId={project.id} projectType={itemType} milestones={milestones} />
         </ProjectStage>
       </div>
 
       <nav className="project-detail-footer" aria-label="Project navigation">
         <Link className="button button-outline" href="/projects"><ArrowLeft size={14} aria-hidden="true" /> Back to Projects &amp; builds</Link>
-        <Link className="project-next-action" href="#project-assignment">Return to the assignment <ArrowDown size={14} aria-hidden="true" /></Link>
+        <Link className="project-next-action" href="#project-build">Return to build checkpoints <ArrowRight size={14} aria-hidden="true" /></Link>
       </nav>
     </div>
   </>;

@@ -38,14 +38,20 @@ export const progressSchema = z.object({
     context.addIssue({ code: "custom", path: ["itemId"], message: "Select a learning item from this workspace." });
   }
   if (record.taskObservations === undefined) return;
-  if (record.itemType !== "activity") {
-    context.addIssue({ code: "custom", path: ["taskObservations"], message: "Task observations are only supported for activity records." });
+  let allowedTaskIds: readonly string[];
+  if (record.itemType === "activity") {
+    const activity = activities.find(({ id }) => id === record.itemId);
+    allowedTaskIds = activity?.id === "A01"
+      ? a01TaskIds
+      : activity?.investigationTasks?.map(({ id }) => id) ?? [];
+  } else if (record.itemType === "project" || record.itemType === "small_project") {
+    allowedTaskIds = projectMilestones
+      .filter(({ projectId }) => projectId === record.itemId)
+      .map(({ id }) => id);
+  } else {
+    context.addIssue({ code: "custom", path: ["taskObservations"], message: "Task observations are only supported for activities and project checkpoints." });
     return;
   }
-  const activity = activities.find(({ id }) => id === record.itemId);
-  const allowedTaskIds: readonly string[] = activity?.id === "A01"
-    ? a01TaskIds
-    : activity?.investigationTasks?.map(({ id }) => id) ?? [];
   const taskIds = Object.keys(record.taskObservations);
   if (taskIds.some((taskId) => !allowedTaskIds.includes(taskId))) {
     context.addIssue({ code: "custom", path: ["taskObservations"], message: "Choose a task from this activity." });

@@ -72,7 +72,11 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
           <h4>Build checkpoints</h4>
           <ul>{milestones.map((milestone, index) => <li key={milestone.id}>
             <span className="project-checkpoint-review-number">{String(index + 1).padStart(2, "0")}</span>
-            <span><strong>{milestone.label}</strong><small>{completedMilestones.has(milestone.id) ? "Self-reported complete" : "Not marked complete"}</small></span>
+            <span className="project-checkpoint-review-copy">
+              <strong>{milestone.id} · {milestone.label}</strong>
+              <small>{completedMilestones.has(milestone.id) ? "Self-reported complete" : "Not marked complete"}{record?.taskObservations?.[milestone.id]?.trim() ? " · Note saved" : " · No checkpoint note"}</small>
+              {record?.taskObservations?.[milestone.id]?.trim() && <p className="project-checkpoint-review-note">{record.taskObservations[milestone.id]}</p>}
+            </span>
             <a href={`/projects/${projectId}#milestone-${milestone.id}`}>Review checkpoint</a>
           </li>)}</ul>
         </div>

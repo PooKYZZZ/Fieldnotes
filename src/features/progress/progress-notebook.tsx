@@ -6,7 +6,7 @@ import { ArrowUpRight, NotebookPen, PencilLine, RefreshCw, Search, ShieldCheck }
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
 
-export type NotebookItem = { itemType: ProgressRecord["itemType"]; itemId: string; label: string; href: string; editHref?: string; editLabel?: string; kind: string; investigationTasks?: { id: string; title: string }[] };
+export type NotebookItem = { itemType: ProgressRecord["itemType"]; itemId: string; label: string; href: string; editHref?: string; editLabel?: string; kind: string; investigationTasks?: { id: string; title: string }[]; checkpointTasks?: { id: string; title: string }[] };
 type ItemFilter = "all" | "module" | "lesson" | "activity" | "project" | "milestone";
 
 const itemFilters: { value: ItemFilter; label: string }[] = [
@@ -138,6 +138,12 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
             {item.investigationTasks.map((task) => {
               const observation = record.taskObservations?.[task.id]?.trim();
               return observation ? <p className="progress-record-detail" key={task.id}><strong>{task.title}:</strong> {observation}</p> : null;
+            })}
+          </div>}
+          {(record.itemType === "project" || record.itemType === "small_project") && item.checkpointTasks && record.taskObservations && <div className="progress-record-task-observations" aria-label={`Saved ${record.itemId} checkpoint notes`}>
+            {item.checkpointTasks.map((checkpoint) => {
+              const observation = record.taskObservations?.[checkpoint.id]?.trim();
+              return observation ? <p className="progress-record-detail" key={checkpoint.id}><strong>{checkpoint.id} · {checkpoint.title}:</strong> {observation}</p> : null;
             })}
           </div>}
           {record.notes && <p className="progress-record-note">{record.notes}</p>}

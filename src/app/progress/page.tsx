@@ -28,11 +28,13 @@ export default function ProgressPage() {
     }),
     ...smallProjects.map((item) => {
       const href = `/projects/${item.id}`;
-      return { itemType: "small_project" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#progress-editor-${item.id}`, kind: "Small project" };
+      const checkpointTasks = projectMilestones.filter((milestone) => milestone.projectId === item.id).map(({ id, label }) => ({ id, title: label }));
+      return { itemType: "small_project" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#project-build`, kind: "Small project", checkpointTasks };
     }),
     ...majorProjects.map((item) => {
       const href = `/projects/${item.id}`;
-      return { itemType: "project" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#progress-editor-${item.id}`, kind: "Major project" };
+      const checkpointTasks = projectMilestones.filter((milestone) => milestone.projectId === item.id).map(({ id, label }) => ({ id, title: label }));
+      return { itemType: "project" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#project-build`, kind: "Major project", checkpointTasks };
     }),
     ...projectMilestones.map((item) => ({ itemType: "milestone" as const, itemId: item.id, label: `${item.id} · ${item.label}`, href: `/projects/${item.projectId}`, editHref: `/projects/${item.projectId}#milestone-${item.id}`, editLabel: "Open milestone", kind: "Project milestone" })),
   ];

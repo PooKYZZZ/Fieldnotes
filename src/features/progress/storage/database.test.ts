@@ -153,6 +153,38 @@ describe("local progress database", () => {
     reopened.close();
   });
 
+  it("stores checkpoint observations alongside the same project record and existing notes", () => {
+    const databasePath = makePath();
+    const first = createProgressDatabase(databasePath, migrationDirectory);
+    const project: ProgressInput = {
+      ...record,
+      itemType: "project",
+      itemId: "P3",
+      status: "in_progress",
+      notes: "Existing project-wide design decision.",
+      evidence: "Existing end-to-end verification summary.",
+    };
+    first.save(project);
+    const updated = first.save({
+      ...project,
+      taskObservations: { C1: "Defined the release contract and measurable acceptance check." },
+    });
+    expect(updated).toMatchObject({
+      itemType: "project",
+      itemId: "P3",
+      notes: project.notes,
+      evidence: project.evidence,
+      taskObservations: { C1: "Defined the release contract and measurable acceptance check." },
+    });
+    expect(first.list()).toHaveLength(1);
+    first.close();
+
+    const reopened = createProgressDatabase(databasePath, migrationDirectory);
+    expect(reopened.find("project", "P3")).toMatchObject(updated);
+    expect(reopened.list()).toHaveLength(1);
+    reopened.close();
+  });
+
   it("merges a batch in one transaction while preserving unrelated saved items", () => {
     const database = createProgressDatabase(makePath(), migrationDirectory);
     database.save(record);

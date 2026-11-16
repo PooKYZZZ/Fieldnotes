@@ -20,6 +20,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
+  const [workbenchVisible, setWorkbenchVisible] = useState(false);
   const userSelectedRef = useRef(false);
   const notebookRef = useRef<HTMLElement>(null);
   const closeNotebookRef = useRef<HTMLButtonElement>(null);
@@ -108,6 +109,30 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
     };
   }, [mobileNotebookOpen]);
 
+  useEffect(() => {
+    let frame = 0;
+    const updateVisibility = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const buildTop = document.getElementById("project-build")?.getBoundingClientRect().top;
+        const reviewTop = document.getElementById("project-review")?.getBoundingClientRect().top;
+        const currentStageLine = Math.min(140, Math.max(72, window.innerHeight * 0.16));
+        setWorkbenchVisible(buildTop !== undefined && reviewTop !== undefined && buildTop <= currentStageLine && reviewTop > currentStageLine);
+      });
+    };
+    updateVisibility();
+    window.addEventListener("scroll", updateVisibility, { passive: true });
+    window.addEventListener("resize", updateVisibility);
+    window.addEventListener("hashchange", updateVisibility);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateVisibility);
+      window.removeEventListener("resize", updateVisibility);
+      window.removeEventListener("hashchange", updateVisibility);
+    };
+  }, []);
+
   async function toggle(milestone: ProjectMilestone) {
     const isComplete = completed.has(milestone.id);
     setSaving(milestone.id);
@@ -170,20 +195,27 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
       <div className="project-build-selector">
         <div className="project-build-progress-copy">
           <strong>{completedCount} of {milestones.length} checkpoints self-reported complete</strong>
-          <span>Choose any checkpoint; return to earlier decisions when the build changes.</span>
+          <span>Select a checkpoint to view its instructions and save a note against that exact step.</span>
         </div>
-        <label htmlFor={`project-checkpoint-${projectId}`}>Current checkpoint</label>
-        <select
-          id={`project-checkpoint-${projectId}`}
-          className="form-select"
-          value={activeMilestone?.id ?? ""}
-          disabled={!activeMilestone}
-          onChange={(event) => selectMilestone(event.target.value)}
-        >
-          {milestones.map((milestone, index) => <option key={milestone.id} value={milestone.id}>
-            {String(index + 1).padStart(2, "0")} · {milestone.id} · {milestone.label}{completed.has(milestone.id) ? " · self-reported complete" : ""}
-          </option>)}
-        </select>
+        <nav className="project-checkpoint-map" aria-label="Build checkpoints">
+          {milestones.map((milestone, index) => {
+            const current = milestone.id === activeMilestone?.id;
+            const isComplete = completed.has(milestone.id);
+            return <button
+              key={milestone.id}
+              className="project-checkpoint-map-item"
+              type="button"
+              aria-current={current ? "step" : undefined}
+              aria-pressed={current}
+              disabled={loading || loadError}
+              onClick={() => selectMilestone(milestone.id)}
+            >
+              <span className="project-checkpoint-map-number">{String(index + 1).padStart(2, "0")}</span>
+              <span className="project-checkpoint-map-copy"><strong>{milestone.id} · {milestone.label}</strong><small>{current ? "Current checkpoint" : isComplete ? "Self-reported complete" : "Not started"}</small></span>
+              {isComplete && <Check className="project-checkpoint-map-check" size={15} aria-hidden="true" />}
+            </button>;
+          })}
+        </nav>
       </div>
 
       {activeMilestone ? <article className="project-active-milestone" id={`milestone-${activeMilestone.id}`} aria-labelledby={`milestone-title-${activeMilestone.id}`}>
@@ -220,13 +252,13 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
       {!loading && !loadError && <p className="project-milestone-footnote"><Check size={13} aria-hidden="true" /> Checkpoint states are self-reported. Save the evidence and explain what each check supports in your project notebook.</p>}
     </div>
 
-    {mobileNotebookOpen && <button className="project-notebook-backdrop" type="button" aria-label="Close project notebook" onClick={() => setMobileNotebookOpen(false)} />}
+    {mobileNotebookOpen && <button className="project-notebook-backdrop" type="button" aria-label="Dismiss project notebook backdrop" onClick={() => setMobileNotebookOpen(false)} />}
     <aside ref={notebookRef} className={`project-notebook${mobileNotebookOpen ? " project-notebook--open" : ""}`} aria-label="Project notebook" role={mobileNotebookOpen ? "dialog" : undefined} aria-modal={mobileNotebookOpen || undefined}>
       <div className="project-notebook-mobile-head">
-        <div><p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared record</p><strong>Project notebook</strong></div>
+        <p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared project record</p>
         <button ref={closeNotebookRef} className="project-notebook-close" type="button" onClick={() => setMobileNotebookOpen(false)}><X size={16} aria-hidden="true" /> Close</button>
       </div>
-      <button
+      {workbenchVisible && <button
         ref={notebookToggleRef}
         className="project-notebook-mobile-toggle"
         type="button"
@@ -234,14 +266,20 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
         onClick={() => setMobileNotebookOpen(true)}
       >
         <BookOpen size={17} aria-hidden="true" /> Open project notebook <span>One saved record</span>
-      </button>
+      </button>}
       <div className="project-notebook-content">
         {activeMilestone && <div className="project-notebook-context" aria-live="polite">
-          <p className="eyebrow">Notes for the selected checkpoint</p>
+          <p className="eyebrow">Checkpoint-specific note</p>
           <strong>{activeMilestone.id} · {activeMilestone.label}</strong>
-          <span>This notebook saves the shared project record. Label the checkpoint in your note when it helps explain your evidence.</span>
+          <span>The note below is saved to this checkpoint inside the same project record.</span>
         </div>}
-        <ProgressEditor itemType={projectType} itemId={projectId} title="Project notebook" variant="project-workbench" />
+        <ProgressEditor
+          itemType={projectType}
+          itemId={projectId}
+          title="Project notebook"
+          variant="project-workbench"
+          checkpointContext={activeMilestone ? { id: activeMilestone.id, label: activeMilestone.label } : undefined}
+        />
       </div>
     </aside>
   </div>;

@@ -40,11 +40,11 @@ function fromRow(row: typeof schema.learningProgress.$inferSelect): ProgressReco
     repositoryUrl: row.repositoryUrl,
     updatedAt: row.updatedAt,
   };
-  if (row.itemType === "activity") {
+  if (row.itemType === "activity" || row.itemType === "project" || row.itemType === "small_project") {
     const taskObservations: unknown = JSON.parse(row.taskObservations);
     if (typeof taskObservations !== "object" || taskObservations === null || Array.isArray(taskObservations)
       || !Object.values(taskObservations).every((value) => typeof value === "string")) {
-      throw new Error(`The saved ${row.itemId} task observations are invalid.`);
+      throw new Error(`The saved ${row.itemType} ${row.itemId} task observations are invalid.`);
     }
     record.taskObservations = taskObservations as Record<string, string>;
   }

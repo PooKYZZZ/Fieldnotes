@@ -569,9 +569,9 @@ body { font-size: 15px; }
 .small-tool-card p { display: -webkit-box; overflow: hidden; margin: 0 0 10px; color: #5c6c70; font-size: 13px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .small-tool-footer { margin-top: auto; font-size: 10px; }
 .project-card-meta { display: flex; flex-wrap: wrap; gap: 5px; margin: 1px 0 8px; }
-.project-card-meta span { border-radius: 99px; background: #f1f5f3; padding: 4px 7px; color: #586c6d; font-size: 9px; line-height: 1.25; }
+.project-card-meta span { border-radius: 99px; background: #f1f5f3; padding: 4px 7px; color: #586c6d; font-size: 10px; line-height: 1.25; }
 .project-card-meta span:first-child { background: #eaf3f0; color: #3e7068; font-weight: 750; }
-.project-card-tools { display: -webkit-box; overflow: hidden; margin: 0 0 8px; color: #657478; font-size: 10px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.project-card-tools { display: -webkit-box; overflow: hidden; margin: 0 0 8px; color: #657478; font-size: 11px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .small-project-next { display: grid; gap: 2px; margin-top: 4px; border-left: 2px solid #7fa69b; padding-left: 9px; }
 .small-project-next span { color: #567b75; font-size: 9px; font-weight: 750; text-transform: uppercase; }
 .small-project-next strong { color: #42595b; font-size: 11px; }
@@ -1646,12 +1646,14 @@ body { font-size: 15px; }
 .project-workflow-nav { position: sticky; z-index: 12; top: 0; margin-bottom: 0; background: #fff; }
 .project-workflow-nav a { flex: initial; min-height: 52px; }
 .project-workflow-nav a strong { font-size: 12px; line-height: 1.3; }
+.project-workflow-nav a[aria-current="step"] { background: #eef5f1; color: #294f4b; }
+.project-workflow-nav a[aria-current="step"] > span { border-color: #91b3a7; background: #dcece4; color: #245d52; }
 .project-experience-content { min-width: 0; }
-.project-stage { padding: 28px 0 31px; scroll-margin-top: 60px; }
+.project-stage { padding: 28px 0 31px; scroll-margin-top: 86px; }
 .project-stage > .eyebrow { margin-bottom: 5px; color: #4e7770; font-size: 11px; letter-spacing: .055em; }
 .project-stage > h2 { margin-bottom: 12px; color: #29494a; font-size: 24px; }
 .project-stage-intro { max-width: 95ch; margin: 0; color: #536668; font-size: 14px; line-height: 1.55; }
-.project-content-block { max-width: 110ch; margin-top: 19px; border-bottom: 1px solid #e1e8e5; padding: 0 0 16px; scroll-margin-top: 60px; }
+.project-content-block { max-width: 110ch; margin-top: 19px; border-bottom: 1px solid #e1e8e5; padding: 0 0 16px; scroll-margin-top: 86px; }
 .project-content-block:last-child { border-bottom: 0; padding-bottom: 0; }
 .project-content-block > .eyebrow { margin: 0 0 4px; color: #52746d; font-size: 10px; letter-spacing: .04em; }
 .project-content-block > h3 { margin: 0 0 7px; color: #365653; font-size: 16px; }
@@ -1661,12 +1663,22 @@ body { font-size: 15px; }
 .project-build-stage { padding-bottom: 38px; }
 .project-build-workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(340px, .95fr); align-items: start; gap: clamp(24px, 2.6vw, 38px); margin-top: 16px; }
 .project-build-main, .project-notebook { min-width: 0; }
-.project-build-selector { display: grid; gap: 7px; max-width: 780px; border-bottom: 1px solid #e1e8e5; padding-bottom: 14px; }
+.project-build-selector { display: grid; gap: 10px; border-bottom: 1px solid #e1e8e5; padding-bottom: 15px; }
 .project-build-progress-copy { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; margin-bottom: 2px; color: #526866; font-size: 11px; line-height: 1.45; }
 .project-build-progress-copy strong { color: #365653; font-size: 12px; }
-.project-build-selector > label { color: #365653; font-size: 12px; font-weight: 750; }
-.project-build-selector .form-select { min-height: 42px; border-color: #cfdcd6; background: #fff; font-size: 13px; }
-.project-active-milestone { max-width: 110ch; padding: 18px 0 0; scroll-margin-top: 60px; }
+.project-checkpoint-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.project-checkpoint-map-item { display: grid; min-width: 0; min-height: 55px; grid-template-columns: 27px minmax(0, 1fr) 16px; align-items: center; gap: 8px; border: 1px solid #dce5e1; border-radius: 8px; background: #fff; padding: 8px 10px; color: #415b5b; cursor: pointer; font: inherit; text-align: left; transition: border-color .15s ease, background .15s ease; }
+.project-checkpoint-map-item:hover { border-color: #a9c5ba; background: #f7faf8; }
+.project-checkpoint-map-item[aria-current="step"] { border-color: #8fb3a5; background: #edf5f0; box-shadow: inset 3px 0 #3d8171; }
+.project-checkpoint-map-item:focus-visible { outline: 2px solid #176b99; outline-offset: 2px; }
+.project-checkpoint-map-item:disabled { cursor: wait; opacity: .65; }
+.project-checkpoint-map-number { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid #d3e2dc; border-radius: 50%; background: #f4f8f5; color: #4d786e; font-size: 9px; font-weight: 800; }
+.project-checkpoint-map-copy { display: grid; gap: 3px; min-width: 0; }
+.project-checkpoint-map-copy strong { overflow: hidden; color: #385452; font-size: 11px; line-height: 1.3; text-overflow: ellipsis; }
+.project-checkpoint-map-copy small { color: #687976; font-size: 10px; line-height: 1.25; }
+.project-checkpoint-map-item[aria-current="step"] .project-checkpoint-map-copy small { color: #32685b; font-weight: 700; }
+.project-checkpoint-map-check { color: #39816e; }
+.project-active-milestone { max-width: 110ch; padding: 18px 0 0; scroll-margin-top: 86px; }
 .project-active-milestone-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 13px; }
 .project-active-milestone-heading .eyebrow { margin: 0 0 3px; color: #52746d; font-size: 10px; }
 .project-active-milestone-heading h3 { margin: 0; color: #29494a; font-size: 19px; line-height: 1.35; }
@@ -1689,9 +1701,9 @@ body { font-size: 15px; }
 .project-notebook { position: sticky; top: 72px; align-self: start; max-height: calc(100dvh - 88px); overflow-y: auto; }
 .project-notebook-mobile-toggle, .project-notebook-mobile-head { display: none; }
 .project-notebook-context { margin-bottom: 10px; border-left: 2px solid #91aaa2; padding: 2px 0 2px 10px; }
-.project-notebook-context .eyebrow { margin: 0 0 3px; color: #52746d; font-size: 9px; letter-spacing: .04em; }
+.project-notebook-context .eyebrow { display: flex; align-items: center; gap: 5px; margin: 0 0 3px; color: #52746d; font-size: 10px; letter-spacing: .04em; }
 .project-notebook-context strong { display: block; margin-bottom: 3px; color: #365653; font-size: 12px; line-height: 1.4; }
-.project-notebook-context > span { display: block; color: #647573; font-size: 10px; line-height: 1.4; }
+.project-notebook-context > span { display: block; color: #647573; font-size: 11px; line-height: 1.45; }
 .project-notebook-content .editor-card--project-workbench { margin: 0; border-color: #d5e2dc; background: #f5f8f6; padding: clamp(16px, 1.6vw, 22px); box-shadow: 0 5px 16px rgb(30 52 53 / 6%); }
 .project-notebook-content .editor-card--project-workbench h3 { margin: 0 0 4px; color: #29494a; font-size: 19px; }
 .project-notebook-content .editor-card--project-workbench .editor-intro { margin-bottom: 12px; color: #596d6b; font-size: 12px; line-height: 1.45; }
@@ -1704,6 +1716,14 @@ body { font-size: 15px; }
 .project-notebook-content .editor-card--project-workbench .form-textarea { border-color: #cfdcd6; background: #fff; font-size: 13px; }
 .project-notebook-content .editor-card--project-workbench .form-textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
 .project-notebook-content .editor-card--project-workbench .progress-long-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.project-notebook-content .project-checkpoint-observation-field .form-textarea { min-height: 126px; }
+.project-notebook-content .project-checkpoint-observation-field label span { color: #52746d; font-size: 10px; font-weight: 700; }
+.project-checkpoint-observation-count { display: block; text-align: right; }
+.progress-project-wide-details { margin: 3px 0 13px; border-top: 1px solid #dce5e1; border-bottom: 1px solid #dce5e1; padding: 9px 0 2px; }
+.progress-project-wide-details > summary { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 8px; color: #3e625d; cursor: pointer; font-size: 11px; font-weight: 750; list-style-position: inside; }
+.progress-project-wide-details > summary span { margin-left: auto; color: #71817e; font-size: 10px; font-weight: 550; }
+.project-stage-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 23px; border-top: 1px solid #e1e8e5; padding-top: 14px; }
+.project-stage-actions .button { min-height: 40px; }
 .project-notebook-content .editor-card--project-workbench .form-footer { align-items: flex-start; flex-direction: column; margin-top: 8px; }
 .project-notebook-content .editor-card--project-workbench .form-footer .button { width: 100%; min-height: 42px; justify-content: center; }
 .project-notebook-backdrop { display: none; }
@@ -1722,9 +1742,10 @@ body { font-size: 15px; }
 .project-checkpoint-review ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .project-checkpoint-review li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; border-top: 1px solid #edf1ef; padding: 8px 0; }
 .project-checkpoint-review-number { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid #d4e4dc; border-radius: 50%; background: #f2f7f4; color: #4d7b70; font-size: 9px; font-weight: 800; }
-.project-checkpoint-review li > span:nth-child(2) { display: grid; gap: 2px; min-width: 0; }
+.project-checkpoint-review-copy { display: grid; gap: 2px; min-width: 0; }
 .project-checkpoint-review li strong { color: #40575b; font-size: 11px; line-height: 1.35; }
 .project-checkpoint-review li small { color: #6a7a78; font-size: 10px; }
+.project-checkpoint-review-note { margin: 5px 0 1px; color: #4d6263; font-size: 11px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .project-checkpoint-review li a { font-size: 10px; font-weight: 700; white-space: nowrap; }
 .project-record-review-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 20px; border: 1px solid #dce5e1; border-radius: 10px; background: #fff; padding: 15px; }
 .project-record-review-fields > div { min-width: 0; }
@@ -1770,17 +1791,23 @@ body { font-size: 15px; }
   .project-workflow-nav a { min-height: 44px; gap: 7px; padding: 7px 2px; }
   .project-workflow-nav a > span { width: 22px; height: 22px; }
   .project-workflow-nav a strong { font-size: 10px; }
-  .project-stage { padding: 22px 0 24px; }
-  .project-stage, .project-content-block, .project-active-milestone, .project-record-review { scroll-margin-top: 96px; }
+  .project-stage { padding: 22px 0 24px; scroll-margin-top: 104px; }
+  .project-content-block, .project-active-milestone, .project-record-review { scroll-margin-top: 104px; }
   .project-stage > h2 { font-size: 21px; }
   .project-stage-intro, .project-content-block > .article-copy { font-size: 13px; }
   .project-content-block { margin-top: 15px; padding-bottom: 12px; }
   .project-content-block > h3 { font-size: 15px; }
-  .project-build-selector .form-select { font-size: 12px; }
+  .project-checkpoint-map { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .project-checkpoint-map-item { min-height: 49px; }
+  .project-checkpoint-map-copy strong { font-size: 12px; }
+  .project-checkpoint-map-copy small { font-size: 10px; }
   .project-active-milestone-heading { align-items: flex-start; flex-direction: column; gap: 9px; }
   .project-active-milestone-heading h3 { font-size: 17px; }
   .project-active-milestone-guidance .article-copy { font-size: 13px; }
   .project-milestone-navigation .button { min-height: 40px; padding: 8px 10px; font-size: 11px; }
+  .project-stage-actions { align-items: stretch; flex-direction: column; }
+  .project-stage-actions > span { display: none; }
+  .project-stage-actions .button { width: 100%; justify-content: center; }
   .project-notebook-mobile-toggle { inset-inline: 10px; min-height: 48px; padding-inline: 11px; font-size: 12px; }
   .project-notebook-mobile-toggle span { font-size: 10px; }
   .project-notebook--open { inset-inline: 10px; }
@@ -1792,4 +1819,12 @@ body { font-size: 15px; }
   .project-record-review-state { align-items: flex-start; flex-direction: column; gap: 5px; }
   .project-detail-footer { align-items: stretch; flex-direction: column; }
   .project-detail-footer > * { justify-content: center; }
+}
+
+@media (min-width: 381px) and (max-width: 620px) {
+  .project-checkpoint-map { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .project-checkpoint-map-item { min-height: 60px; grid-template-columns: 23px minmax(0, 1fr) 14px; gap: 5px; padding: 7px; }
+  .project-checkpoint-map-number { width: 22px; height: 22px; }
+  .project-checkpoint-map-copy strong { font-size: 11px; }
+  .project-checkpoint-map-copy small { font-size: 9px; }
 }
