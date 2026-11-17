@@ -49,3 +49,4 @@ next-env.d.ts
 /.codex/
 /.codex-attachments/
 /.codex-remote-attachments/
+tmp/*

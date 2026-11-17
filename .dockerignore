@@ -16,3 +16,4 @@ coverage
 *.sqlite-shm
 *.sqlite-wal
 AGENTS.md
+tmp/*
