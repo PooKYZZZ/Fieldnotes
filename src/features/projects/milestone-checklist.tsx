@@ -20,7 +20,6 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
-  const [workbenchVisible, setWorkbenchVisible] = useState(false);
   const userSelectedRef = useRef(false);
   const notebookRef = useRef<HTMLElement>(null);
   const closeNotebookRef = useRef<HTMLButtonElement>(null);
@@ -109,30 +108,6 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
     };
   }, [mobileNotebookOpen]);
 
-  useEffect(() => {
-    let frame = 0;
-    const updateVisibility = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const buildTop = document.getElementById("project-build")?.getBoundingClientRect().top;
-        const reviewTop = document.getElementById("project-review")?.getBoundingClientRect().top;
-        const currentStageLine = Math.min(140, Math.max(72, window.innerHeight * 0.16));
-        setWorkbenchVisible(buildTop !== undefined && reviewTop !== undefined && buildTop <= currentStageLine && reviewTop > currentStageLine);
-      });
-    };
-    updateVisibility();
-    window.addEventListener("scroll", updateVisibility, { passive: true });
-    window.addEventListener("resize", updateVisibility);
-    window.addEventListener("hashchange", updateVisibility);
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", updateVisibility);
-      window.removeEventListener("resize", updateVisibility);
-      window.removeEventListener("hashchange", updateVisibility);
-    };
-  }, []);
-
   async function toggle(milestone: ProjectMilestone) {
     const isComplete = completed.has(milestone.id);
     setSaving(milestone.id);
@@ -179,6 +154,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
     userSelectedRef.current = true;
     setSelectedId(id);
     setMessage("");
+    window.history.replaceState(null, "", `#milestone-${id}`);
   }
 
   const selectedIndex = Math.max(0, milestones.findIndex(({ id }) => id === selectedId));
@@ -194,8 +170,8 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
     <div className="project-build-main">
       <div className="project-build-selector">
         <div className="project-build-progress-copy">
-          <strong>{completedCount} of {milestones.length} checkpoints self-reported complete</strong>
-          <span>Select a checkpoint to view its instructions and save a note against that exact step.</span>
+          <strong>{milestones.length} build checkpoints</strong>
+          <span>{completedCount} self-reported complete</span>
         </div>
         <nav className="project-checkpoint-map" aria-label="Build checkpoints">
           {milestones.map((milestone, index) => {
@@ -207,12 +183,13 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
               type="button"
               aria-current={current ? "step" : undefined}
               aria-pressed={current}
+              aria-label={`${milestone.id}: ${milestone.label}. ${current ? "Current checkpoint" : isComplete ? "Self-reported complete" : "Not started"}`}
+              title={`${milestone.id} · ${milestone.label}`}
+              data-complete={isComplete || undefined}
               disabled={loading || loadError}
               onClick={() => selectMilestone(milestone.id)}
             >
               <span className="project-checkpoint-map-number">{String(index + 1).padStart(2, "0")}</span>
-              <span className="project-checkpoint-map-copy"><strong>{milestone.id} · {milestone.label}</strong><small>{current ? "Current checkpoint" : isComplete ? "Self-reported complete" : "Not started"}</small></span>
-              {isComplete && <Check className="project-checkpoint-map-check" size={15} aria-hidden="true" />}
             </button>;
           })}
         </nav>
@@ -250,6 +227,16 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
       {!loading && loadError && <button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} aria-hidden="true" /> Try loading checkpoints again</button>}
       <p className="form-message project-checkpoint-message" role="status" aria-live="polite">{message}</p>
       {!loading && !loadError && <p className="project-milestone-footnote"><Check size={13} aria-hidden="true" /> Checkpoint states are self-reported. Save the evidence and explain what each check supports in your project notebook.</p>}
+      <button
+        ref={notebookToggleRef}
+        className="project-notebook-mobile-toggle"
+        type="button"
+        aria-label="Open project notebook for this checkpoint"
+        aria-expanded={mobileNotebookOpen}
+        onClick={() => setMobileNotebookOpen(true)}
+      >
+        <BookOpen size={16} aria-hidden="true" /> Record a note for this checkpoint
+      </button>
     </div>
 
     {mobileNotebookOpen && <button className="project-notebook-backdrop" type="button" aria-label="Dismiss project notebook backdrop" onClick={() => setMobileNotebookOpen(false)} />}
@@ -258,15 +245,6 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
         <p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared project record</p>
         <button ref={closeNotebookRef} className="project-notebook-close" type="button" onClick={() => setMobileNotebookOpen(false)}><X size={16} aria-hidden="true" /> Close</button>
       </div>
-      {workbenchVisible && <button
-        ref={notebookToggleRef}
-        className="project-notebook-mobile-toggle"
-        type="button"
-        aria-expanded={mobileNotebookOpen}
-        onClick={() => setMobileNotebookOpen(true)}
-      >
-        <BookOpen size={17} aria-hidden="true" /> Open project notebook <span>One saved record</span>
-      </button>}
       <div className="project-notebook-content">
         {activeMilestone && <div className="project-notebook-context" aria-live="polite">
           <p className="eyebrow">Checkpoint-specific note</p>

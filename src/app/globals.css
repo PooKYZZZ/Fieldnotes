@@ -1637,18 +1637,24 @@ body { font-size: 15px; }
 
 /* Project pages share the Activities learning flow while keeping project-sized build work and one saved notebook. */
 .project-experience { width: min(100%, 1440px); }
-.project-detail-header { align-items: flex-end; margin-bottom: 19px; }
+.project-detail-header { align-items: flex-start; margin-bottom: 10px; }
 .project-detail-header h1 { margin-bottom: 0; }
-.project-detail-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
-.project-detail-meta span { display: inline-flex; min-height: 31px; align-items: center; gap: 6px; border: 1px solid #dbe4e0; border-radius: 99px; background: #fff; padding: 5px 9px; color: #4e6868; font-size: 10px; font-weight: 650; }
-.project-detail-meta svg { flex: 0 0 auto; color: #51847b; }
-.project-header-action { flex: 0 0 auto; }
+.project-detail-meta { margin: 7px 0 0; color: #5b6f70; font-size: 13px; line-height: 1.45; }
+.project-flow { min-width: 0; }
 .project-workflow-nav { position: sticky; z-index: 12; top: 0; margin-bottom: 0; background: #fff; }
-.project-workflow-nav a { flex: initial; min-height: 52px; }
-.project-workflow-nav a strong { font-size: 12px; line-height: 1.3; }
-.project-workflow-nav a[aria-current="step"] { background: #eef5f1; color: #294f4b; }
-.project-workflow-nav a[aria-current="step"] > span { border-color: #91b3a7; background: #dcece4; color: #245d52; }
-.project-experience-content { min-width: 0; }
+.project-workflow-nav button { display: flex; min-width: 0; min-height: 52px; flex: initial; align-items: center; gap: 9px; border: 0; border-radius: 5px; background: transparent; padding: 8px 5px; color: #526b68; cursor: pointer; font: inherit; text-align: left; }
+.project-workflow-nav button > span { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border: 1px solid #c4d7d0; border-radius: 50%; background: #eef5f1; color: #356c63; font-size: 10px; font-weight: 800; }
+.project-workflow-nav button strong { font-size: 12px; line-height: 1.3; }
+.project-workflow-nav button:hover { color: #1f4b49; }
+.project-workflow-nav button:hover > span { border-color: #8aaea4; background: #e4f0eb; }
+.project-workflow-nav button[aria-selected="true"] { background: #eef5f1; color: #294f4b; }
+.project-workflow-nav button[aria-selected="true"] > span { border-color: #91b3a7; background: #dcece4; color: #245d52; }
+.project-workflow-nav button:focus-visible { outline: 2px solid #176b99; outline-offset: 2px; }
+.project-stage-panels { min-width: 0; }
+.project-stage-panel { min-width: 0; scroll-margin-top: 66px; }
+.project-stage-panel[hidden] { display: none !important; }
+.project-stage-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 0; border-top: 1px solid #e1e8e5; padding-top: 13px; }
+.project-stage-actions .button { min-height: 42px; }
 .project-stage { padding: 28px 0 31px; scroll-margin-top: 86px; }
 .project-stage > .eyebrow { margin-bottom: 5px; color: #4e7770; font-size: 11px; letter-spacing: .055em; }
 .project-stage > h2 { margin-bottom: 12px; color: #29494a; font-size: 24px; }
@@ -1666,18 +1672,14 @@ body { font-size: 15px; }
 .project-build-selector { display: grid; gap: 10px; border-bottom: 1px solid #e1e8e5; padding-bottom: 15px; }
 .project-build-progress-copy { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; margin-bottom: 2px; color: #526866; font-size: 11px; line-height: 1.45; }
 .project-build-progress-copy strong { color: #365653; font-size: 12px; }
-.project-checkpoint-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-.project-checkpoint-map-item { display: grid; min-width: 0; min-height: 55px; grid-template-columns: 27px minmax(0, 1fr) 16px; align-items: center; gap: 8px; border: 1px solid #dce5e1; border-radius: 8px; background: #fff; padding: 8px 10px; color: #415b5b; cursor: pointer; font: inherit; text-align: left; transition: border-color .15s ease, background .15s ease; }
+.project-checkpoint-map { display: grid; grid-template-columns: repeat(8, minmax(0, 36px)); align-items: center; gap: 7px; }
+.project-checkpoint-map-item { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #dce5e1; border-radius: 50%; background: #fff; color: #526b68; cursor: pointer; font: inherit; transition: border-color .15s ease, background .15s ease; }
 .project-checkpoint-map-item:hover { border-color: #a9c5ba; background: #f7faf8; }
 .project-checkpoint-map-item[aria-current="step"] { border-color: #8fb3a5; background: #edf5f0; box-shadow: inset 3px 0 #3d8171; }
+.project-checkpoint-map-item[data-complete="true"] { border-color: #a7cbbb; background: #eaf4ee; color: #27604e; }
 .project-checkpoint-map-item:focus-visible { outline: 2px solid #176b99; outline-offset: 2px; }
 .project-checkpoint-map-item:disabled { cursor: wait; opacity: .65; }
-.project-checkpoint-map-number { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid #d3e2dc; border-radius: 50%; background: #f4f8f5; color: #4d786e; font-size: 9px; font-weight: 800; }
-.project-checkpoint-map-copy { display: grid; gap: 3px; min-width: 0; }
-.project-checkpoint-map-copy strong { overflow: hidden; color: #385452; font-size: 11px; line-height: 1.3; text-overflow: ellipsis; }
-.project-checkpoint-map-copy small { color: #687976; font-size: 10px; line-height: 1.25; }
-.project-checkpoint-map-item[aria-current="step"] .project-checkpoint-map-copy small { color: #32685b; font-weight: 700; }
-.project-checkpoint-map-check { color: #39816e; }
+.project-checkpoint-map-number { font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .project-active-milestone { max-width: 110ch; padding: 18px 0 0; scroll-margin-top: 86px; }
 .project-active-milestone-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 13px; }
 .project-active-milestone-heading .eyebrow { margin: 0 0 3px; color: #52746d; font-size: 10px; }
@@ -1722,12 +1724,13 @@ body { font-size: 15px; }
 .progress-project-wide-details { margin: 3px 0 13px; border-top: 1px solid #dce5e1; border-bottom: 1px solid #dce5e1; padding: 9px 0 2px; }
 .progress-project-wide-details > summary { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 8px; color: #3e625d; cursor: pointer; font-size: 11px; font-weight: 750; list-style-position: inside; }
 .progress-project-wide-details > summary span { margin-left: auto; color: #71817e; font-size: 10px; font-weight: 550; }
-.project-stage-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 23px; border-top: 1px solid #e1e8e5; padding-top: 14px; }
-.project-stage-actions .button { min-height: 40px; }
 .project-notebook-content .editor-card--project-workbench .form-footer { align-items: flex-start; flex-direction: column; margin-top: 8px; }
 .project-notebook-content .editor-card--project-workbench .form-footer .button { width: 100%; min-height: 42px; justify-content: center; }
 .project-notebook-backdrop { display: none; }
 .project-review-stage { padding-bottom: 12px; }
+.project-supporting-details { margin-top: 20px; border-top: 1px solid #e1e8e5; border-bottom: 1px solid #e1e8e5; }
+.project-supporting-details > summary { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 10px; color: #3e625d; cursor: pointer; font-size: 13px; font-weight: 700; }
+.project-supporting-details-content { padding: 0 0 17px; }
 .project-record-review { margin-top: 23px; border-top: 1px solid #dce5e1; padding-top: 19px; scroll-margin-top: 60px; }
 .project-record-review-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
 .project-record-review-heading .eyebrow { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; color: #52746d; font-size: 10px; }
@@ -1747,6 +1750,8 @@ body { font-size: 15px; }
 .project-checkpoint-review li small { color: #6a7a78; font-size: 10px; }
 .project-checkpoint-review-note { margin: 5px 0 1px; color: #4d6263; font-size: 11px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .project-checkpoint-review li a { font-size: 10px; font-weight: 700; white-space: nowrap; }
+.project-checkpoint-review-summary { margin: 0 0 8px; color: #617370; font-size: 11px; line-height: 1.45; }
+.project-checkpoint-review-empty { margin: 0; color: #5c706e; font-size: 12px; line-height: 1.5; }
 .project-record-review-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 20px; border: 1px solid #dce5e1; border-radius: 10px; background: #fff; padding: 15px; }
 .project-record-review-fields > div { min-width: 0; }
 .project-record-review-fields h4 { margin: 0 0 5px; color: #365653; font-size: 12px; }
@@ -1758,19 +1763,17 @@ body { font-size: 15px; }
 
 @media (max-width: 1180px) {
   .project-build-workspace { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .project-notebook { position: static; max-height: none; overflow: visible; }
-  .project-notebook-mobile-toggle { position: fixed; z-index: 58; inset: auto 14px calc(12px + env(safe-area-inset-bottom)) 14px; display: flex; min-height: 50px; align-items: center; gap: 8px; border: 1px solid #cfdcd6; border-radius: 10px; background: #fff; padding: 9px 13px; color: #365653; box-shadow: 0 6px 22px rgb(21 44 44 / 16%); cursor: pointer; font: inherit; font-size: 13px; font-weight: 750; text-align: left; }
-  .project-notebook-mobile-toggle span { margin-left: auto; color: #617170; font-size: 11px; font-weight: 550; }
+  .project-notebook { display: none; position: static; max-height: none; overflow: visible; }
+  .project-notebook-mobile-toggle { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; gap: 7px; margin-top: 13px; border: 1px solid #cfdcd6; border-radius: 8px; background: #fff; padding: 9px 12px; color: #365653; box-shadow: 0 2px 8px rgb(21 44 44 / 6%); cursor: pointer; font: inherit; font-size: 12px; font-weight: 750; }
   .project-notebook-content { display: none; }
   .project-notebook--open { position: fixed; z-index: 60; inset: auto 14px calc(10px + env(safe-area-inset-bottom)); display: grid; grid-template-rows: auto minmax(0, 1fr); height: min(84dvh, 760px); max-height: min(84dvh, 760px); overflow: hidden; border: 1px solid #cddbd5; border-radius: 14px; background: #fff; padding: 8px; box-shadow: 0 15px 45px rgb(21 44 44 / 25%); }
-  .project-notebook-mobile-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 5px 9px; }
+  .project-notebook--open .project-notebook-mobile-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 5px 9px; }
   .project-notebook-mobile-head .eyebrow { display: flex; align-items: center; gap: 5px; margin: 0 0 2px; font-size: 9px; }
   .project-notebook-mobile-head strong { color: #29494a; font-size: 14px; }
   .project-notebook-close { display: inline-flex; min-height: 38px; align-items: center; gap: 5px; border: 0; border-radius: 7px; background: transparent; padding: 7px 9px; color: #456965; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
-  .project-notebook-content, .project-notebook--open .project-notebook-content { display: block; min-height: 0; height: 100%; overflow-y: auto; }
+  .project-notebook--open .project-notebook-content { display: block; min-height: 0; height: 100%; overflow-y: auto; }
   .project-notebook--open .editor-card--project-workbench { border: 0; border-radius: 9px; background: #f5f8f6; padding: 13px; box-shadow: none; }
   .project-notebook--open .form-footer { position: sticky; bottom: 0; border-top: 1px solid #d9e3de; background: #f5f8f6; padding: 10px 0 0; }
-  .project-notebook--open .project-notebook-mobile-toggle { display: none; }
   .project-notebook-backdrop { position: fixed; z-index: 59; inset: 0; display: block; border: 0; background: rgb(21 44 44 / 45%); }
   .project-build-stage { padding-bottom: 78px; }
 }
@@ -1784,23 +1787,19 @@ body { font-size: 15px; }
 @media (max-width: 620px) {
   .project-detail-header { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
   .project-detail-header h1 { font-size: 28px; }
-  .project-detail-meta { gap: 5px; margin-top: 10px; }
-  .project-detail-meta span { min-height: 29px; font-size: 9px; }
-  .project-header-action { min-height: 42px; }
+  .project-detail-meta { margin-top: 6px; font-size: 12px; }
   .project-workflow-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 9px; margin-bottom: 0; }
-  .project-workflow-nav a { min-height: 44px; gap: 7px; padding: 7px 2px; }
-  .project-workflow-nav a > span { width: 22px; height: 22px; }
-  .project-workflow-nav a strong { font-size: 10px; }
+  .project-workflow-nav button { min-height: 44px; gap: 7px; padding: 7px 2px; }
+  .project-workflow-nav button > span { width: 22px; height: 22px; }
+  .project-workflow-nav button strong { font-size: 10px; }
   .project-stage { padding: 22px 0 24px; scroll-margin-top: 104px; }
   .project-content-block, .project-active-milestone, .project-record-review { scroll-margin-top: 104px; }
   .project-stage > h2 { font-size: 21px; }
   .project-stage-intro, .project-content-block > .article-copy { font-size: 13px; }
   .project-content-block { margin-top: 15px; padding-bottom: 12px; }
   .project-content-block > h3 { font-size: 15px; }
-  .project-checkpoint-map { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .project-checkpoint-map-item { min-height: 49px; }
-  .project-checkpoint-map-copy strong { font-size: 12px; }
-  .project-checkpoint-map-copy small { font-size: 10px; }
+  .project-checkpoint-map { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+  .project-checkpoint-map-item { width: 100%; max-width: 36px; height: auto; aspect-ratio: 1; justify-self: start; }
   .project-active-milestone-heading { align-items: flex-start; flex-direction: column; gap: 9px; }
   .project-active-milestone-heading h3 { font-size: 17px; }
   .project-active-milestone-guidance .article-copy { font-size: 13px; }
@@ -1808,8 +1807,6 @@ body { font-size: 15px; }
   .project-stage-actions { align-items: stretch; flex-direction: column; }
   .project-stage-actions > span { display: none; }
   .project-stage-actions .button { width: 100%; justify-content: center; }
-  .project-notebook-mobile-toggle { inset-inline: 10px; min-height: 48px; padding-inline: 11px; font-size: 12px; }
-  .project-notebook-mobile-toggle span { font-size: 10px; }
   .project-notebook--open { inset-inline: 10px; }
   .project-record-review-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
   .project-record-review-fields { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 13px; }
@@ -1822,9 +1819,5 @@ body { font-size: 15px; }
 }
 
 @media (min-width: 381px) and (max-width: 620px) {
-  .project-checkpoint-map { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .project-checkpoint-map-item { min-height: 60px; grid-template-columns: 23px minmax(0, 1fr) 14px; gap: 5px; padding: 7px; }
-  .project-checkpoint-map-number { width: 22px; height: 22px; }
-  .project-checkpoint-map-copy strong { font-size: 11px; }
-  .project-checkpoint-map-copy small { font-size: 9px; }
+  .project-checkpoint-map { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }

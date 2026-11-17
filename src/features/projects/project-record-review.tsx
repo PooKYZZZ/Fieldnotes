@@ -58,6 +58,12 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
     setLoadAttempt((attempt) => attempt + 1);
   }
 
+  const recordedMilestones = milestones.flatMap((milestone, index) => {
+    const note = record?.taskObservations?.[milestone.id]?.trim() ?? "";
+    const complete = completedMilestones.has(milestone.id);
+    return note || complete ? [{ milestone, index, note, complete }] : [];
+  });
+
   return <section className="project-record-review" aria-labelledby={`project-record-review-${projectId}`}>
     <div className="project-record-review-heading">
       <div><p className="eyebrow"><NotebookPen size={14} aria-hidden="true" /> One shared record</p><h3 id={`project-record-review-${projectId}`}>Review your saved project notes</h3></div>
@@ -67,26 +73,30 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
       : loadError ? <div className="project-record-review-empty" role="status"><p>The saved project record could not be loaded.</p><button className="button button-outline" type="button" onClick={retryLoad}>Retry loading the record</button></div>
       : <>
         {record ? <div className="project-record-review-state"><span>Self-reported status</span><strong>{formatStatus(record.status)}</strong><span>{record.updatedAt ? `Last saved ${new Date(record.updatedAt).toLocaleString()}` : "Saved project record"}</span></div>
-          : <div className="project-record-review-empty"><p>No project record has been saved yet. You can start a draft at any checkpoint and finish this review later.</p><Link className="button button-outline" href="#project-build">Open the project notebook <ArrowRight size={14} aria-hidden="true" /></Link></div>}
-        <div className="project-checkpoint-review">
-          <h4>Build checkpoints</h4>
-          <ul>{milestones.map((milestone, index) => <li key={milestone.id}>
-            <span className="project-checkpoint-review-number">{String(index + 1).padStart(2, "0")}</span>
-            <span className="project-checkpoint-review-copy">
-              <strong>{milestone.id} · {milestone.label}</strong>
-              <small>{completedMilestones.has(milestone.id) ? "Self-reported complete" : "Not marked complete"}{record?.taskObservations?.[milestone.id]?.trim() ? " · Note saved" : " · No checkpoint note"}</small>
-              {record?.taskObservations?.[milestone.id]?.trim() && <p className="project-checkpoint-review-note">{record.taskObservations[milestone.id]}</p>}
-            </span>
-            <a href={`/projects/${projectId}#milestone-${milestone.id}`}>Review checkpoint</a>
-          </li>)}</ul>
-        </div>
+      : <div className="project-record-review-empty"><p>No project record has been saved yet. You can start a draft at any checkpoint and finish this review later.</p><a className="button button-outline" href="#project-build">Open the project notebook <ArrowRight size={14} aria-hidden="true" /></a></div>}
+        {(record || recordedMilestones.length > 0) && <div className="project-checkpoint-review">
+          <h4>Checkpoint evidence</h4>
+          <p className="project-checkpoint-review-summary">{recordedMilestones.length} of {milestones.length} checkpoints have a saved note or self-reported completion.</p>
+          {recordedMilestones.length > 0
+            ? <ul>{recordedMilestones.map(({ milestone, index, note, complete }) => <li key={milestone.id}>
+              <span className="project-checkpoint-review-number">{String(index + 1).padStart(2, "0")}</span>
+              <span className="project-checkpoint-review-copy">
+                <strong>{milestone.id} · {milestone.label}</strong>
+                <small>{complete ? "Self-reported complete" : "Not marked complete"}{note ? " · Note saved" : ""}</small>
+                {note && <p className="project-checkpoint-review-note">{note}</p>}
+              </span>
+              <a href={`/projects/${projectId}#milestone-${milestone.id}`}>Review checkpoint</a>
+            </li>)}</ul>
+            : <p className="project-checkpoint-review-empty">No checkpoint notes or completion states have been saved yet. Use Build when you are ready to record your work.</p>}
+          {recordedMilestones.length > 0 && recordedMilestones.length < milestones.length && <p className="project-checkpoint-review-summary">Other checkpoints have no saved note or completion state yet.</p>}
+        </div>}
         {record && <>
           <div className="project-record-review-fields">
             <div><h4>Engineering log</h4><p>{record.notes.trim() || "No engineering notes saved yet."}</p></div>
             <div><h4>Verification and evidence</h4><p>{record.evidence.trim() || "No verification evidence saved yet."}</p></div>
           </div>
           {record.repositoryUrl.trim() && <a className="project-record-review-repository" href={record.repositoryUrl} target="_blank" rel="noreferrer">Open the saved project link <ExternalLink size={13} aria-hidden="true" /></a>}
-          <div className="project-record-review-footer"><span>This review shows the same saved project record. It does not verify your implementation.</span><Link className="button button-outline" href="#project-build">Edit in the build notebook <ArrowRight size={14} aria-hidden="true" /></Link></div>
+          <div className="project-record-review-footer"><span>This review shows the same saved project record. It does not verify your implementation.</span><a className="button button-outline" href="#project-build">Edit in the build notebook <ArrowRight size={14} aria-hidden="true" /></a></div>
         </>}
       </>}
   </section>;
