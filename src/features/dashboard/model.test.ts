@@ -21,7 +21,7 @@ describe("dashboard learning model", () => {
     expect(model.recentItems).toEqual([]);
   });
 
-  it("uses the most recently updated active module and keeps the next lesson distinct", () => {
+  it("keeps the latest module context while resuming newer saved project work", () => {
     const records = [
       record("module", "M01", "completed", 100),
       { ...record("module", "M03", "needs_review", 300), notes: "Revisit service management." },
@@ -38,7 +38,8 @@ describe("dashboard learning model", () => {
     expect(model.currentLesson).toMatchObject({ id: "M03-L01", moduleId: 3 });
     expect(model.nextItems[0]).toMatchObject({ id: "M03-L02", href: "/modules/03/lessons/m03-l02" });
     expect(model.nextItems.some((item) => item.href === "/modules/03/lessons/m03-l01")).toBe(false);
-    expect(model.nextItems.some((item) => item.id === "P1.2")).toBe(true);
+    expect(model.currentProject).toMatchObject({ id: "P1", checkpoint: { id: "P1.2" } });
+    expect(model.nextItems.some((item) => item.id === "P1.2")).toBe(false);
     expect(model.recentItems[0]).toMatchObject({ title: "Define service, release, and recovery contracts", detail: "Milestone completed" });
   });
 
@@ -69,6 +70,44 @@ describe("dashboard learning model", () => {
     expect(model.currentActivity).toBeUndefined();
     expect(model.nextItems.some((item) => item.href === "/modules/01/lessons/m01-l02")).toBe(false);
     expect(model.recentItems.some((item) => item.href === "/activities/A01" && item.detail === "Activity marked for review")).toBe(true);
+  });
+
+  it("resumes a saved project draft at its next self-reported checkpoint without changing its status", () => {
+    const records = [
+      record("lesson", "M01-L01", "in_progress", 100),
+      record("milestone", "S01.1", "completed", 200),
+      {
+        ...record("small_project", "S01", "not_started", 300),
+        taskObservations: { "S01.1": "The fixture contract is documented." },
+      },
+    ];
+    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+
+    expect(model.currentProject).toMatchObject({
+      id: "S01",
+      itemType: "small_project",
+      status: "not_started",
+      checkpoint: { id: "S01.2" },
+      completedCheckpointCount: 1,
+      totalCheckpointCount: 4,
+      hasSavedDraft: true,
+    });
+    expect(model.nextItems.some((item) => item.detail === "Log explorer")).toBe(false);
+  });
+
+  it("keeps a newer active lesson ahead of an older saved project draft", () => {
+    const records = [
+      {
+        ...record("small_project", "S01", "not_started", 300),
+        taskObservations: { "S01.1": "The fixture contract is documented." },
+      },
+      record("lesson", "M01-L02", "in_progress", 400),
+    ];
+    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+
+    expect(model.currentProject).toBeUndefined();
+    expect(model.currentLesson).toMatchObject({ id: "M01-L02", moduleId: 1 });
+    expect(model.nextItems).toContainEqual(expect.objectContaining({ id: "S01.1", href: "/projects/S01#milestone-S01.1" }));
   });
 
   it("uses explicit completion records and does not invent recent work", () => {

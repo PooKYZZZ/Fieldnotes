@@ -87,6 +87,7 @@ export function DashboardHome({
             currentActivityModule={currentActivityModule}
             currentActivityModuleStatus={currentActivityModuleStatus}
             currentActivityLessonProgress={currentActivityModule ? model.lessonProgressByModule.get(`M${String(currentActivityModule.id).padStart(2, "0")}`) : undefined}
+            currentProject={model.currentProject}
             totalModules={modules.length}
             onRetry={retryProgress}
           />

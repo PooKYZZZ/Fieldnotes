@@ -25,8 +25,11 @@ const reviewSections: ProjectSectionDefinition[] = [
   { key: "Verification plan", id: "project-verification", title: "Prove it works", eyebrow: "Verification plan" },
   { key: "Acceptance criteria", id: "project-acceptance", title: "Definition of done", eyebrow: "Acceptance criteria" },
   { key: "Portfolio deliverables", id: "project-portfolio", title: "Prepare the handoff", eyebrow: "Portfolio and documentation" },
-  { key: "Troubleshooting", id: "project-troubleshooting", title: "When a check fails", eyebrow: "Troubleshooting" },
   { key: "Stretch goals", id: "project-stretch", title: "After the core build", eyebrow: "Optional extensions" },
+];
+
+const buildSupportSections: ProjectSectionDefinition[] = [
+  { key: "Troubleshooting", id: "project-troubleshooting", title: "When a check fails", eyebrow: "Troubleshooting" },
   { key: "Technical references", id: "project-references", title: "Primary references", eyebrow: "Documentation to consult" },
 ];
 
@@ -95,6 +98,12 @@ export function ProjectDetail({ project }: { project: Project }) {
           content: <ProjectStage id="project-build" title="Build in reviewable checkpoints" eyebrow="03 · Implement and record" className="project-build-stage">
             <p className="project-stage-intro">Select a checkpoint to focus its instructions and note. Your notebook stays with this project.</p>
             <ProjectMilestoneWorkbench projectId={project.id} projectType={itemType} milestones={milestones} />
+            <details className="project-supporting-details project-build-support">
+              <summary>Need help while building? Open troubleshooting and reference links</summary>
+              <div className="project-supporting-details-content">
+                {buildSupportSections.map((section) => <ProjectContent key={section.key} project={project} section={section} />)}
+              </div>
+            </details>
           </ProjectStage>,
         },
         {
@@ -104,7 +113,7 @@ export function ProjectDetail({ project }: { project: Project }) {
             <ProjectRecordReview projectId={project.id} projectType={itemType} milestones={milestones} />
             {reviewSections.slice(0, 3).map((section) => <ProjectContent key={section.key} project={project} section={section} />)}
             <details className="project-supporting-details">
-              <summary>Open troubleshooting, references, and optional extensions</summary>
+              <summary>Open optional extensions and self-review</summary>
               <div className="project-supporting-details-content">
                 {reviewSections.slice(3).map((section) => <ProjectContent key={section.key} project={project} section={section} />)}
                 {major && project.details["Self-review rubric"] && <ProjectContent project={project} section={{ key: "Self-review rubric", id: "project-self-review", title: "Reflect on your engineering judgment", eyebrow: "Self-review" }} />}

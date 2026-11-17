@@ -222,7 +222,7 @@ export function ProgressEditor({
         )}
         {isProjectWorkbench && checkpointContext && <div className="form-field project-checkpoint-observation-field">
           <label htmlFor={`checkpoint-observation-${itemId}-${checkpointContext.id}`}>Checkpoint note <span>· {checkpointContext.id}</span></label>
-          <span className="field-hint" id={`checkpoint-observation-help-${itemId}`}>This note is saved under this checkpoint in the same project record. Record the decision or change, what you observed, and what remains uncertain.</span>
+          <span className="field-hint" id={`checkpoint-observation-help-${itemId}`}>This note is saved under this checkpoint in the same project record. Record your decision, observed result, evidence path, and any remaining uncertainty; keep full outputs in your repository.</span>
           <Textarea
             id={`checkpoint-observation-${itemId}-${checkpointContext.id}`}
             aria-describedby={`checkpoint-observation-help-${itemId}`}
@@ -230,7 +230,7 @@ export function ProgressEditor({
             maxLength={1200}
             value={form.taskObservations?.[checkpointContext.id] ?? ""}
             onChange={(event) => updateCheckpointObservation(event.target.value)}
-            placeholder={`${checkpointContext.id} · ${checkpointContext.label}\nDecision or change: …\nObserved result: …\nStill uncertain: …`}
+            placeholder={`${checkpointContext.id} · ${checkpointContext.label}\nDecision: …\nObserved result: …\nEvidence path: …\nStill uncertain: …`}
           />
           <span className="field-hint project-checkpoint-observation-count">{(form.taskObservations?.[checkpointContext.id] ?? "").length} / 1,200 characters</span>
         </div>}

@@ -394,7 +394,7 @@ test("every project follows the four-stage engineering learning flow", async ({ 
     await expect(page.getByRole("heading", { name: "Definition of done" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Review your saved project notes" })).toBeVisible();
     await expect(page.locator(".project-stage-panel:not([hidden])")).toHaveCount(1);
-    await expect(page.locator(".project-supporting-details")).toHaveJSProperty("open", false);
+    await expect(page.locator("#project-panel-project-review .project-supporting-details")).toHaveJSProperty("open", false);
     if (projectId === "P3") await expect(page.locator(".project-checkpoint-review")).toHaveCount(0);
   }
 });
@@ -530,6 +530,78 @@ test("project notebook saves once, survives refresh, and appears in final review
   const savedNotebookRecord = page.locator(".progress-record");
   await expect(savedNotebookRecord).toContainText("S02.2 · Implement the layered probes");
   await expect(savedNotebookRecord).toContainText("The second checkpoint captured its own network test and result.");
+});
+
+test("dashboard resumes a saved project draft at its next unfinished checkpoint", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const savedProject = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: {
+      ...progressRecord("small_project", "S01", "not_started"),
+      taskObservations: { "S01.1": "The synthetic event contract and expected counts are recorded." },
+    },
+  });
+  expect(savedProject.ok()).toBeTruthy();
+
+  const firstCheckpoint = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: progressRecord("milestone", "S01.1", "completed"),
+  });
+  expect(firstCheckpoint.ok()).toBeTruthy();
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Log explorer" })).toBeVisible();
+  const resume = page.locator(".continue-panel").getByRole("link", { name: "Resume project" });
+  await expect(resume).toHaveAttribute("href", "/projects/S01#milestone-S01.2");
+  await resume.click();
+  await expect(page).toHaveURL(/\/projects\/S01#milestone-S01\.2$/);
+  await expect(page.locator(".project-active-milestone h3")).toHaveText("Implement parsing, filters, and summaries");
+  await expect(page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button").nth(1)).toHaveAttribute("aria-current", "step");
+  await expect(page.getByLabel("Checkpoint note · S01.2")).toHaveValue("");
+  await expect(page.getByLabel("Status")).toHaveValue("not_started");
+  const hintList = page.locator(".project-milestone-hints");
+  await hintList.locator(":scope > summary").click();
+  await hintList.locator(".project-milestone-hint").first().locator("summary").click();
+  await expect(hintList.locator(".project-milestone-hint-copy").first()).toContainText("Make the parser accept one line");
+  await page.screenshot({ path: path.join(screenshotDirectory, "log-explorer-resume-1440x900.png") });
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect(page.locator(".project-active-milestone")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1920);
+  await page.screenshot({ path: path.join(screenshotDirectory, "log-explorer-resume-1920x1080.png") });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  const notebookButton = page.getByRole("button", { name: /Open project notebook for this checkpoint/ });
+  await notebookButton.click();
+  await expect(page.getByRole("dialog", { name: "Project notebook" })).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDirectory, "log-explorer-resume-mobile-390x844.png") });
+
+  await page.goto("/projects");
+  const logExplorer = page.locator('[data-project-id="S01"]');
+  await expect(logExplorer).toContainText("Draft saved");
+  await expect(logExplorer).toHaveAttribute("href", "/projects/S01#milestone-S01.2");
+  await logExplorer.click();
+  await expect(page).toHaveURL(/\/projects\/S01#milestone-S01\.2$/);
+  await expect(page.locator(".project-active-milestone h3")).toHaveText("Implement parsing, filters, and summaries");
+
+  const reviewState = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: {
+      ...progressRecord("small_project", "S01", "needs_review"),
+      taskObservations: { "S01.1": "The synthetic event contract and expected counts are recorded." },
+    },
+  });
+  expect(reviewState.ok()).toBeTruthy();
+  await page.goto("/");
+  const reviewProject = page.locator(".continue-panel").getByRole("link", { name: "Review project" });
+  await expect(reviewProject).toHaveAttribute("href", "/projects/S01#project-review");
+  await reviewProject.click();
+  await expect(page.locator(".project-workflow-nav").getByRole("tab", { name: "Review" })).toHaveAttribute("aria-selected", "true");
+
+  await page.goto("/projects");
+  await expect(page.locator('[data-project-id="S01"]')).toHaveAttribute("href", "/projects/S01#project-review");
+  await expect(page.locator('[data-project-id="S01"] .small-tool-footer')).toContainText("Review handoff");
 });
 
 test("mobile project notebook opens as an accessible drawer", async ({ page }) => {

@@ -33,14 +33,24 @@ export type DashboardModel = {
   currentLessonStatus?: ProgressStatus;
   currentActivity?: DashboardActivity;
   currentActivityStatus?: ProgressStatus;
+  currentProject?: DashboardResumeProject;
   nextItems: DashboardNextItem[];
   recentItems: DashboardRecentItem[];
 };
 
 export type DashboardModule = ModuleSummary & Pick<ModuleRecord, "activityId">;
 export type DashboardActivity = { id: string; moduleId: number; title: string };
-export type DashboardMajorProject = { id: string; title: string; details: Record<string, string> };
+export type DashboardProject = { id: string; title: string; details: Record<string, string> };
+export type DashboardMajorProject = DashboardProject;
 export type DashboardSmallProject = Pick<SmallProjectRecord, "id" | "title" | "details">;
+export type DashboardResumeProject = DashboardProject & {
+  itemType: "project" | "small_project";
+  status?: ProgressStatus;
+  checkpoint?: { id: string; label: string };
+  completedCheckpointCount: number;
+  totalCheckpointCount: number;
+  hasSavedDraft: boolean;
+};
 
 const moduleKey = (id: number) => `M${String(id).padStart(2, "0")}`;
 const moduleHref = (id: number) => `/modules/${String(id).padStart(2, "0")}`;
@@ -54,6 +64,7 @@ function makeNextItems(
   currentModule: DashboardModule | undefined,
   currentActivity: DashboardActivity | undefined,
   currentLesson: (DashboardModule["lessons"][number] & { moduleId: number }) | undefined,
+  currentProjectId?: string,
 ): DashboardNextItem[] {
   const items: DashboardNextItem[] = [];
   const lessonRecords = new Map(records.filter((record) => record.itemType === "lesson").map((record) => [record.itemId, record]));
@@ -108,7 +119,9 @@ function makeNextItems(
   const milestones = new Map(milestonesForProjects(allProjects).map((milestone) => [milestone.id, milestone]));
   const milestoneRecords = new Map(records.filter((record) => record.itemType === "milestone" && record.status === "completed").map((record) => [record.itemId, record]));
   const startedProjects = new Set(records
-    .filter((record) => (record.itemType === "project" || record.itemType === "small_project") && ["in_progress", "needs_review"].includes(record.status))
+    .filter((record) => (record.itemType === "project" || record.itemType === "small_project")
+      && (["in_progress", "needs_review"].includes(record.status)
+        || (record.status === "not_started" && Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim() || Object.values(record.taskObservations ?? {}).some((value) => value.trim())))))
     .map((record) => record.itemId));
   for (const record of records) {
     if (record.itemType === "milestone" && record.status === "completed") {
@@ -119,6 +132,7 @@ function makeNextItems(
   const projectIds = new Set([...majorProjects.map((project) => project.id), ...smallProjects.map((project) => project.id)]);
   const projectTasks: DashboardNextItem[] = [];
   for (const projectId of startedProjects) {
+    if (projectId === currentProjectId) continue;
     if (!projectIds.has(projectId)) continue;
     const nextMilestone = [...milestones.entries()].find(([id, milestone]) => milestone.projectId === projectId && !milestoneRecords.has(id));
     if (!nextMilestone) continue;
@@ -130,7 +144,7 @@ function makeNextItems(
       type: `Project milestone · ${projectId}`,
       title: milestone.label,
       detail: project.title,
-      href: `/projects/${projectId}`,
+      href: `/projects/${projectId}#milestone-${id}`,
     });
   }
   const primaryHref = currentLesson
@@ -157,7 +171,7 @@ function makeRecentItems(records: ProgressRecord[], modules: DashboardModule[], 
 
   return records
     .filter((record) => `${record.itemType}:${record.itemId}` !== excludedRecord)
-    .filter((record) => record.status !== "not_started" || Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim()))
+    .filter((record) => record.status !== "not_started" || Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim() || Object.values(record.taskObservations ?? {}).some((value) => value.trim())))
     .map((record) => {
       const item = labels.get(`${record.itemType}:${record.itemId}`);
       if (!item) return undefined;
@@ -202,7 +216,8 @@ export function buildDashboardModel(
     total: module.lessons.length,
   }]));
   const activeTargets = records
-    .filter((record) => record.status === "in_progress" || record.status === "needs_review")
+    .filter((record) => record.status === "in_progress" || record.status === "needs_review"
+      || (record.status === "not_started" && Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim() || Object.values(record.taskObservations ?? {}).some((value) => value.trim()))))
     .filter((record) => record.itemType === "module" || record.itemType === "lesson" || record.itemType === "activity")
     .sort((left, right) => right.updatedAt - left.updatedAt);
   const mostRecentActiveTarget = activeTargets[0];
@@ -234,9 +249,47 @@ export function buildDashboardModel(
   const currentLessonStatus = currentLessonRecord?.status;
   const currentModuleStatus = currentModule ? statusByModule.get(moduleKey(currentModule.id)) : undefined;
 
-  const excludedRecentRecord = mostRecentActiveTarget
-    ? `${mostRecentActiveTarget.itemType}:${mostRecentActiveTarget.itemId}`
+  const allProjects: DashboardProject[] = [...majorProjects, ...smallProjects];
+  const projectMilestones = milestonesForProjects(allProjects);
+  const projectTypes = new Map([
+    ...majorProjects.map((project) => [project.id, "project"] as const),
+    ...smallProjects.map((project) => [project.id, "small_project"] as const),
+  ]);
+  const completedMilestoneRecords = records.filter((record) => record.itemType === "milestone" && record.status === "completed");
+  const completedMilestoneIds = new Set(completedMilestoneRecords.map((record) => record.itemId));
+  const projectResumeCandidates = allProjects.flatMap((project) => {
+    const itemType = projectTypes.get(project.id);
+    if (!itemType) return [];
+    const record = records.find((candidate) => candidate.itemType === itemType && candidate.itemId === project.id);
+    if (record?.status === "completed") return [];
+    const milestones = projectMilestones.filter((milestone) => milestone.projectId === project.id);
+    const projectMilestoneIds = new Set(milestones.map((milestone) => milestone.id));
+    const projectCompletionRecords = completedMilestoneRecords.filter((milestone) => projectMilestoneIds.has(milestone.itemId));
+    const hasSavedDraft = Boolean(record && (record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim()
+      || Object.values(record.taskObservations ?? {}).some((value) => value.trim())));
+    const explicitlyActive = record?.status === "in_progress" || record?.status === "needs_review";
+    if (!explicitlyActive && !hasSavedDraft && projectCompletionRecords.length === 0) return [];
+    const updatedAt = Math.max(record?.updatedAt ?? 0, ...projectCompletionRecords.map((milestone) => milestone.updatedAt));
+    return [{
+      ...project,
+      itemType,
+      status: record?.status,
+      checkpoint: milestones.find((milestone) => !completedMilestoneIds.has(milestone.id)),
+      completedCheckpointCount: projectCompletionRecords.length,
+      totalCheckpointCount: milestones.length,
+      hasSavedDraft,
+      updatedAt,
+    }];
+  }).sort((left, right) => right.updatedAt - left.updatedAt);
+  const latestProject = projectResumeCandidates[0];
+  const latestLearningUpdate = mostRecentActiveTarget?.updatedAt ?? 0;
+  const currentProject = latestProject && latestProject.updatedAt >= latestLearningUpdate
+    ? latestProject
     : undefined;
+
+  const excludedRecentRecord = currentProject
+    ? `${currentProject.itemType}:${currentProject.id}`
+    : mostRecentActiveTarget ? `${mostRecentActiveTarget.itemType}:${mostRecentActiveTarget.itemId}` : undefined;
 
   return {
     statusByModule,
@@ -253,7 +306,8 @@ export function buildDashboardModel(
     currentLessonStatus,
     currentActivity,
     currentActivityStatus,
-    nextItems: makeNextItems(modules, activities, majorProjects, smallProjects, records, currentModule, currentActivity, currentLesson),
+    currentProject,
+    nextItems: makeNextItems(modules, activities, majorProjects, smallProjects, records, currentModule, currentActivity, currentLesson, currentProject?.id),
     recentItems: makeRecentItems(records, modules, activities, majorProjects, smallProjects, excludedRecentRecord),
   };
 }

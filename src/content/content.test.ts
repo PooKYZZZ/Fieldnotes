@@ -44,6 +44,16 @@ describe("learning content integrity", () => {
         expect(project.details[section], `${project.id} has ${section}`).toBeTruthy();
       }
     }
+
+    const logExplorerImplementation = projectMilestones.find((milestone) => milestone.id === "S01.2");
+    expect(logExplorerImplementation?.hints.map(({ title }) => title)).toEqual([
+      "Start with the smallest useful boundary",
+      "Treat time as an instant",
+      "Keep memory tied to the report, not the file",
+    ]);
+    expect(logExplorerImplementation?.hints[0]?.content).toContain("Make the parser accept one line");
+    expect(logExplorerImplementation?.hints[1]?.content).toContain("timezone");
+    expect(logExplorerImplementation?.hints[2]?.content).toContain("iterator over input lines");
   });
 
   it("keeps every module paired with its matching activity and module", () => {

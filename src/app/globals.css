@@ -1694,6 +1694,15 @@ body { font-size: 15px; }
 .project-active-milestone-guidance .article-copy h4 { margin: 14px 0 5px; color: #365653; font-size: 13px; }
 .project-active-milestone-guidance .article-copy li { padding-left: 2px; }
 .project-active-milestone-guidance .article-copy pre { max-width: 100%; overflow-x: auto; }
+.project-milestone-hints { margin-top: 17px; border-top: 1px solid #e1e8e5; border-bottom: 1px solid #e1e8e5; }
+.project-milestone-hints > summary { display: flex; min-height: 44px; align-items: center; gap: 8px; color: #3e625d; cursor: pointer; font-size: 13px; font-weight: 700; }
+.project-milestone-hints > ol { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.project-milestone-hints > ol > li { border-top: 1px solid #edf1ef; }
+.project-milestone-hint > summary { display: flex; min-height: 43px; align-items: center; gap: 9px; color: #405b59; cursor: pointer; font-size: 12px; font-weight: 650; }
+.project-milestone-hint > summary span { flex: 0 0 auto; border-radius: 99px; background: #eef4f1; padding: 4px 7px; color: #52746d; font-size: 10px; font-weight: 750; }
+.project-milestone-hint-copy { padding: 0 0 13px 57px; }
+.project-milestone-hint-copy .article-copy { max-width: 90ch; color: #536668; font-size: 13px; line-height: 1.55; }
+.project-milestone-hints summary:focus-visible { outline: 2px solid #176b99; outline-offset: 2px; }
 .project-milestone-navigation { display: flex; justify-content: space-between; gap: 10px; margin-top: 16px; border-top: 1px solid #e1e8e5; padding-top: 12px; }
 .project-milestone-navigation .button { min-height: 38px; }
 .project-milestone-navigation .button:disabled { opacity: .5; cursor: not-allowed; }

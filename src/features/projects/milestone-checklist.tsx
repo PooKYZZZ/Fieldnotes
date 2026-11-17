@@ -223,6 +223,18 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
         </div>
       </article> : <p>This project does not have any checkpoints yet.</p>}
 
+      {activeMilestone?.hints.length ? <details className="project-milestone-hints">
+        <summary>Need a hint? Reveal one nudge at a time.</summary>
+        <ol>
+          {activeMilestone.hints.map((hint, index) => <li key={activeMilestone.id + "-" + index}>
+            <details className="project-milestone-hint">
+              <summary><span>Hint {index + 1}</span>{hint.title}</summary>
+              <div className="project-milestone-hint-copy"><MarkdownContent>{hint.content}</MarkdownContent></div>
+            </details>
+          </li>)}
+        </ol>
+      </details> : null}
+
       {loading && <p className="form-message" role="status">Loading saved project checkpoints…</p>}
       {!loading && loadError && <button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} aria-hidden="true" /> Try loading checkpoints again</button>}
       <p className="form-message project-checkpoint-message" role="status" aria-live="polite">{message}</p>

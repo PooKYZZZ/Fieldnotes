@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, Clock3, RefreshCw } from "lucide-react";
 import { formatStatus, type ProgressStatus } from "@/features/progress/model";
-import type { DashboardActivity, DashboardModel, DashboardModule, DashboardNextItem, DashboardRecentItem, ModuleStatus } from "@/features/dashboard/model";
+import type { DashboardActivity, DashboardModel, DashboardModule, DashboardNextItem, DashboardRecentItem, DashboardResumeProject, ModuleStatus } from "@/features/dashboard/model";
 
 type ContinueLearningPanelProps = {
   loaded: boolean;
@@ -16,6 +16,7 @@ type ContinueLearningPanelProps = {
   currentActivityModule?: DashboardModule;
   currentActivityModuleStatus?: ModuleStatus;
   currentActivityLessonProgress?: { completed: number; total: number };
+  currentProject?: DashboardResumeProject;
   totalModules: number;
   onRetry: () => void;
 };
@@ -33,6 +34,7 @@ export function ContinueLearningPanel({
   currentActivityModule,
   currentActivityModuleStatus,
   currentActivityLessonProgress,
+  currentProject,
   totalModules,
   onRetry,
 }: ContinueLearningPanelProps) {
@@ -47,6 +49,34 @@ export function ContinueLearningPanel({
           <h2 id="continue-title">Saved progress is unavailable</h2>
           <p>Check the local app or database, then retry. Your saved records have not been cleared.</p>
           <button className="button button-outline" type="button" onClick={onRetry}><RefreshCw size={15} /> Try again</button>
+        </div>
+      ) : currentProject ? (
+        <div className="continue-content">
+          <div className="continue-main-copy">
+            <p className="continue-kicker">
+              {currentProject.status === "needs_review" ? "Review your project" : currentProject.status === "in_progress" ? "Resume your project" : currentProject.hasSavedDraft ? "Resume saved project work" : "Continue your project"}
+              <span aria-hidden="true">·</span> Projects &amp; builds
+            </p>
+            <h2 id="continue-title">{currentProject.title}</h2>
+            <p className="continue-context">{currentProject.status === "needs_review"
+              ? "Review your saved notes and checkpoint evidence."
+              : currentProject.checkpoint
+                ? `${currentProject.checkpoint.id} · ${currentProject.checkpoint.label}`
+                : "All checkpoints are self-reported. Review your saved work and prepare the handoff."}</p>
+            <p className="continue-progress-copy">
+              {currentProject.completedCheckpointCount} of {currentProject.totalCheckpointCount} checkpoints self-reported complete
+              {currentProject.hasSavedDraft && <> <span aria-hidden="true">·</span> Draft saved</>}
+            </p>
+          </div>
+          <div className="continue-actions">
+            <Link className="button button-continue" href={currentProject.status === "needs_review" || !currentProject.checkpoint
+              ? `/projects/${currentProject.id}#project-review`
+              : `/projects/${currentProject.id}#milestone-${currentProject.checkpoint.id}`}>
+              {currentProject.status === "needs_review" || !currentProject.checkpoint ? "Review project" : currentProject.hasSavedDraft || currentProject.status === "in_progress" ? "Resume project" : "Continue project"}
+              <ArrowRight size={16} />
+            </Link>
+            <Link className="continue-secondary" href="/projects">Browse all projects</Link>
+          </div>
         </div>
       ) : currentLesson && currentModule ? (
         <div className="continue-content">
