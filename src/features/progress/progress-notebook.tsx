@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, NotebookPen, PencilLine, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
+import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
 
 export type NotebookItem = { itemType: ProgressRecord["itemType"]; itemId: string; label: string; href: string; editHref?: string; editLabel?: string; kind: string; investigationTasks?: { id: string; title: string }[]; checkpointTasks?: { id: string; title: string }[] };
 type ItemFilter = "all" | "module" | "lesson" | "activity" | "project" | "milestone";
@@ -36,6 +37,7 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [query, setQuery] = useState("");
   const [itemFilter, setItemFilter] = useState<ItemFilter>("all");
@@ -45,15 +47,22 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
     const controller = new AbortController();
     fetch("/api/progress", { cache: "no-store", signal: controller.signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          return undefined;
+        }
         if (!response.ok) throw new Error("Could not load saved progress.");
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
-        setRecords(rows);
+        if (rows) setRecords(rows);
         setLoadError(false);
       })
       .catch(() => {
-        if (!controller.signal.aborted) setLoadError(true);
+        if (!controller.signal.aborted) {
+          setRequiresSignIn(false);
+          setLoadError(true);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoaded(true);
@@ -103,7 +112,8 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
   const clearFilters = () => { setQuery(""); setItemFilter("all"); setStatusFilter("all"); };
 
   if (!loaded) return <div className="progress-loading" role="status"><RefreshCw size={17} aria-hidden="true" />Loading your saved learning records…</div>;
-  if (loadError) return <div className="progress-load-error" role="alert"><h2>Saved progress is unavailable</h2><p>Your records were not cleared. Check the app or local database, then retry.</p><button className="button button-outline" type="button" onClick={() => { setLoaded(false); setLoadError(false); setLoadAttempt((attempt) => attempt + 1); }}><RefreshCw size={14} aria-hidden="true" /> Try again</button></div>;
+  if (requiresSignIn) return <ProgressSignInNotice>Your learning records are private to your account. Sign in to open your notebook; lessons remain public.</ProgressSignInNotice>;
+  if (loadError) return <div className="progress-load-error" role="alert"><h2>Saved progress is unavailable</h2><p>Your records were not cleared. Check the app or local database, then retry.</p><button className="button button-outline" type="button" onClick={() => { setLoaded(false); setLoadError(false); setRequiresSignIn(false); setLoadAttempt((attempt) => attempt + 1); }}><RefreshCw size={14} aria-hidden="true" /> Try again</button></div>;
 
   return <section className="progress-journal" aria-labelledby="saved-work-title">
     <div className="progress-overview-heading"><div><p className="eyebrow">Journey snapshot</p><h2>Learning overview</h2><p>Module states come from your saved records. They describe what you chose to track, not verified mastery.</p></div></div>

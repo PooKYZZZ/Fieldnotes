@@ -13,15 +13,23 @@ export function DashboardProgress({ modules }: { modules: CourseItem[] }) {
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const load = useCallback(() => {
     fetch("/api/progress", { cache: "no-store" })
       .then((response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          setRecords([]);
+          setLoadError(false);
+          return [] as ProgressRecord[];
+        }
         if (!response.ok) throw new Error("Could not load saved progress.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => setRecords(rows))
       .then(() => setLoadError(false))
-      .catch(() => setLoadError(true))
+      .catch(() => { setRequiresSignIn(false); setLoadError(true); })
       .finally(() => setLoaded(true));
   }, []);
   useEffect(() => {
@@ -40,19 +48,20 @@ export function DashboardProgress({ modules }: { modules: CourseItem[] }) {
   return (
     <>
       <div className="stat-grid" aria-live="polite">
-        <div className="card stat-card"><span className="stat-icon"><BookOpen size={19} /></span><span><span className="stat-value">{loadError ? "—" : loaded ? completed : "…"}<span style={{ color: "var(--muted)", fontSize: 13, fontWeight: 500 }}> / 24</span></span><span className="stat-label">Modules completed</span></span></div>
-        <div className="card stat-card"><span className="stat-icon" style={{ background: "#e9f4ef", color: "var(--green)" }}><CheckCircle2 size={19} /></span><span><span className="stat-value">{loadError ? "—" : loaded ? activityCount : "…"}</span><span className="stat-label">Activities completed</span></span></div>
-        <div className="card stat-card"><span className="stat-icon" style={{ background: "#f7f1e5", color: "var(--amber)" }}><Layers3 size={19} /></span><span><span className="stat-value">{loadError ? "—" : loaded ? projectCount : "…"}</span><span className="stat-label">Projects marked done</span></span></div>
+        <div className="card stat-card"><span className="stat-icon"><BookOpen size={19} /></span><span><span className="stat-value">{loadError || requiresSignIn ? "—" : loaded ? completed : "…"}<span style={{ color: "var(--muted)", fontSize: 13, fontWeight: 500 }}> / 24</span></span><span className="stat-label">Modules completed</span></span></div>
+        <div className="card stat-card"><span className="stat-icon" style={{ background: "#e9f4ef", color: "var(--green)" }}><CheckCircle2 size={19} /></span><span><span className="stat-value">{loadError || requiresSignIn ? "—" : loaded ? activityCount : "…"}</span><span className="stat-label">Activities completed</span></span></div>
+        <div className="card stat-card"><span className="stat-icon" style={{ background: "#f7f1e5", color: "var(--amber)" }}><Layers3 size={19} /></span><span><span className="stat-value">{loadError || requiresSignIn ? "—" : loaded ? projectCount : "…"}</span><span className="stat-label">Projects marked done</span></span></div>
       </div>
       {loadError && <p className="form-message error" role="status">Saved progress could not be loaded. Counts and recommendations may be incomplete until the database is available.</p>}
+      {requiresSignIn && <p className="form-message" role="status">Sign in to view your private progress. <Link href="/sign-in?returnTo=%2F">Sign in</Link></p>}
       <div className="card card-pad">
-        <div className="section-heading" style={{ margin: "0 0 16px" }}><div><h2>Your learning path</h2><p>Move at your own pace; there are no weekly deadlines.</p></div><span className="tag">{loadError ? "Unavailable" : loaded ? "Saved locally" : "Loading"}</span></div>
+        <div className="section-heading" style={{ margin: "0 0 16px" }}><div><h2>Your learning path</h2><p>Move at your own pace; there are no weekly deadlines.</p></div><span className="tag">{loadError ? "Unavailable" : requiresSignIn ? "Private progress" : loaded ? "Account progress" : "Loading"}</span></div>
         <div className="track-list">
           {phaseNames.map((phase) => {
             const items = modules.filter((module) => module.phase === phase);
             const count = items.filter((module) => modulesByStatus.get(`M${String(module.id).padStart(2, "0")}`)?.status === "completed").length;
-            const percent = loadError || !loaded ? 0 : Math.round((count / items.length) * 100);
-            return <div className="track-row" key={phase}><span className="track-name">{phase === "Infrastructure & Cloud" ? "Delivery" : phase === "Operations & Security" ? "Operations" : "Foundations"}</span><Progress className="track-progress" aria-label={`${phase}: ${count} of ${items.length} modules completed`} value={percent} /><span className="track-count">{count}/{items.length}</span></div>;
+            const percent = loadError || requiresSignIn || !loaded ? 0 : Math.round((count / items.length) * 100);
+            return <div className="track-row" key={phase}><span className="track-name">{phase === "Infrastructure & Cloud" ? "Delivery" : phase === "Operations & Security" ? "Operations" : "Foundations"}</span><Progress className="track-progress" aria-label={`${phase}: ${requiresSignIn ? "sign in to view saved status" : `${count} of ${items.length} modules completed`}`} value={percent} /><span className="track-count">{requiresSignIn ? "—" : `${count}/${items.length}`}</span></div>;
           })}
         </div>
       </div>

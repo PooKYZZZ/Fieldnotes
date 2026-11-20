@@ -77,10 +77,12 @@ export function RoadmapExplorer({
   modules,
   phases,
   progressAvailable,
+  progressRequiresSignIn,
 }: {
   modules: RoadmapEntry[];
   phases: RoadmapPhase[];
   progressAvailable: boolean;
+  progressRequiresSignIn: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [phaseFilter, setPhaseFilter] = useState<CurriculumPhase | "all">("all");
@@ -166,7 +168,11 @@ export function RoadmapExplorer({
             {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
-        {!progressAvailable && <p className="roadmap-progress-unavailable" role="status">Progress filters are unavailable while saved records cannot be read.</p>}
+        {!progressAvailable && <p className="roadmap-progress-unavailable" role="status">
+          {progressRequiresSignIn
+            ? <>Sign in to filter by your saved progress. <Link href="/sign-in?returnTo=%2Froadmap">Sign in</Link></>
+            : "Progress filters are unavailable while saved records cannot be read."}
+        </p>}
         <div className="roadmap-filter-footer">
           <p className="roadmap-result-count" aria-live="polite">Showing {filteredModules.length} of {modules.length} modules</p>
           {anyFilter && <button className="roadmap-clear-filters" type="button" onClick={clearFilters}>Clear filters</button>}

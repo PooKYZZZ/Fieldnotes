@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, NotebookPen } from "lucide-react";
 import type { ProjectMilestone } from "@/content";
 import { formatStatus, type ProgressRecord } from "@/features/progress/model";
+import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
 
 export function ProjectRecordReview({ projectId, projectType, milestones }: {
   projectId: string;
@@ -15,15 +16,25 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
   const [completedMilestones, setCompletedMilestones] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
   const load = useCallback((signal: AbortSignal) => {
     fetch("/api/progress", { cache: "no-store", signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          setLoadError(false);
+          setRecord(undefined);
+          setCompletedMilestones(new Set());
+          return null;
+        }
         if (!response.ok) throw new Error("Could not load the saved project record.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
+        if (!rows) return;
         const milestoneIds = new Set(milestones.map(({ id }) => id));
         setRecord(rows.find((row) => row.itemType === projectType && row.itemId === projectId));
         setCompletedMilestones(new Set(rows.filter((row) => row.itemType === "milestone" && row.status === "completed" && milestoneIds.has(row.itemId)).map((row) => row.itemId)));
@@ -31,6 +42,7 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
       })
       .catch(() => {
         if (signal.aborted) return;
+        setRequiresSignIn(false);
         setLoadError(true);
         setRecord(undefined);
         setCompletedMilestones(new Set());
@@ -55,6 +67,7 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
   function retryLoad() {
     setLoading(true);
     setLoadError(false);
+    setRequiresSignIn(false);
     setLoadAttempt((attempt) => attempt + 1);
   }
 
@@ -70,9 +83,10 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
       <Link href="/progress?type=project" className="project-record-history">Progress notebook <ArrowRight size={14} aria-hidden="true" /></Link>
     </div>
     {loading ? <p className="project-record-review-empty" role="status">Loading your saved project record…</p>
+      : requiresSignIn ? <ProgressSignInNotice>Your project notes and checkpoint states are private to your account. Sign in to review them; the project guide stays public.</ProgressSignInNotice>
       : loadError ? <div className="project-record-review-empty" role="status"><p>The saved project record could not be loaded.</p><button className="button button-outline" type="button" onClick={retryLoad}>Retry loading the record</button></div>
       : <>
-        {record ? <div className="project-record-review-state"><span>Self-reported status</span><strong>{formatStatus(record.status)}</strong><span>{record.updatedAt ? `Last saved ${new Date(record.updatedAt).toLocaleString()}` : "Saved project record"}</span></div>
+        {record ? <div className="project-record-review-state"><span>Overall project status · self-reported</span><strong>{formatStatus(record.status)}</strong><span>{record.updatedAt ? `Last saved ${new Date(record.updatedAt).toLocaleString()}` : "Saved project record"}</span></div>
       : <div className="project-record-review-empty"><p>No project record has been saved yet. You can start a draft at any checkpoint and finish this review later.</p><a className="button button-outline" href="#project-build">Open the project notebook <ArrowRight size={14} aria-hidden="true" /></a></div>}
         {(record || recordedMilestones.length > 0) && <div className="project-checkpoint-review">
           <h4>Checkpoint evidence</h4>

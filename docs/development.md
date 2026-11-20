@@ -19,7 +19,9 @@ Start the local development server:
 npm run dev
 ```
 
-The app listens on `127.0.0.1:3000` and creates `.data/lms.sqlite` unless `DATABASE_PATH` is set. For a separate development database:
+The app listens on `127.0.0.1:3000` and creates `.data/lms.sqlite` unless `DATABASE_PATH` is set. Curriculum pages remain open without an account; saving or reading private progress requires a session. To exercise real local Google/GitHub sign-in, configure the provider and owner settings in `.env` first. Playwright uses test-only password authentication and a separate disposable database.
+
+For a separate development database:
 
 ```powershell
 $env:DATABASE_PATH = ".data/lms-dev.sqlite"
@@ -30,7 +32,7 @@ npm run dev
 DATABASE_PATH=.data/lms-dev.sqlite npm run dev
 ```
 
-Next.js loads `.env*` files for app configuration. Compose reads `.env` for host-side settings such as `APP_PORT`; `.env.example` documents the default host port. Do not commit real environment files or credentials.
+Next.js loads `.env*` files for app configuration. Compose reads `.env` for host settings, `FIELDNOTES_PROD_BETTER_AUTH_SECRET`, and production-specific OAuth client variables. Local development uses `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and local `GOOGLE_*` or `GITHUB_*` credentials. Use separate Google Cloud projects/OAuth clients for local development and production. Production requires `FIELDNOTES_PUBLIC_URL` to be the exact public HTTPS origin; Compose passes that value as `BETTER_AUTH_URL`. Do not commit real environment files or credentials.
 
 ## Common commands
 
@@ -43,9 +45,9 @@ Next.js loads `.env*` files for app configuration. Compose reads `.env` for host
 | `npm run build` | Build the production app and prepare standalone output |
 | `npm start` | Start the built standalone app on loopback |
 | `npx playwright install chromium` | Install the browser used by Playwright |
-| `npm run test:e2e` | Rebuild and run the Playwright end-to-end suite |
+| `npm run test:e2e` | Run Playwright against an isolated local Next.js server and disposable SQLite database |
 
-`npm run test:e2e` runs a production build first and uses the same `.next` directory. Stop `npm run dev` before running it. If Docker or another local service occupies port 3000, choose another free port:
+The browser suite creates separate owner and learner accounts, stores their test-only session cookies in the operating system's temporary folder, and deletes the isolated database on exit. It does not use the local `.data/lms.sqlite` or the Docker volume. The test server listens on port 3000 by default; choose another free port if needed:
 
 ```powershell
 $env:PLAYWRIGHT_PORT = "3001"
@@ -56,7 +58,7 @@ npm run test:e2e
 PLAYWRIGHT_PORT=3001 npm run test:e2e
 ```
 
-CI runs lint, type checking, unit tests, the production build, Playwright, and a Docker image build. Run the checks relevant to a change locally; for a user-visible or data-flow change, include the browser suite. Do not report a check as passing unless it was run and its result observed.
+CI runs lint, type checking, unit tests, a production build, Playwright, and a Docker image build. Run the checks relevant to a change locally; for a user-visible or data-flow change, include the browser suite. Do not report a check as passing unless it was run and its result observed.
 
 ## Docker Compose
 
@@ -66,7 +68,7 @@ docker compose ps
 docker compose logs -f app
 ```
 
-The app is exposed on `127.0.0.1:${APP_PORT:-3000}` and stores data in the named `learning-data` volume. `docker compose down` removes the container and network but retains that volume. Do not use `docker compose down -v` unless permanent deletion of learning records is intended.
+The app is exposed on `127.0.0.1:${APP_PORT:-3000}` and stores auth users, sessions, and account-scoped progress in the named `learning-data` volume. `docker compose down` removes the container and network but retains that volume. Do not use `docker compose down -v` unless permanent deletion of learner data is intended. Before an upgrade that adds or changes a migration, make a SQLite/volume backup.
 
 An optional `compose.cloudflare.yaml` overlay connects the app to an existing CyberTrace Cloudflare Tunnel network. The app remains bound to loopback on the host and is reachable through the Tunnel by the internal Docker alias `fieldnotes-lms:3000`. Set `FIELDNOTES_TUNNEL_NETWORK` in the local `.env` to the existing `cloudflared` ingress network name, then run:
 
@@ -74,7 +76,19 @@ An optional `compose.cloudflare.yaml` overlay connects the app to an existing Cy
 docker compose -f compose.yaml -f compose.cloudflare.yaml up --build -d
 ```
 
-Before adding the Tunnel's `learn.cybertracesystems.com` published-application route, create a Cloudflare Access Self-hosted application for that hostname and an Allow policy restricted to the learner's identity. Enable **Protect with Access** on the route with that application's team name and audience tag so `cloudflared` also validates Access tokens at the origin. The app has no internal authentication, no per-user records, and no multi-user data isolation: all Access-authorized sessions use the same SQLite learning records. Do not publish a public route without that Access policy. To remove the additional network attachment, apply the base Compose file again with `docker compose up --build -d`; the named data volume remains intact.
+For the public `learn.cybertracesystem.com` route, keep Cloudflare Tunnel as transport and let Better Auth handle accounts. Do not enable Cloudflare Access if visitors should be able to browse without a Cloudflare identity. Publish the public `/privacy` and `/terms` pages, configure production-only OAuth callbacks, and set the exact HTTPS app origin before publishing. This is still a single-host SQLite deployment: every learner account is logically isolated in one database file, and backups/host access remain the operator's responsibility. To remove the additional network attachment, apply the base Compose file again with `docker compose up --build -d`; the named data volume remains intact.
+
+### Authentication and account-scoped progress
+
+- Better Auth owns OAuth account linking, opaque database-backed sessions, cookie handling, and database-backed rate limits. Production sign-in is through configured Google and/or GitHub providers; test-only email/password registration is disabled when `NODE_ENV=production`.
+- Production auth fails closed unless its secret is strong and the configured auth URL matches the public HTTPS origin. Compose reads only production-prefixed OAuth credentials; local development uses the separate unprefixed settings. The configured owner role is granted only when the matching provider email is verified.
+- The public curriculum does not require sign-in. `/api/progress` requires a valid session and derives the user ID from the verified server-side session; never accept an account ID from form data, query parameters, or a request body.
+- Existing shared progress is copied into `legacy_progress` by migration `0004_add_auth_and_progress_ownership.sql`. Only the verified account whose email matches `FIELDNOTES_OWNER_EMAIL` can atomically claim those rows. New progress uses `(user_id, item_type, item_id)` as its key. Keep migration compatibility and test it with a disposable database; do not rewrite migrations already used by a learner.
+- If a session expires, API calls return 401. Show a sign-in path without clearing the learner's current form state; after signing in, allow the learner to save again. A 503 means auth storage/configuration is unavailable and must not be presented as an empty progress record.
+- OAuth/provider/network failures should give a plain retry message without exposing provider responses, tokens, or internal exception details. Same-origin checks remain on progress writes for request integrity, in addition to authentication.
+- Account deletion is enabled in Better Auth. The account page requires the learner to type `DELETE`; a session older than 10 minutes must be restarted before deletion. SQLite foreign-key cascades remove active account records, sessions, and progress. Migration `0005` also removes the unclaimed legacy archive when the configured owner is deleted. Downloaded exports and database backups remain outside this deletion path.
+- Do not automatically delete accounts or progress because an account has been inactive for a chosen number of days.
+- The auth tables and learning records share the existing SQLite database. OAuth tokens are encrypted by Better Auth using the app secret; learner notes remain ordinary SQLite text. Protect the secret, database volume, and backups. Losing the secret can invalidate sessions and affect token decryption, so keep a secure backup.
 
 ## Changing curriculum and application behavior
 
@@ -107,11 +121,14 @@ Before adding the Tunnel's `learn.cybertracesystems.com` published-application r
 3. For Next.js changes, consult the installed version's matching guide under `node_modules/next/dist/docs/` and heed deprecations. The Next.js-managed section in `AGENTS.md` is preserved intentionally.
 4. Add or update tests for changed behavior, run the relevant checks, and inspect the final diff. Update docs when setup, architecture, behavior, or commands change.
 5. Keep credentials, personal data, private network details, and real learner notes out of source, tests, screenshots, logs, and exported fixtures. Treat JSON progress exports as unencrypted personal data.
-6. Keep the MVP bound to loopback by default. Any Cloudflare Tunnel exposure must use the optional overlay and a Cloudflare Access policy restricted to the intended learner; do not expose an unprotected route. Do not change production data or deploy without explicit authorization. Preserve the local SQLite volume during routine development.
+6. Keep Compose bound to loopback by default. A public Tunnel route may rely on Fieldnotes OAuth for account access to progress, while the learning content remains public. Do not expose the route before at least one provider and owner identity are configured. Do not change production learner data or deploy without explicit authorization. Preserve the local SQLite volume during routine development.
 
 ## Troubleshooting
 
-- **Port 3000 is busy:** set `APP_PORT` in `.env` for Compose, or use `PLAYWRIGHT_PORT` for E2E tests. Stop a conflicting dev server before the E2E build.
+- **Port 3000 is busy:** set `APP_PORT` in `.env` for Compose, or use `PLAYWRIGHT_PORT` for E2E tests. Stop any other server on the selected E2E port.
 - **SQLite native module fails to install:** use Node.js 24 and a supported platform; install the platform's native compiler toolchain if npm cannot use a prebuilt binary, then rerun `npm ci`.
 - **Progress appears missing:** local development and Compose use separate database paths. Check `DATABASE_PATH` for local runs and preserve the `learning-data` Docker volume.
+- **Local sign-in is unavailable:** check `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `FIELDNOTES_OWNER_EMAIL`, and local `GOOGLE_*`/`GITHUB_*` settings in `.env`. Restart the app after changing them. Do not paste the secret into logs or support requests.
+- **Production sign-in is unavailable:** check `FIELDNOTES_PROD_BETTER_AUTH_SECRET`, `FIELDNOTES_PUBLIC_URL`, and production `FIELDNOTES_PROD_*` provider settings. `BETTER_AUTH_URL` must match the public HTTPS origin in production.
+- **Prior progress is not visible:** confirm you signed in with the verified email that exactly matches `FIELDNOTES_OWNER_EMAIL`; the older shared rows are not visible to other accounts.
 - **Container is not healthy:** inspect `docker compose logs app` and `docker compose ps`; the health endpoint is `/api/health`.

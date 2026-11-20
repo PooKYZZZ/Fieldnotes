@@ -20,8 +20,13 @@ export function ActivityLesson({ activity, previousActivity, nextActivity }: {
           <div>
             <p className="eyebrow">Activity {activity.id} · Module {String(activity.moduleId).padStart(2, "0")}</p>
             <h1>{activity.title}</h1>
+            <Link className="activity-module-return" href={`/modules/${String(activity.moduleId).padStart(2, "0")}`}>
+              Review Module {String(activity.moduleId).padStart(2, "0")} overview <ArrowRight size={14} aria-hidden="true" />
+            </Link>
           </div>
         </header>
+
+        <p className="activity-execution-boundary">Run practical steps in your own disposable environment. Fieldnotes saves your notes; it does not run commands or verify results. Record only sanitized evidence.</p>
 
         <nav className="activity-workflow-nav" aria-label="Activity steps">
           <a href="#activity-scenario"><span>01</span><strong>Understand</strong></a>

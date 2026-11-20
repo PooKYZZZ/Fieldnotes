@@ -3,19 +3,29 @@ import { ArrowRight } from "lucide-react";
 import { activities, modules } from "@/content";
 import { curriculumPhaseNames } from "@/content/taxonomy";
 import { listProgress } from "@/features/progress/storage/store.server";
+import { getCurrentSession } from "@/features/auth/auth.server";
 import type { ProgressRecord } from "@/features/progress/model";
 import { RoadmapExplorer } from "@/features/roadmap/roadmap-explorer";
 
 export const metadata: Metadata = { title: "Learning roadmap" };
 export const dynamic = "force-dynamic";
 
-export default function RoadmapPage() {
+export default async function RoadmapPage() {
   let records: ProgressRecord[] = [];
-  let progressAvailable = true;
+  let session = null;
+  let authUnavailable = false;
   try {
-    records = listProgress();
+    session = await getCurrentSession();
   } catch {
-    progressAvailable = false;
+    authUnavailable = true;
+  }
+  let progressAvailable = Boolean(session);
+  if (session) {
+    try {
+      records = listProgress(session.user.id);
+    } catch {
+      progressAvailable = false;
+    }
   }
   const recordByKey = new Map(records.map((record) => [record.itemType + ":" + record.itemId, record]));
   const phases = curriculumPhaseNames.map((name) => {
@@ -66,7 +76,7 @@ export default function RoadmapPage() {
           <p className="eyebrow">Your complete pathway</p>
           <h1>Learning roadmap</h1>
           <p className="page-description">
-            Browse all {modules.length} modules across {phases.length} phases, then use saved progress to find your next topic.
+            Browse all {modules.length} modules across {phases.length} phases{session ? ", then use your saved progress to find your next topic." : ". Sign in whenever you want to save personal progress."}
           </p>
         </div>
         <a className="button button-outline header-action" href="/library/00_Learning_Roadmap.pdf" target="_blank" rel="noreferrer">
@@ -76,7 +86,12 @@ export default function RoadmapPage() {
       <div className="callout-blue">
         <strong>How to move forward:</strong> Choose a lesson, connect the idea to a practical task, and save the evidence that fits your goal. Mark learning complete when you are ready; the roadmap keeps lesson, activity, and module status separate.
       </div>
-      <RoadmapExplorer modules={roadmapModules} phases={phases} progressAvailable={progressAvailable} />
+      <RoadmapExplorer
+        modules={roadmapModules}
+        phases={phases}
+        progressAvailable={progressAvailable}
+        progressRequiresSignIn={!session && !authUnavailable}
+      />
     </>
   );
 }

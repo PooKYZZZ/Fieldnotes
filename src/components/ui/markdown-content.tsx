@@ -45,7 +45,6 @@ export function MarkdownContent({
   taskDetails?: Partial<Record<string, string>>;
   onRecordTask?: (taskId: string) => void;
 }) {
-  let taskIndex = 0;
   const components: Components = {
     ...(headingIdPrefix
       ? {
@@ -56,15 +55,18 @@ export function MarkdownContent({
       : {}),
     ...(taskIds ? {
       ol: ({ children: listChildren, node, ...props }) => {
-        const isTaskList = taskIds && node?.position?.start.column === 1;
+        const items = Children.toArray(listChildren).filter(
+          (child) => typeof child !== "string" || child.trim().length > 0,
+        );
+        const isTaskList = node?.position?.start.column === 1
+          && items.length === taskIds.length
+          && items.every((child) => isValidElement(child) && child.type === "li");
         if (!isTaskList) return <ol {...props}>{listChildren}</ol>;
         return <ol {...props}>
-          {Children.toArray(listChildren).map((child) => {
+          {items.map((child, taskPosition) => {
             if (!isValidElement<{ children?: ReactNode }>(child) || child.type !== "li") return child;
-            const taskPosition = taskIndex;
             const taskId = taskIds[taskPosition];
             if (!taskId) return child;
-            taskIndex += 1;
             const item = child as ReactElement<{ children?: ReactNode }>;
             const taskHint = taskHints?.[taskId];
             const taskDetail = taskDetails?.[taskId];

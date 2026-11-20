@@ -7,6 +7,10 @@ CI tests a particular source revision and produces evidence about it. A release 
 artifact through environments rather than rebuild different bytes for each environment. Record the commit and
 artifact identifier (ideally a digest for a container image) with the deployment. Configuration can vary by
 environment, but it must be explicit and validated.
+
+<p><strong>Worked example:</strong> CI builds an image from commit <code>abc123</code>, tests it, and publishes a registry digest. Development and staging can deploy that digest while supplying their own explicit configuration. A tag such as <code>release-candidate</code> is a readable pointer that may later move; the digest identifies the image bytes.</p>
+
+<p><strong>Interpret the result:</strong> Compare the digest recorded by CI with the digest the deployment reports as running, then smoke-test the deployed service. Matching digests show the same image was selected; they do not prove its configuration, data migration, or runtime behavior is safe in every environment.</p>
   </div>
   <TechnicalFigure
     src="/diagrams/module11/lesson-01.svg"

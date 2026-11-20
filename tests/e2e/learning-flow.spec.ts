@@ -54,9 +54,10 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
   await page.getByRole("button", { name: "Open navigation menu" }).click();
   await expect(page.getByRole("navigation", { name: "Learning pages" })).toBeVisible();
   await expect(page.getByRole("link", { name: "DevOps Fieldnotes home" })).toBeFocused();
+  await expect(page.getByRole("link", { name: /Account for/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Close navigation menu" })).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("Shift+Tab");
-  await expect(page.getByRole("link", { name: "Guide" })).toBeFocused();
+  await expect(page.getByRole("link", { name: /Account for/ })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "DevOps Fieldnotes home" })).toBeFocused();
   await page.keyboard.press("Escape");
@@ -119,7 +120,7 @@ test("progress edits save to SQLite and survive a page reload", async ({ page })
   await expect(page.getByLabel("Evidence or verification")).toHaveCount(0);
   await expect(page.getByLabel("How independently can you do this?")).toHaveCount(0);
   await page.getByRole("button", { name: "Save module progress" }).click();
-  await expect(page.getByText("Saved on this device.")).toBeVisible();
+  await expect(page.getByText("Saved to your account.")).toBeVisible();
   const savedModule = await page.request.get(`${testOrigin}/api/progress?itemType=module&itemId=M01`);
   expect(await savedModule.json()).toMatchObject([{ status: "in_progress", comfort: "guided", notes: "I can describe the user-space and kernel boundary.", evidence: "Existing evidence stays attached to the module record.", repositoryUrl: "https://example.com/old-module-record" }]);
 
@@ -136,9 +137,9 @@ test("progress edits save to SQLite and survive a page reload", async ({ page })
 
   await page.goto("/modules/01/lessons/m01-l02");
   await expect(page.getByRole("heading", { level: 1, name: "Processes and threads" })).toBeVisible();
-  await page.getByRole("button", { name: "Mark lesson complete" }).click();
+  await page.getByRole("button", { name: "Set draft to complete" }).click();
   await page.getByRole("button", { name: "Save learning record" }).click();
-  await expect(page.getByText("Saved on this device.")).toBeVisible();
+  await expect(page.getByText("Saved to your account.")).toBeVisible();
   const savedLesson = await page.request.get(`${testOrigin}/api/progress?itemType=lesson&itemId=M01-L02`);
   expect(await savedLesson.json()).toMatchObject([{ itemType: "lesson", itemId: "M01-L02", status: "completed" }]);
 
@@ -146,11 +147,11 @@ test("progress edits save to SQLite and survive a page reload", async ({ page })
   await page.locator('.learning-lesson-navigation a[href="/modules/01/lessons/m01-l03"]').click();
   await expect(page).toHaveURL(/\/modules\/01\/lessons\/m01-l03$/);
   const nextLessonProgress = page.locator("#progress-editor-M01-L03");
-  await expect(nextLessonProgress.locator(".progress-lesson-status-control .field-hint")).toHaveText("Not started");
-  await expect(nextLessonProgress.getByRole("button", { name: "Mark lesson complete" })).toBeVisible();
-  await nextLessonProgress.getByRole("button", { name: "Mark lesson complete" }).click();
+  await expect(nextLessonProgress.locator(".progress-lesson-status-control .field-hint")).toHaveText("Draft status: Not started");
+  await expect(nextLessonProgress.getByRole("button", { name: "Set draft to complete" })).toBeVisible();
+  await nextLessonProgress.getByRole("button", { name: "Set draft to complete" }).click();
   await nextLessonProgress.getByRole("button", { name: "Save learning record" }).click();
-  await expect(nextLessonProgress.getByText("Saved on this device.")).toBeVisible();
+  await expect(nextLessonProgress.getByText("Saved to your account.")).toBeVisible();
   const savedNextLesson = await page.request.get(`${testOrigin}/api/progress?itemType=lesson&itemId=M01-L03`);
   expect(await savedNextLesson.json()).toMatchObject([{ itemType: "lesson", itemId: "M01-L03", status: "completed" }]);
   const preservedLesson = await page.request.get(`${testOrigin}/api/progress?itemType=lesson&itemId=M01-L02`);
@@ -256,7 +257,7 @@ test("activity directory filters by real phase, search text, and saved status", 
   await troubleshootingRecord.getByLabel("Learning note").fill("Expected a read denial for the service identity; recorded the first failing path.");
   await troubleshootingRecord.getByLabel("Evidence or verification").fill("Compared the unit identity, directory permissions, and the matching journal entry.");
   await troubleshootingRecord.getByRole("button", { name: "Save learning record" }).click();
-  await expect(troubleshootingRecord.locator(".form-message")).toContainText("Saved on this device.");
+  await expect(troubleshootingRecord.locator(".form-message")).toContainText("Saved to your account.");
   await expect(troubleshootingCard.locator(".practice-status")).toHaveText("In progress");
   await troubleshootingCard.locator("summary.troubleshooting-summary").click();
   await troubleshootingCard.locator("summary.troubleshooting-summary").click();
@@ -411,6 +412,9 @@ test("project build instructions and notebook share the workspace across desktop
   for (const viewport of [{ width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
     await page.setViewportSize(viewport);
     await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.getByRole("tab", { name: "03 Build" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("#project-panel-project-build")).toBeVisible();
+    await expect(page.locator(".project-build-main")).toBeVisible();
     const desktopLayout = await page.evaluate(() => {
       const main = document.querySelector<HTMLElement>(".project-build-main")!.getBoundingClientRect();
       const rail = document.querySelector<HTMLElement>(".project-notebook")!.getBoundingClientRect();
@@ -500,7 +504,7 @@ test("project notebook saves once, survives refresh, and appears in final review
   await notebook.getByLabel("Engineering log").fill("Chose a small service boundary and recorded the reason for the trade-off.");
   await notebook.getByLabel("Final verification summary").fill("The focused test passed; the integration check still needs to run.");
   await notebook.getByRole("button", { name: "Save project notebook" }).click();
-  await expect(notebook.locator(".form-message")).toContainText("Saved on this device.");
+  await expect(notebook.locator(".form-message")).toContainText("Saved to your account.");
   const savedRows = await page.request.get("/api/progress?itemType=small_project&itemId=S02");
   const savedRecord = await savedRows.json() as Array<{ taskObservations: Record<string, string> }>;
   expect(savedRecord[0].taskObservations).toMatchObject({
@@ -530,6 +534,192 @@ test("project notebook saves once, survives refresh, and appears in final review
   const savedNotebookRecord = page.locator(".progress-record");
   await expect(savedNotebookRecord).toContainText("S02.2 · Implement the layered probes");
   await expect(savedNotebookRecord).toContainText("The second checkpoint captured its own network test and result.");
+});
+
+test("edits made during an outstanding project save remain visibly unsaved", async ({ page }) => {
+  let requestSaveStarted!: () => void;
+  let releaseSave!: () => void;
+  const saveStarted = new Promise<void>((resolve) => { requestSaveStarted = resolve; });
+  const saveGate = new Promise<void>((resolve) => { releaseSave = resolve; });
+  let submittedBody: Record<string, unknown> | undefined;
+
+  await page.route("**/api/progress", async (route) => {
+    if (route.request().method() !== "PUT") {
+      await route.continue();
+      return;
+    }
+    submittedBody = route.request().postDataJSON() as Record<string, unknown>;
+    requestSaveStarted();
+    await saveGate;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...submittedBody, updatedAt: Date.now() }),
+    });
+  });
+
+  await page.goto("/projects/S02#project-build");
+  const notebook = page.locator("#progress-editor-S02");
+  const note = notebook.getByLabel("Checkpoint note · S02.1");
+  await expect(note).toBeEnabled();
+  await note.fill("First revision submitted to the server.");
+  await notebook.getByRole("button", { name: "Save project notebook" }).click();
+  await saveStarted;
+  await note.fill("Newer revision typed while the first save is pending.");
+
+  expect((submittedBody?.taskObservations as Record<string, string>)?.["S02.1"]).toBe("First revision submitted to the server.");
+  releaseSave();
+
+  await expect(note).toHaveValue("Newer revision typed while the first save is pending.");
+  await expect(notebook.locator(".form-footer .field-hint")).toContainText("Unsaved changes");
+  await expect(notebook.locator(".form-message")).toContainText("Newer edits still need saving");
+});
+
+test("saved progress fields stay unavailable until the existing record finishes loading", async ({ page, request }) => {
+  const savedProject = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: {
+      ...progressRecord("small_project", "S02", "in_progress", "Existing project-wide note."),
+      taskObservations: { "S02.1": "Existing checkpoint evidence must load first." },
+    },
+  });
+  expect(savedProject.ok()).toBeTruthy();
+
+  let releaseLoad!: () => void;
+  let startLoad!: () => void;
+  const loadStarted = new Promise<void>((resolve) => { startLoad = resolve; });
+  const loadGate = new Promise<void>((resolve) => { releaseLoad = resolve; });
+  await page.route("**/api/progress?**", async (route) => {
+    const url = new URL(route.request().url());
+    if (route.request().method() !== "GET" || url.searchParams.get("itemId") !== "S02") {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    startLoad();
+    await loadGate;
+    await route.fulfill({ response });
+  });
+
+  await page.goto("/projects/S02#project-build");
+  const notebook = page.locator("#progress-editor-S02");
+  const checkpointNote = notebook.getByLabel("Checkpoint note · S02.1");
+  await loadStarted;
+  await expect(checkpointNote).toBeDisabled();
+  releaseLoad();
+  await expect(notebook.getByLabel("Engineering log")).toHaveValue("Existing project-wide note.");
+  await expect(checkpointNote).toBeEnabled();
+  await expect(checkpointNote).toHaveValue("Existing checkpoint evidence must load first.");
+});
+
+test("dirty project notes warn before route navigation and can be kept or discarded deliberately", async ({ page }) => {
+  await page.goto("/projects/S02#project-build");
+  const note = page.locator("#progress-editor-S02").getByLabel("Checkpoint note · S02.1");
+  await expect(note).toBeEnabled();
+  await note.fill("Keep this note if I cancel navigation.");
+
+  let firstDialogType = "";
+  page.once("dialog", async (dialog) => {
+    firstDialogType = dialog.type();
+    await dialog.dismiss();
+  });
+  await page.getByRole("navigation", { name: "Learning pages" }).getByRole("link", { name: "Activities" }).click();
+  expect(firstDialogType).toBe("confirm");
+  await expect(page).toHaveURL(/\/projects\/S02/);
+  await expect(note).toHaveValue("Keep this note if I cancel navigation.");
+
+  let secondDialogType = "";
+  page.once("dialog", async (dialog) => {
+    secondDialogType = dialog.type();
+    await dialog.accept();
+  });
+  await page.getByRole("navigation", { name: "Learning pages" }).getByRole("link", { name: "Activities" }).click();
+  expect(secondDialogType).toBe("confirm");
+  await expect(page).toHaveURL(/\/activities/);
+});
+
+test("dirty project notes warn before a full-page navigation such as refresh", async ({ page }) => {
+  await page.goto("/projects/S02#project-build");
+  const note = page.locator("#progress-editor-S02").getByLabel("Checkpoint note · S02.1");
+  await expect(note).toBeEnabled();
+  await note.fill("Keep this note if I cancel a full-page navigation.");
+
+  let dialogType = "";
+  const dialogPromise = page.waitForEvent("dialog", { timeout: 5_000 });
+  const reload = page.evaluate(() => window.location.reload()).catch(() => undefined);
+  const dialog = await dialogPromise;
+  dialogType = dialog.type();
+  await dialog.dismiss();
+  await reload;
+
+  expect(dialogType).toBe("beforeunload");
+  await expect(page).toHaveURL(/\/projects\/S02/);
+  await expect(note).toHaveValue("Keep this note if I cancel a full-page navigation.");
+});
+
+test("unsaved lesson status and investigation notes are protected across the learning journey", async ({ page }) => {
+  await page.goto("/modules/01/lessons/m01-l01");
+  await page.getByRole("button", { name: "Set draft to complete" }).click();
+  let lessonDialogType = "";
+  page.once("dialog", async (dialog) => {
+    lessonDialogType = dialog.type();
+    await dialog.accept();
+  });
+  await page.getByRole("link", { name: "DevOps Fieldnotes home" }).click();
+  expect(lessonDialogType).toBe("confirm");
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+
+  for (const activityId of ["A01", "A02"]) {
+    await page.goto(`/activities/${activityId}#activity-perform`);
+    const observation = page.getByRole("textbox", { name: "Task observation" });
+    const note = `Unsaved ${activityId} investigation evidence.`;
+    await expect(observation).toBeVisible();
+    await observation.fill(note);
+
+    const stages = page.locator(".activity-workflow-nav a");
+    await stages.nth(3).click();
+    await expect(page).toHaveURL(new RegExp(`#activity-record$`));
+    await stages.nth(2).click();
+    await expect(observation).toHaveValue(note);
+
+    let activityDialogType = "";
+    page.once("dialog", async (dialog) => {
+      activityDialogType = dialog.type();
+      await dialog.accept();
+    });
+    await page.getByRole("link", { name: "DevOps Fieldnotes home" }).click();
+    expect(activityDialogType).toBe("confirm");
+    await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  }
+});
+
+test("project cards distinguish saved checkpoint work from an explicitly started project", async ({ page, request }) => {
+  const project = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: progressRecord("small_project", "S01", "not_started"),
+  });
+  expect(project.ok()).toBeTruthy();
+  const checkpoint = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: progressRecord("milestone", "S01.1", "completed"),
+  });
+  expect(checkpoint.ok()).toBeTruthy();
+
+  await page.goto("/projects");
+  const card = page.locator('[data-project-id="S01"]');
+  await expect(page.getByText("active or saved projects", { exact: true })).toBeVisible();
+  await expect(card.locator(".status-pill, .project-state-badge")).toHaveText("Checkpoint progress saved");
+  await expect(card).toContainText("1 of 4 checkpoints self-reported");
+  const savedProject = await request.get(`${testOrigin}/api/progress?itemType=small_project&itemId=S01`);
+  await expect(savedProject).toBeOK();
+  expect(await savedProject.json()).toMatchObject([{ status: "not_started" }]);
+
+  await page.goto("/projects/S01#project-review");
+  const review = page.locator(".project-record-review");
+  await expect(review.locator(".project-record-review-state")).toContainText("Overall project status · self-reported");
+  await expect(review.locator(".project-record-review-state")).toContainText("Not started");
+  await expect(review).toContainText("S01.1 · Define the event contract and fixtures");
+  await expect(review).toContainText("Self-reported complete");
 });
 
 test("dashboard resumes a saved project draft at its next unfinished checkpoint", async ({ page, request }) => {
@@ -579,9 +769,10 @@ test("dashboard resumes a saved project draft at its next unfinished checkpoint"
 
   await page.goto("/projects");
   const logExplorer = page.locator('[data-project-id="S01"]');
-  await expect(logExplorer).toContainText("Draft saved");
-  await expect(logExplorer).toHaveAttribute("href", "/projects/S01#milestone-S01.2");
-  await logExplorer.click();
+  await expect(logExplorer).toContainText("Checkpoint progress saved");
+  const resumeCheckpoint = logExplorer.getByRole("link", { name: "Resume S01.2" });
+  await expect(resumeCheckpoint).toHaveAttribute("href", "/projects/S01#milestone-S01.2");
+  await resumeCheckpoint.click();
   await expect(page).toHaveURL(/\/projects\/S01#milestone-S01\.2$/);
   await expect(page.locator(".project-active-milestone h3")).toHaveText("Implement parsing, filters, and summaries");
 
@@ -600,8 +791,8 @@ test("dashboard resumes a saved project draft at its next unfinished checkpoint"
   await expect(page.locator(".project-workflow-nav").getByRole("tab", { name: "Review" })).toHaveAttribute("aria-selected", "true");
 
   await page.goto("/projects");
-  await expect(page.locator('[data-project-id="S01"]')).toHaveAttribute("href", "/projects/S01#project-review");
-  await expect(page.locator('[data-project-id="S01"] .small-tool-footer')).toContainText("Review handoff");
+  const reviewHandoff = page.locator('[data-project-id="S01"] .small-tool-footer').getByRole("link", { name: "Review handoff" });
+  await expect(reviewHandoff).toHaveAttribute("href", "/projects/S01#project-review");
 });
 
 test("mobile project notebook opens as an accessible drawer", async ({ page }) => {
@@ -910,7 +1101,7 @@ test("other activities link each practical step to one shared saved notebook", a
 
   await steps.nth(2).getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
   await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   type ActivityRows = Array<{ status: string; notes: string; evidence: string; repositoryUrl: string; taskObservations: Record<string, string> }>;
   let rows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A02")).json() as ActivityRows;
   expect(rows).toHaveLength(1);
@@ -941,7 +1132,7 @@ test("other activities link each practical step to one shared saved notebook", a
   await expect(observation).toHaveValue("The sorted report listed three files with relative paths, file type, byte size, and owner.");
   await observation.fill("Refined: sorted rows show the expected paths and metadata; the empty fixture has zero bytes.");
   await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review).toContainText("Refined: sorted rows show the expected paths and metadata");
 
@@ -1118,7 +1309,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await page.unroute("**/api/progress");
 
   await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   const firstSave = await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01");
   const firstRows = await firstSave.json() as Array<{ status: string; notes: string; evidence: string; repositoryUrl: string; taskObservations: Record<string, string> }>;
   expect(firstRows).toHaveLength(1);
@@ -1160,7 +1351,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
 
   await taskObservation.fill("Refined: the PID and IDs agreed; the small RSS difference is consistent with a changing point-in-time estimate.");
   await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.locator(".form-message")).toContainText("Draft saved on this device.");
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review.locator(".activity-a01-review-record")).toContainText("Refined: the PID and IDs agreed");
 
@@ -1188,7 +1379,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await expect(notebook.getByRole("button", { name: /Choose a process you own/ })).toHaveAttribute("aria-pressed", "true");
   await taskObservation.fill("Revised after review: RSS can change between snapshots; PID and parent remained stable.");
   await notebook.getByRole("button", { name: "Save draft" }).click();
-  await expect(notebook.locator(".form-message")).toContainText("Draft saved. The activity remains marked complete.");
+  await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account. The activity remains marked complete.");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
   currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as Array<{ status: string; taskObservations: Record<string, string> }>;

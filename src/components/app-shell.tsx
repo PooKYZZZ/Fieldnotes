@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, BookOpenCheck, Compass, GraduationCap, LayoutDashboard, LibraryBig, Map, Menu, Rocket, X } from "lucide-react";
+import { AccountNavigation } from "@/features/auth/account-navigation";
 
 const navigation = [
   { label: "Dashboard", shortLabel: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -102,6 +103,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav id="main-navigation" className="side-nav" aria-label="Learning pages">{renderLinks(navigation)}</nav>
         <p className="nav-group-title reference-nav-title">Reference</p>
         <nav className="side-nav" aria-label="Reference pages">{renderLinks(resourcesNavigation)}</nav>
+        <p className="nav-group-title account-nav-title">Account</p>
+        <nav className="side-nav" aria-label="Account pages"><AccountNavigation /></nav>
       </aside>
 
       <button
@@ -127,6 +130,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         </header>
         <main className="main-content" id="main-content" tabIndex={-1}>{children}</main>
+        <footer className="site-legal-footer">
+          <span>Public learning materials · private progress records</span>
+          <nav aria-label="Legal information">
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+          </nav>
+        </footer>
       </div>
     </div>
   );

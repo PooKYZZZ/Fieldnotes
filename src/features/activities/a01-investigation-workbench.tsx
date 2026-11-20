@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { a01Tasks, type A01TaskSelection } from "@/features/activities/a01-task-catalog";
 import { formatStatus, type ComfortLevel, type ProgressInput, type ProgressRecord, type ProgressStatus } from "@/features/progress/model";
+import { useUnsavedChangesWarning } from "@/features/progress/use-unsaved-changes-warning";
+import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
 
 function blankRecord(itemId: string): ProgressInput {
   return {
@@ -51,6 +53,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const [saving, setSaving] = useState(false);
   const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -67,11 +70,18 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   const savedText = updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet";
   const notebookState = loading ? "Loading saved notes" : loadFailed ? "Saved notes unavailable" : isDirty ? "Unsaved changes" : formatStatus(record.status);
 
+  useUnsavedChangesWarning(`a01-workbench:${activity.id}`, isDirty);
+
   useEffect(() => {
     const controller = new AbortController();
+    let authRequired = false;
     const query = new URLSearchParams({ itemType: "activity", itemId: activity.id });
     fetch(`/api/progress?${query.toString()}`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
+        if (response.status === 401) {
+          authRequired = true;
+          throw new Error("Sign in to open this private investigation notebook.");
+        }
         if (!response.ok) throw new Error("Could not load this activity’s saved record.");
         const rows = await response.json() as ProgressRecord[];
         if (!Array.isArray(rows)) throw new Error("The saved record response was unexpected.");
@@ -80,6 +90,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
         setSavedRecord(saved);
         setUpdatedAt(rows[0]?.updatedAt);
         setIsDirty(false);
+        setRequiresSignIn(false);
         setMessage("");
         setError(false);
         setLoadFailed(false);
@@ -87,8 +98,9 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
       .catch(() => {
         if (controller.signal.aborted) return;
         setLoadFailed(true);
-        setError(true);
-        setMessage("The saved record could not be loaded. Retry before editing so existing notes are protected.");
+        setRequiresSignIn(authRequired);
+        setError(!authRequired);
+        setMessage(authRequired ? "" : "The saved record could not be loaded. Retry before editing so existing notes are protected.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -178,6 +190,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
       });
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
+        if (response.status === 401) setRequiresSignIn(true);
         const errorText = typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
           ? body.error
           : "The activity record could not be saved.";
@@ -192,10 +205,11 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
       setSavedRecord(normalized);
       setUpdatedAt(saved.updatedAt);
       setIsDirty(false);
+      setRequiresSignIn(false);
       const keptCompleted = record.status === "completed" && status === "completed";
       setMessage(status === "completed"
-        ? keptCompleted ? "Draft saved. The activity remains marked complete." : "Activity marked complete on this device."
-        : action === "reopen" ? "Activity marked in progress. Your notes were saved on this device." : "Draft saved on this device.");
+        ? keptCompleted ? "Draft saved to your account. The activity remains marked complete." : "Activity marked complete in your account."
+        : action === "reopen" ? "Activity marked in progress in your account." : "Draft saved to your account.");
       window.dispatchEvent(new CustomEvent("progress-updated"));
     } catch (caught) {
       setError(true);
@@ -329,6 +343,10 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
                   <h2>Investigation notebook</h2>
                   <p>Choose a task to edit. Your notes stay in this A01 record until you save them.</p>
                 </div>
+
+                {requiresSignIn && <ProgressSignInNotice reloadAfterSignIn={!isDirty}>{isDirty
+                  ? "Your session has expired. Your unsaved observations are still open here. Sign in in another tab, return, and save again."
+                  : "Sign in to open and edit your private investigation notebook. Your learning content remains public."}</ProgressSignInNotice>}
 
                 {viewingDifferentTask && <div className="activity-a01-visible-task" role="status">
                   <span>

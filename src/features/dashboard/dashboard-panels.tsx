@@ -6,6 +6,7 @@ import type { DashboardActivity, DashboardModel, DashboardModule, DashboardNextI
 type ContinueLearningPanelProps = {
   loaded: boolean;
   loadError: boolean;
+  requiresSignIn: boolean;
   currentModule?: DashboardModule;
   currentModuleStatus?: ModuleStatus;
   currentLesson?: DashboardModule["lessons"][number] & { moduleId: number };
@@ -24,6 +25,7 @@ type ContinueLearningPanelProps = {
 export function ContinueLearningPanel({
   loaded,
   loadError,
+  requiresSignIn,
   currentModule,
   currentModuleStatus,
   currentLesson,
@@ -88,8 +90,10 @@ export function ContinueLearningPanel({
             <h2 id="continue-title">{currentLesson.title}</h2>
             <p className="continue-context">{currentModule.title}</p>
             <p className="continue-progress-copy">
-              {lessonProgress?.completed ?? 0} of {lessonProgress?.total ?? currentModule.lessons.length} lessons marked complete
-              {currentModuleStatus && <> <span aria-hidden="true">·</span> Module {formatStatus(currentModuleStatus).toLowerCase()}</>}
+              {requiresSignIn ? "Sign in when you want to save personal progress." : <>
+                {lessonProgress?.completed ?? 0} of {lessonProgress?.total ?? currentModule.lessons.length} lessons marked complete
+                {currentModuleStatus && <> <span aria-hidden="true">·</span> Module {formatStatus(currentModuleStatus).toLowerCase()}</>}
+              </>}
             </p>
           </div>
           <div className="continue-actions">
@@ -184,12 +188,14 @@ export function DashboardSidebar({
   model,
   loaded,
   loadError,
+  requiresSignIn,
   totalModules,
   totalLessons,
 }: {
   model: DashboardModel;
   loaded: boolean;
   loadError: boolean;
+  requiresSignIn: boolean;
   totalModules: number;
   totalLessons: number;
 }) {
@@ -213,14 +219,15 @@ export function DashboardSidebar({
       <section className="overall-progress" aria-labelledby="overall-progress-title">
         <div className="overall-progress-heading">
           <span className="overall-progress-icon"><BookOpen size={18} /></span>
-          <div><h2 id="overall-progress-title">Your progress</h2><p>Based on the records you choose to save</p></div>
+          <div><h2 id="overall-progress-title">Curriculum progress</h2><p>Saved lesson, activity, and module statuses</p></div>
         </div>
-        {loaded && !loadError ? <div className="progress-summary-grid">
+        {requiresSignIn && loaded ? <p className="sidebar-empty"><Link href="/sign-in?returnTo=%2F">Sign in to view and save your private learning progress.</Link> Lessons remain open without an account.</p>
+          : loaded && !loadError ? <div className="progress-summary-grid">
           <div className="progress-summary-stat"><strong>{model.completedModules}<span>/{totalModules}</span></strong><span>modules marked complete</span></div>
           <div className="progress-summary-stat"><strong>{model.completedLessons}<span>/{totalLessons}</span></strong><span>lessons marked complete</span></div>
           <div className="progress-summary-stat"><strong>{model.completedActivities}<span>/{model.totalActivities}</span></strong><span>activities marked complete</span></div>
         </div> : <p className="sidebar-empty">{loadError ? "Saved progress could not be loaded." : "Loading saved progress…"}</p>}
-        {loaded && !loadError && <Link className="section-link overall-view-link" href="/progress">Open progress notebook <ArrowRight size={14} /></Link>}
+        {loaded && !loadError && !requiresSignIn && <Link className="section-link overall-view-link" href="/progress">Open progress notebook <ArrowRight size={14} /></Link>}
       </section>
     </aside>
   );

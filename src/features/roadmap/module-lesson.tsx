@@ -107,14 +107,8 @@ export function ModuleLesson({ learningModule, activity }: { learningModule: Mod
           </p>
         </div>
         <div className="module-objectives">
-          <h3><BookOpen size={16} /> What you will explore</h3>
-          <ul className="concept-list">{learningModule.concepts.map((concept) => {
-            const targetId = concept.href?.slice("#lesson-".length).toUpperCase();
-            const targetLesson = learningModule.lessons.find((lesson) => lesson.id === targetId);
-            return <li key={concept.label}>{targetLesson
-              ? <Link href={lessonRoute(learningModule.id, targetLesson.id)}>{concept.label}</Link>
-              : concept.label}</li>;
-          })}</ul>
+          <h3><BookOpen size={16} /> Key ideas</h3>
+          <ul className="concept-list">{learningModule.concepts.map((concept) => <li key={concept.label}>{concept.label}</li>)}</ul>
         </div>
       </section>
 

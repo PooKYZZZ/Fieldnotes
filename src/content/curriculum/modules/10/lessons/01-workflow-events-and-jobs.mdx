@@ -7,6 +7,10 @@ A workflow file declares events, jobs and steps. An event such as a pull request
 commands or actions in that job's environment. Separate jobs can use different runners and do not automatically
 share files. Use artifacts when one job needs a specific output from another. Cache dependencies to reduce install
 time, but do not confuse a cache with a verified build artifact.
+
+<p><strong>Worked example:</strong> A pull request starts separate lint and test jobs. Unless one job declares a dependency on the other, they can run in parallel. If a later image-build job needs a package produced by a test job, that file must be uploaded and downloaded as an artifact; it will not appear automatically on the other runner. A dependency cache can speed up installation, but it is not the build output being released.</p>
+
+<p><strong>Interpret the result:</strong> A green workflow means its configured jobs passed for that revision. It does not prove the service works after deployment. Check the run's event and commit, the required job results, and the intended artifact before treating the run as release evidence.</p>
   </div>
   <TechnicalFigure
     src="/diagrams/module10/lesson-01.svg"

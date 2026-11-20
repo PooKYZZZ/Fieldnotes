@@ -3,11 +3,15 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { eq } from "drizzle-orm";
 import { createProgressDatabase } from "@/features/progress/storage/database";
+import { authUser } from "@/features/auth/storage/schema";
 import type { ProgressInput } from "@/features/progress/model";
 
 const migrationDirectory = path.join(process.cwd(), "migrations");
 const temporaryDirectories: string[] = [];
+const ownerId = "learner-owner";
+const anotherLearnerId = "learner-other";
 const makePath = () => {
   const directory = mkdtempSync(path.join(tmpdir(), "devops-fieldnotes-"));
   temporaryDirectories.push(directory);
@@ -33,6 +37,26 @@ function seedPriorDatabase(databasePath: string, migrations: string[], records: 
   sqlite.close();
 }
 
+function addUser(database: ReturnType<typeof createProgressDatabase>, id: string, email = `${id}@example.test`) {
+  const now = new Date();
+  database.orm.insert(authUser).values({
+    id,
+    name: id,
+    email,
+    emailVerified: true,
+    image: null,
+    role: "user",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
+}
+
+function createDatabase(databasePath = makePath()) {
+  const database = createProgressDatabase(databasePath, migrationDirectory);
+  addUser(database, ownerId);
+  return database;
+}
+
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
@@ -47,8 +71,52 @@ const record: ProgressInput = {
   repositoryUrl: "",
 };
 
-describe("local progress database", () => {
-  it("adds lesson rows while preserving existing module and activity fields", () => {
+describe("account-scoped progress database", () => {
+  it("deletes an owner's saved progress and archived legacy records with the account", () => {
+    const databasePath = makePath();
+    const legacyRecord = { ...record, createdAt: Date.now() - 1000, updatedAt: Date.now() - 1000 };
+    seedPriorDatabase(databasePath, ["0001_create_learning_progress.sql"], [legacyRecord]);
+
+    const database = createProgressDatabase(databasePath, migrationDirectory);
+    const now = new Date();
+    database.orm.insert(authUser).values({
+      id: ownerId,
+      name: ownerId,
+      email: "owner@example.test",
+      emailVerified: true,
+      image: null,
+      role: "admin",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+    database.save(ownerId, record);
+    database.orm.delete(authUser).where(eq(authUser.id, ownerId)).run();
+
+    const inspector = new Database(databasePath);
+    expect(inspector.prepare("SELECT COUNT(*) AS count FROM learning_progress").get()).toEqual({ count: 0 });
+    expect(inspector.prepare("SELECT COUNT(*) AS count FROM legacy_progress").get()).toEqual({ count: 0 });
+    inspector.close();
+    database.close();
+  });
+
+  it("does not remove unclaimed legacy records when an ordinary learner account is deleted", () => {
+    const databasePath = makePath();
+    const legacyRecord = { ...record, createdAt: Date.now() - 1000, updatedAt: Date.now() - 1000 };
+    seedPriorDatabase(databasePath, ["0001_create_learning_progress.sql"], [legacyRecord]);
+
+    const database = createProgressDatabase(databasePath, migrationDirectory);
+    addUser(database, anotherLearnerId);
+    database.save(anotherLearnerId, record);
+    database.orm.delete(authUser).where(eq(authUser.id, anotherLearnerId)).run();
+
+    const inspector = new Database(databasePath);
+    expect(inspector.prepare("SELECT COUNT(*) AS count FROM learning_progress").get()).toEqual({ count: 0 });
+    expect(inspector.prepare("SELECT COUNT(*) AS count FROM legacy_progress").get()).toEqual({ count: 1 });
+    inspector.close();
+    database.close();
+  });
+
+  it("adds lesson rows while preserving existing fields after a legacy owner claims them", () => {
     const databasePath = makePath();
     const activity: ProgressInput = { ...record, itemType: "activity", itemId: "A01", notes: "Activity notes", evidence: "Activity evidence" };
     const timestamp = Date.now() - 1000;
@@ -57,35 +125,40 @@ describe("local progress database", () => {
       { ...activity, createdAt: timestamp, updatedAt: timestamp },
     ]);
 
-    const afterMigration = createProgressDatabase(databasePath, migrationDirectory);
-    expect(afterMigration.find("module", "M01")).toMatchObject(record);
-    expect(afterMigration.find("activity", "A01")).toMatchObject(activity);
+    const database = createProgressDatabase(databasePath, migrationDirectory);
+    addUser(database, ownerId);
+    expect(database.list(ownerId)).toEqual([]);
+    expect(database.claimLegacyProgress(ownerId)).toBe(2);
+    expect(database.find(ownerId, "module", "M01")).toMatchObject(record);
+    expect(database.find(ownerId, "activity", "A01")).toMatchObject(activity);
 
     const lesson: ProgressInput = { ...record, itemType: "lesson", itemId: "M01-L01", notes: "Lesson note" };
-    afterMigration.save(lesson);
-    expect(afterMigration.find("lesson", "M01-L01")).toMatchObject(lesson);
-    expect(afterMigration.find("module", "M01")).toMatchObject({ notes: record.notes, evidence: record.evidence });
-    expect(afterMigration.list()).toHaveLength(3);
-    afterMigration.close();
+    database.save(ownerId, lesson);
+    expect(database.find(ownerId, "lesson", "M01-L01")).toMatchObject(lesson);
+    expect(database.find(ownerId, "module", "M01")).toMatchObject({ notes: record.notes, evidence: record.evidence });
+    expect(database.list(ownerId)).toHaveLength(3);
+    expect(database.claimLegacyProgress(ownerId)).toBe(0);
+    database.close();
   });
 
   it("applies migrations and persists updates across connections", () => {
     const databasePath = makePath();
     const first = createProgressDatabase(databasePath, migrationDirectory);
+    addUser(first, ownerId);
     expect(first.health()).toEqual({ status: "ok", database: "sqlite" });
-    first.save(record);
+    first.save(ownerId, record);
     first.close();
 
     const reopened = createProgressDatabase(databasePath, migrationDirectory);
-    expect(reopened.list()).toHaveLength(1);
-    expect(reopened.find("module", "M01")).toMatchObject(record);
-    const updated = reopened.save({ ...record, status: "needs_review", notes: "Revisit the VM boundary." });
+    expect(reopened.list(ownerId)).toHaveLength(1);
+    expect(reopened.find(ownerId, "module", "M01")).toMatchObject(record);
+    const updated = reopened.save(ownerId, { ...record, status: "needs_review", notes: "Revisit the VM boundary." });
     expect(updated.status).toBe("needs_review");
-    expect(reopened.list()).toHaveLength(1);
+    expect(reopened.list(ownerId)).toHaveLength(1);
     reopened.close();
   });
 
-  it("adds task observations to an existing v2 database and preserves them when importing a v1 or v2 row", () => {
+  it("copies v2 records into an unclaimed archive and preserves A01 observations during owner adoption", () => {
     const databasePath = makePath();
     const oldRecord: ProgressInput = {
       ...record,
@@ -98,34 +171,50 @@ describe("local progress database", () => {
       repositoryUrl: "https://example.test/a01",
     };
     const originalTimestamp = Date.now() - 1000;
-    seedPriorDatabase(databasePath, ["0001_create_learning_progress.sql", "0002_add_lesson_progress.sql"], [
+    seedPriorDatabase(databasePath, ["0001_create_learning_progress.sql", "0002_add_lesson_progress.sql", "0003_add_a01_task_observations.sql"], [
       { ...oldRecord, createdAt: originalTimestamp, updatedAt: originalTimestamp },
     ]);
 
     const migrated = createProgressDatabase(databasePath, migrationDirectory);
-    expect(migrated.find("activity", "A01")).toMatchObject({ ...oldRecord, updatedAt: originalTimestamp, taskObservations: {} });
-    const withTaskNotes = migrated.save({
+    addUser(migrated, ownerId);
+    expect(migrated.find(ownerId, "activity", "A01")).toBeUndefined();
+    expect(migrated.claimLegacyProgress(ownerId)).toBe(1);
+    expect(migrated.find(ownerId, "activity", "A01")).toMatchObject({ ...oldRecord, updatedAt: originalTimestamp, taskObservations: {} });
+
+    const withTaskNotes = migrated.save(ownerId, {
       ...oldRecord,
       taskObservations: { "compare-proc": "The PID matched; VmRSS differed slightly." },
     });
     expect(withTaskNotes).toMatchObject({ status: "completed", notes: oldRecord.notes, evidence: oldRecord.evidence });
 
     const importedLegacyRecord: ProgressInput = { ...oldRecord, status: "completed", notes: "Imported older note." };
-    const imported = migrated.saveMany([importedLegacyRecord]);
+    const imported = migrated.saveMany(ownerId, [importedLegacyRecord]);
     expect(imported).toHaveLength(1);
-    expect(migrated.find("activity", "A01")).toMatchObject({
+    expect(migrated.find(ownerId, "activity", "A01")).toMatchObject({
       status: "completed",
       notes: "Imported older note.",
       evidence: oldRecord.evidence,
       taskObservations: { "compare-proc": "The PID matched; VmRSS differed slightly." },
     });
-    expect(migrated.list()).toHaveLength(1);
+    expect(migrated.list(ownerId)).toHaveLength(1);
     migrated.close();
   });
 
-  it("stores task-linked observations for another activity without replacing its existing record fields", () => {
-    const databasePath = makePath();
-    const first = createProgressDatabase(databasePath, migrationDirectory);
+  it("keeps each learner's records separate even when item IDs match", () => {
+    const database = createDatabase();
+    addUser(database, anotherLearnerId);
+    database.save(ownerId, { ...record, notes: "Owner-only notebook entry." });
+    database.save(anotherLearnerId, { ...record, notes: "Second learner's private entry." });
+
+    expect(database.find(ownerId, "module", "M01")?.notes).toBe("Owner-only notebook entry.");
+    expect(database.find(anotherLearnerId, "module", "M01")?.notes).toBe("Second learner's private entry.");
+    expect(database.list(ownerId)).toHaveLength(1);
+    expect(database.list(anotherLearnerId)).toHaveLength(1);
+    database.close();
+  });
+
+  it("stores task-linked activity observations without replacing existing record fields", () => {
+    const database = createDatabase();
     const oldA02: ProgressInput = {
       ...record,
       itemType: "activity",
@@ -135,8 +224,8 @@ describe("local progress database", () => {
       evidence: "Earlier directory inventory evidence.",
       repositoryUrl: "https://example.test/a02",
     };
-    first.save(oldA02);
-    const linked = first.save({
+    database.save(ownerId, oldA02);
+    const linked = database.save(ownerId, {
       ...oldA02,
       taskObservations: { "a02-predict-the-inventory": "The empty file should report zero bytes." },
     });
@@ -146,16 +235,11 @@ describe("local progress database", () => {
       repositoryUrl: oldA02.repositoryUrl,
       taskObservations: { "a02-predict-the-inventory": "The empty file should report zero bytes." },
     });
-    first.close();
-
-    const reopened = createProgressDatabase(databasePath, migrationDirectory);
-    expect(reopened.find("activity", "A02")).toMatchObject(linked);
-    reopened.close();
+    database.close();
   });
 
-  it("stores checkpoint observations alongside the same project record and existing notes", () => {
-    const databasePath = makePath();
-    const first = createProgressDatabase(databasePath, migrationDirectory);
+  it("stores checkpoint observations with the shared project record", () => {
+    const database = createDatabase();
     const project: ProgressInput = {
       ...record,
       itemType: "project",
@@ -164,40 +248,32 @@ describe("local progress database", () => {
       notes: "Existing project-wide design decision.",
       evidence: "Existing end-to-end verification summary.",
     };
-    first.save(project);
-    const updated = first.save({
+    database.save(ownerId, project);
+    const updated = database.save(ownerId, {
       ...project,
       taskObservations: { C1: "Defined the release contract and measurable acceptance check." },
     });
     expect(updated).toMatchObject({
-      itemType: "project",
-      itemId: "P3",
       notes: project.notes,
       evidence: project.evidence,
       taskObservations: { C1: "Defined the release contract and measurable acceptance check." },
     });
-    expect(first.list()).toHaveLength(1);
-    first.close();
-
-    const reopened = createProgressDatabase(databasePath, migrationDirectory);
-    expect(reopened.find("project", "P3")).toMatchObject(updated);
-    expect(reopened.list()).toHaveLength(1);
-    reopened.close();
+    expect(database.list(ownerId)).toHaveLength(1);
+    database.close();
   });
 
   it("merges a batch in one transaction while preserving unrelated saved items", () => {
-    const database = createProgressDatabase(makePath(), migrationDirectory);
-    database.save(record);
-    const merged = database.saveMany([
+    const database = createDatabase();
+    database.save(ownerId, record);
+    const merged = database.saveMany(ownerId, [
       { ...record, status: "needs_review", notes: "Imported update." },
       { ...record, itemType: "activity", itemId: "A01", status: "in_progress", notes: "Started the lab." },
     ]);
 
     expect(merged).toHaveLength(2);
-    expect(database.find("module", "M01")).toMatchObject({ status: "needs_review", notes: "Imported update." });
-    expect(database.find("activity", "A01")).toMatchObject({ status: "in_progress", notes: "Started the lab." });
-    expect(database.list()).toHaveLength(2);
+    expect(database.find(ownerId, "module", "M01")).toMatchObject({ status: "needs_review", notes: "Imported update." });
+    expect(database.find(ownerId, "activity", "A01")).toMatchObject({ status: "in_progress", notes: "Started the lab." });
+    expect(database.list(ownerId)).toHaveLength(2);
     database.close();
   });
 });
-

@@ -1,6 +1,7 @@
 .git
 .github
 .next
+.next-playwright
 node_modules
 .data
 test-results

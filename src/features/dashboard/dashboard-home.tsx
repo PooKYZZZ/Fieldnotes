@@ -19,13 +19,21 @@ export function DashboardHome({
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
   const loadProgress = useCallback(() => {
     const controller = new AbortController();
     fetch("/api/progress", { cache: "no-store", signal: controller.signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          setRecords([]);
+          setLoadError(false);
+          return [] as ProgressRecord[];
+        }
         if (!response.ok) throw new Error("Could not load saved progress.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
@@ -33,7 +41,10 @@ export function DashboardHome({
         setLoadError(false);
       })
       .catch(() => {
-        if (!controller.signal.aborted) setLoadError(true);
+        if (!controller.signal.aborted) {
+          setRequiresSignIn(false);
+          setLoadError(true);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoaded(true);
@@ -70,6 +81,7 @@ export function DashboardHome({
     <>
       <header className="dashboard-heading">
         <h1>My learning</h1>
+        <p>Learn a concept, practice it in an activity, then save evidence you can revisit as you build.</p>
       </header>
 
       <div className="dashboard-layout">
@@ -77,6 +89,7 @@ export function DashboardHome({
           <ContinueLearningPanel
             loaded={loaded}
             loadError={loadError}
+            requiresSignIn={requiresSignIn}
             currentModule={model.currentModule}
             currentModuleStatus={model.currentModuleStatus}
             currentLesson={model.currentLesson}
@@ -96,6 +109,7 @@ export function DashboardHome({
           model={model}
           loaded={loaded}
           loadError={loadError}
+          requiresSignIn={requiresSignIn}
           totalModules={modules.length}
           totalLessons={model.totalLessons}
         />

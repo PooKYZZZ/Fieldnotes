@@ -20,21 +20,34 @@ export function ModuleOverviewProgress({
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const moduleId = `M${String(learningModule.id).padStart(2, "0")}`;
 
   const load = useCallback(() => {
     const controller = new AbortController();
     fetch("/api/progress", { cache: "no-store", signal: controller.signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRecords([]);
+          setLoadError(false);
+          setRequiresSignIn(true);
+          return null;
+        }
         if (!response.ok) throw new Error("Saved progress could not be loaded.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
-        setRecords(rows);
-        setLoadError(false);
+        if (rows) {
+          setRecords(rows);
+          setLoadError(false);
+        }
       })
       .catch(() => {
-        if (!controller.signal.aborted) setLoadError(true);
+        if (!controller.signal.aborted) {
+          setLoadError(true);
+          setRequiresSignIn(false);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoaded(true);
@@ -58,8 +71,10 @@ export function ModuleOverviewProgress({
   const activityStatus = activity
     ? records.find((record) => record.itemType === "activity" && record.itemId === activity.id)?.status as ProgressStatus | undefined
     : undefined;
-  const progressValue = loaded && !loadError ? completedLessons : 0;
-  const progressText = loadError ? "Unavailable" : loaded ? `${completedLessons} of ${learningModule.lessons.length} marked complete` : "Loading saved progress…";
+  const progressText = requiresSignIn
+    ? "Sign in to view your saved progress."
+    : loadError ? "Saved progress could not be loaded."
+      : loaded ? `${completedLessons} of ${learningModule.lessons.length} marked complete` : "Loading saved progress…";
 
   return (
     <section className="module-overview-progress" aria-label={`Progress for Module ${String(learningModule.id).padStart(2, "0")}`}>
@@ -72,17 +87,20 @@ export function ModuleOverviewProgress({
           <span className="module-lesson-count">{learningModule.lessons.length} {learningModule.lessons.length === 1 ? "lesson" : "lessons"}</span>
         </div>
         <div className="module-lesson-progress-label"><span>Lessons marked complete</span><strong>{progressText}</strong></div>
-        <div className="module-progress-track" role="progressbar" aria-label={`${learningModule.title} lessons marked complete`} aria-valuemin={0} aria-valuemax={learningModule.lessons.length} aria-valuenow={progressValue} aria-valuetext={progressText}>
-          <span style={{ width: `${loaded && !loadError && learningModule.lessons.length ? (completedLessons / learningModule.lessons.length) * 100 : 0}%` }} />
-        </div>
-        <p className="module-progress-note">Lesson completion is self-reported; it does not measure mastery.</p>
+        {loaded && !loadError && !requiresSignIn && <>
+          <div className="module-progress-track" role="progressbar" aria-label={`${learningModule.title} lessons marked complete`} aria-valuemin={0} aria-valuemax={learningModule.lessons.length} aria-valuenow={completedLessons} aria-valuetext={progressText}>
+            <span style={{ width: `${learningModule.lessons.length ? (completedLessons / learningModule.lessons.length) * 100 : 0}%` }} />
+          </div>
+          <p className="module-progress-note">Lesson completion is self-reported; it does not measure mastery.</p>
+        </>}
+        {loadError && <button type="button" className="button button-outline module-progress-retry" onClick={load}>Retry progress loading</button>}
         {activity && <div className="module-related-record">
           <div>
             <p className="eyebrow">Guided activity</p>
             <Link href={`/activities/${activity.id}`}>Activity {activity.id} · {activity.title}<ArrowRight size={14} aria-hidden="true" /></Link>
           </div>
           <span className={`progress-status-tag${activityStatus ? ` status-${activityStatus}` : ""}`}>
-            {loadError ? "Unavailable" : loaded ? formatStatus(activityStatus ?? "not_started") : "Loading"}
+            {requiresSignIn ? "Sign in to view" : loadError ? "Unavailable" : loaded ? formatStatus(activityStatus ?? "not_started") : "Loading"}
           </span>
         </div>}
         {loaded && !loadError && lessonStatusById.size > 0 && (
@@ -108,22 +126,33 @@ export function ModuleLessonOutline({
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
 
   const load = useCallback(() => {
     const controller = new AbortController();
     fetch("/api/progress", { cache: "no-store", signal: controller.signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRecords([]);
+          setLoadError(false);
+          setRequiresSignIn(true);
+          return null;
+        }
         if (!response.ok) throw new Error("Saved progress could not be loaded.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
-        setRecords(rows);
-        setLoadError(false);
+        if (rows) {
+          setRecords(rows);
+          setLoadError(false);
+        }
       })
       .catch(() => {
         if (!controller.signal.aborted) {
           setRecords([]);
           setLoadError(true);
+          setRequiresSignIn(false);
         }
       })
       .finally(() => { if (!controller.signal.aborted) setLoaded(true); });
@@ -147,7 +176,7 @@ export function ModuleLessonOutline({
         const number = Number(lesson.id.match(/-L(\d+)$/)?.[1] ?? 0);
         const status = savedById.get(lesson.id);
         const selected = lesson.id === currentLessonId;
-        const statusLabel = loadError ? "Progress unavailable" : loaded ? status === "completed" ? "Complete" : status ? formatStatus(status) : "Not started" : undefined;
+        const statusLabel = requiresSignIn ? undefined : loadError ? "Progress unavailable" : loaded ? status === "completed" ? "Complete" : status ? formatStatus(status) : "Not started" : undefined;
         return <li key={lesson.id}>
           <Link className={`lesson-contents-link${selected ? " is-current" : ""}${status === "completed" ? " is-complete" : ""}`} href={lessonRoute(moduleId, lesson.id)} aria-current={selected ? "page" : undefined}>
             <span className="lesson-contents-number">{String(moduleId).padStart(2, "0")}.{number}</span>
@@ -161,7 +190,7 @@ export function ModuleLessonOutline({
 
   if (compact) {
     return <details className="lesson-mobile-contents">
-      <summary>Module contents <span>{loadError ? "Progress unavailable" : loaded ? `${completed} of ${lessons.length} complete` : `${lessons.length} lessons`}</span></summary>
+      <summary>Module contents <span>{requiresSignIn ? "Sign in to view saved progress" : loadError ? "Progress unavailable" : loaded ? `${completed} of ${lessons.length} complete` : `${lessons.length} lessons`}</span></summary>
       {list}
     </details>;
   }
@@ -170,7 +199,7 @@ export function ModuleLessonOutline({
     <div className="lesson-contents-heading">
       <p className="eyebrow">Module {String(moduleId).padStart(2, "0")}</p>
       <h2>Module contents</h2>
-      <p>{loadError ? "Progress unavailable" : loaded ? `${completed} of ${lessons.length} marked complete` : `${lessons.length} lessons`}</p>
+      <p>{requiresSignIn ? "Sign in to view saved progress" : loadError ? "Progress unavailable" : loaded ? `${completed} of ${lessons.length} marked complete` : `${lessons.length} lessons`}</p>
     </div>
     {list}
     <Link className="lesson-contents-overview" href={moduleRoute(moduleId)}>View module overview <ArrowRight size={14} aria-hidden="true" /></Link>

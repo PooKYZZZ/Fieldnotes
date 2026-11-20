@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Check, RefreshCw, X } from "lucide-rea
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import type { ProjectMilestone } from "@/content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
+import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
 import type { ProgressInput, ProgressRecord } from "@/features/progress/model";
 
 export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }: {
@@ -18,6 +19,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
   const userSelectedRef = useRef(false);
@@ -29,7 +31,14 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
     const controller = new AbortController();
     fetch("/api/progress", { cache: "no-store", signal: controller.signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          setLoadError(false);
+          setCompleted(new Set());
+          return [] as ProgressRecord[];
+        }
         if (!response.ok) throw new Error("Could not load saved project checkpoints.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
@@ -50,6 +59,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
+        setRequiresSignIn(false);
         setLoadError(true);
         setMessage(error instanceof Error ? error.message : "Saved checkpoint states could not be loaded.");
       })
@@ -128,8 +138,16 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
     };
     try {
       const response = await fetch("/api/progress", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
-      if (!response.ok) throw new Error("Could not save this project checkpoint.");
+      const result: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (response.status === 401) setRequiresSignIn(true);
+        const serverMessage = typeof result === "object" && result !== null && "error" in result && typeof result.error === "string"
+          ? result.error
+          : "Could not save this project checkpoint.";
+        throw new Error(serverMessage);
+      }
       setMessage("Checkpoint progress saved.");
+      setRequiresSignIn(false);
       window.dispatchEvent(new CustomEvent("progress-updated"));
     } catch (error) {
       setCompleted((previous) => {
@@ -146,6 +164,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
   function retryLoad() {
     setLoading(true);
     setLoadError(false);
+    setRequiresSignIn(false);
     setMessage("");
     setLoadAttempt((attempt) => attempt + 1);
   }
@@ -171,7 +190,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
       <div className="project-build-selector">
         <div className="project-build-progress-copy">
           <strong>{milestones.length} build checkpoints</strong>
-          <span>{completedCount} self-reported complete</span>
+          <span>{requiresSignIn ? "Sign in to view saved progress" : `${completedCount} self-reported complete`}</span>
         </div>
         <nav className="project-checkpoint-map" aria-label="Build checkpoints">
           {milestones.map((milestone, index) => {
@@ -186,7 +205,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
               aria-label={`${milestone.id}: ${milestone.label}. ${current ? "Current checkpoint" : isComplete ? "Self-reported complete" : "Not started"}`}
               title={`${milestone.id} · ${milestone.label}`}
               data-complete={isComplete || undefined}
-              disabled={loading || loadError}
+              disabled={loading}
               onClick={() => selectMilestone(milestone.id)}
             >
               <span className="project-checkpoint-map-number">{String(index + 1).padStart(2, "0")}</span>
@@ -194,6 +213,8 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
           })}
         </nav>
       </div>
+
+      {requiresSignIn && <ProgressSignInNotice>Your checkpoint states and notes are private to your account. Sign in to save or review them; the project guidance remains open.</ProgressSignInNotice>}
 
       {activeMilestone ? <article className="project-active-milestone" id={`milestone-${activeMilestone.id}`} aria-labelledby={`milestone-title-${activeMilestone.id}`}>
         <div className="project-active-milestone-heading">
@@ -206,7 +227,7 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
               id={`milestone-check-${activeMilestone.id}`}
               type="checkbox"
               checked={completed.has(activeMilestone.id)}
-              disabled={loading || loadError || saving === activeMilestone.id}
+              disabled={loading || loadError || requiresSignIn || saving === activeMilestone.id}
               onChange={() => void toggle(activeMilestone)}
             />
             <span>{saving === activeMilestone.id ? "Saving" : completed.has(activeMilestone.id) ? "Self-reported complete" : "Mark checkpoint done"}</span>

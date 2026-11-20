@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, Circle, Layers3, RefreshCw, Rocket } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
+import { ProjectModuleLinks } from "@/features/projects/project-module-links";
 
 export type MajorProjectSummary = {
   id: string;
@@ -28,9 +29,11 @@ export type SmallProjectSummary = {
   milestones: { id: string; label: string }[];
 };
 
-function SavedStatus({ status, savedDraft, loaded, loadError }: { status?: ProgressStatus; savedDraft: boolean; loaded: boolean; loadError: boolean }) {
+function SavedStatus({ status, savedDraft, completedMilestones, loaded, loadError, requiresSignIn }: { status?: ProgressStatus; savedDraft: boolean; completedMilestones: number; loaded: boolean; loadError: boolean; requiresSignIn: boolean }) {
   if (!loaded) return <span className="project-state-badge" role="status">Loading saved status</span>;
+  if (requiresSignIn) return <span className="project-state-badge" role="status">Sign in to view status</span>;
   if (loadError) return <span className="project-state-badge project-state-badge--unavailable" role="status">Progress unavailable</span>;
+  if (completedMilestones > 0 && (!status || status === "not_started")) return <span className="project-state-badge" role="status">Checkpoint progress saved</span>;
   if (savedDraft && (!status || status === "not_started")) return <span className="project-state-badge" role="status">Draft saved</span>;
   return <StatusPill status={status ?? "not_started"} />;
 }
@@ -61,6 +64,7 @@ function MajorBuildCard({
   savedDraft,
   loaded,
   loadError,
+  requiresSignIn,
 }: {
   project: MajorProjectSummary;
   status?: ProgressStatus;
@@ -70,14 +74,16 @@ function MajorBuildCard({
   savedDraft: boolean;
   loaded: boolean;
   loadError: boolean;
+  requiresSignIn: boolean;
 }) {
   const tone = project.id === "P2" ? "teal" : project.id === "P3" ? "earth" : "charcoal";
-  return <Link className={`major-build-card major-build-card--${tone}${active ? " major-build-card--active" : ""}`} data-project-id={project.id} href={projectHref(project.id, active, nextMilestone, status)}>
-    <div className="major-build-band"><span>{project.id} <i aria-hidden="true">·</i> Major build</span><ArrowRight size={17} aria-hidden="true" /></div>
+  const href = projectHref(project.id, active, nextMilestone, status);
+  return <article className={`major-build-card major-build-card--${tone}${active ? " major-build-card--active" : ""}`} data-project-id={project.id}>
+    <div className="major-build-band"><span>{project.id} <i aria-hidden="true">·</i> Major build</span></div>
     <div className="major-build-content">
-      <div className="major-build-heading"><h3>{project.title}</h3><SavedStatus status={status} savedDraft={savedDraft} loaded={loaded} loadError={loadError} /></div>
+      <div className="major-build-heading"><h3><Link href={href}>{project.title}</Link></h3><SavedStatus status={status} savedDraft={savedDraft} completedMilestones={completedMilestones} loaded={loaded} loadError={loadError} requiresSignIn={requiresSignIn} /></div>
       <p>{project.purpose}</p>
-      <div className="project-card-meta"><span>{project.track}</span><span>{project.estimatedTime}</span><span>Modules {project.relevantModules}</span></div>
+      <div className="project-card-meta"><span>{project.track}</span><span>{project.estimatedTime}</span><ProjectModuleLinks reference={project.relevantModules} className="project-card-module-links" /></div>
       {project.tools.length > 0 && <p className="project-card-tools">Core stack: {project.tools.slice(0, 3).join(" · ")}{project.tools.length > 3 ? " · more" : ""}</p>}
       {nextMilestone && <div className="major-build-next"><span>{active ? "Next checkpoint" : "First checkpoint"}</span><strong>{nextMilestone.id}</strong><span>{nextMilestone.label}</span></div>}
       <div className="major-build-progress">
@@ -86,36 +92,45 @@ function MajorBuildCard({
           <div className="major-build-progress-track" role="progressbar" aria-label={`${project.title} checkpoints self-reported`} aria-valuemin={0} aria-valuemax={project.milestones.length} aria-valuenow={completedMilestones}>
             <span style={{ width: `${project.milestones.length ? (completedMilestones / project.milestones.length) * 100 : 0}%` }} />
           </div>
-        </> : <span className="major-build-progress-unavailable">{loadError ? "Saved milestone progress could not be read." : "Loading saved milestones…"}</span>}
+        </> : <span className="major-build-progress-unavailable">{requiresSignIn ? "Sign in to view private checkpoint progress." : loadError ? "Saved milestone progress could not be read." : "Loading saved milestones…"}</span>}
       </div>
-      <div className="major-build-footer"><span>{project.milestones.length} guided checkpoints</span><span>{projectActionLabel(active, nextMilestone, status)} <ArrowRight size={14} /></span></div>
+      <div className="major-build-footer"><span>{project.milestones.length} guided checkpoints</span><Link href={href}>{projectActionLabel(active, nextMilestone, status)} <ArrowRight size={14} /></Link></div>
     </div>
-  </Link>;
+  </article>;
 }
 
-function SmallToolCard({ project, status, completedMilestones, nextMilestone, active, savedDraft, loaded, loadError }: { project: SmallProjectSummary; status?: ProgressStatus; completedMilestones: number; nextMilestone?: { id: string; label: string }; active: boolean; savedDraft: boolean; loaded: boolean; loadError: boolean }) {
-  return <Link className="small-tool-card" data-project-id={project.id} href={projectHref(project.id, active, nextMilestone, status)}>
-    <div className="small-tool-top"><span className="small-tool-id">{project.id}</span><SavedStatus status={status} savedDraft={savedDraft} loaded={loaded} loadError={loadError} /></div>
-    <h3>{project.title}</h3>
+function SmallToolCard({ project, status, completedMilestones, nextMilestone, active, savedDraft, loaded, loadError, requiresSignIn }: { project: SmallProjectSummary; status?: ProgressStatus; completedMilestones: number; nextMilestone?: { id: string; label: string }; active: boolean; savedDraft: boolean; loaded: boolean; loadError: boolean; requiresSignIn: boolean }) {
+  const href = projectHref(project.id, active, nextMilestone, status);
+  return <article className="small-tool-card" data-project-id={project.id}>
+    <div className="small-tool-top"><span className="small-tool-id">{project.id}</span><SavedStatus status={status} savedDraft={savedDraft} completedMilestones={completedMilestones} loaded={loaded} loadError={loadError} requiresSignIn={requiresSignIn} /></div>
+    <h3><Link href={href}>{project.title}</Link></h3>
     <p>{project.problem}</p>
-    <div className="project-card-meta"><span>{project.track}</span><span>{project.estimatedTime}</span><span>Modules {project.relevantModules}</span><span>{project.milestones.length} checkpoints</span></div>
+    <div className="project-card-meta"><span>{project.track}</span><span>{project.estimatedTime}</span><ProjectModuleLinks reference={project.relevantModules} className="project-card-module-links" /><span>{project.milestones.length} checkpoints</span></div>
     {project.tools.length > 0 && <p className="project-card-tools">{project.tools.slice(0, 2).join(" · ")}{project.tools.length > 2 ? " · more" : ""}</p>}
     {nextMilestone && <div className="small-project-next"><span>{active ? "Next checkpoint" : "First checkpoint"} · {nextMilestone.id}</span><strong>{nextMilestone.label}</strong></div>}
     {loaded && !loadError && <div className="small-project-progress"><span>{completedMilestones} of {project.milestones.length} checkpoints self-reported</span><span className="major-build-progress-track" role="progressbar" aria-label={`${project.title} checkpoints self-reported`} aria-valuemin={0} aria-valuemax={project.milestones.length} aria-valuenow={completedMilestones}><i style={{ width: `${project.milestones.length ? (completedMilestones / project.milestones.length) * 100 : 0}%` }} /></span></div>}
-    <div className="small-tool-footer"><span>{projectActionLabel(active, nextMilestone, status)}</span><ArrowRight size={14} aria-hidden="true" /></div>
-  </Link>;
+    <div className="small-tool-footer"><Link href={href}>{projectActionLabel(active, nextMilestone, status)} <ArrowRight size={14} aria-hidden="true" /></Link></div>
+  </article>;
 }
 
 export function ProjectOverview({ majorProjects, smallProjects }: { majorProjects: MajorProjectSummary[]; smallProjects: SmallProjectSummary[] }) {
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
 
   const loadProgress = useCallback(() => {
     const controller = new AbortController();
     fetch("/api/progress", { cache: "no-store", signal: controller.signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          setRecords([]);
+          setLoadError(false);
+          return [] as ProgressRecord[];
+        }
         if (!response.ok) throw new Error("Saved project progress is unavailable.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
@@ -123,7 +138,10 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
         setLoadError(false);
       })
       .catch(() => {
-        if (!controller.signal.aborted) setLoadError(true);
+        if (!controller.signal.aborted) {
+          setRequiresSignIn(false);
+          setLoadError(true);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoaded(true);
@@ -177,11 +195,7 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
   const orderedSmallProjects = useMemo(() => [...smallProjects].sort((left, right) => Number(activeProjectIds.has(right.id)) - Number(activeProjectIds.has(left.id))), [activeProjectIds, smallProjects]);
 
   function statusForProjectCard(projectId: string, itemType: "project" | "small_project"): ProgressStatus | undefined {
-    const record = recordByItem.get(`${itemType}:${projectId}`);
-    const savedStatus = record?.status;
-    return activeProjectIds.has(projectId) && (!savedStatus || savedStatus === "not_started") && !hasSavedProjectDraft(record)
-      ? "in_progress"
-      : savedStatus;
+    return recordByItem.get(`${itemType}:${projectId}`)?.status;
   }
 
   function hasSavedDraft(projectId: string, itemType: "project" | "small_project") {
@@ -192,8 +206,8 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
     <div className="project-overview-stats" aria-label="Project collection summary">
       <div><Rocket size={18} aria-hidden="true" /><strong>{majorProjects.length}</strong><span>major builds</span></div>
       <div><Layers3 size={18} aria-hidden="true" /><strong>{smallProjects.length}</strong><span>focused builds</span></div>
-      {loaded && !loadError ? <>
-        <div><Circle size={17} aria-hidden="true" /><strong>{projectProgress.active}</strong><span>active projects</span></div>
+      {requiresSignIn && loaded ? <div className="project-stats-loading" role="status">Sign in to view saved project progress</div> : loaded && !loadError ? <>
+        <div><Circle size={17} aria-hidden="true" /><strong>{projectProgress.active}</strong><span>active or saved projects</span></div>
         <div><CheckCircle2 size={17} aria-hidden="true" /><strong>{projectProgress.completed}</strong><span>marked complete</span></div>
       </> : <div className="project-stats-loading" role="status"><RefreshCw size={16} aria-hidden="true" />{loadError ? "Saved progress unavailable" : "Loading saved progress"}</div>}
     </div>
@@ -204,7 +218,7 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
         {orderedSmallProjects.map((project) => {
           const status = statusForProjectCard(project.id, "small_project");
           const nextMilestone = status === "completed" || status === "needs_review" ? undefined : project.milestones.find((milestone) => !completedMilestones.has(milestone.id));
-          return <SmallToolCard key={project.id} project={project} status={status} completedMilestones={project.milestones.filter((milestone) => completedMilestones.has(milestone.id)).length} nextMilestone={nextMilestone} active={activeProjectIds.has(project.id)} savedDraft={hasSavedDraft(project.id, "small_project")} loaded={loaded} loadError={loadError} />;
+          return <SmallToolCard key={project.id} project={project} status={status} completedMilestones={project.milestones.filter((milestone) => completedMilestones.has(milestone.id)).length} nextMilestone={nextMilestone} active={activeProjectIds.has(project.id)} savedDraft={hasSavedDraft(project.id, "small_project")} loaded={loaded} loadError={loadError} requiresSignIn={requiresSignIn} />;
         })}
       </div>
     </section>
@@ -225,6 +239,7 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
             savedDraft={hasSavedDraft(project.id, "project")}
             loaded={loaded}
             loadError={loadError}
+            requiresSignIn={requiresSignIn}
           />;
         })}
       </div>

@@ -10,7 +10,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM base AS build
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    DATABASE_PATH=:memory:
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

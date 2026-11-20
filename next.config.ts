@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  distDir: process.env.FIELDNOTES_NEXT_DIST_DIR ?? ".next",
+  // Keep the Next.js development badge from obscuring the responsive UI.
+  // Compiler and runtime failures remain visible in the terminal and overlay.
+  devIndicators: false,
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   outputFileTracingIncludes: {
     "/*": ["./src/content/curriculum/**/*.md", "./src/content/curriculum/**/*.mdx"],

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     default: "DevOps Fieldnotes | Personal Learning Path",
     template: "%s | DevOps Fieldnotes",
   },
-  description: "A private, self-paced DevOps learning workspace built around practical labs and verifiable evidence.",
+  description: "Public, self-paced DevOps lessons and practical labs with private, account-based progress notes.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

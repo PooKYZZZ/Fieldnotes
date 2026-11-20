@@ -30,15 +30,16 @@ function phaseForActivity(activity: ActivityRecord, moduleById: Map<number, Acti
   return moduleById.get(activity.moduleId)?.phase;
 }
 
-function TroubleshootingCard({ item, record, progressLoaded, progressError }: {
+function TroubleshootingCard({ item, record, progressLoaded, progressError, requiresSignIn }: {
   item: TroubleshootingRecord;
   record?: ProgressRecord;
   progressLoaded: boolean;
   progressError: boolean;
+  requiresSignIn: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const status = progressError ? "Progress unavailable" : !progressLoaded ? "Loading progress" : formatStatus(record?.status ?? "not_started");
-  const statusClass = progressLoaded && !progressError ? ` practice-status--${record?.status ?? "not_started"}` : "";
+  const status = requiresSignIn ? "Sign in to save" : progressError ? "Progress unavailable" : !progressLoaded ? "Loading progress" : formatStatus(record?.status ?? "not_started");
+  const statusClass = progressLoaded && !progressError && !requiresSignIn ? ` practice-status--${record?.status ?? "not_started"}` : "";
 
   return (
     <details id={`troubleshooting-${item.id.toLowerCase()}`} className="troubleshooting-card" onToggle={(event) => setOpen(event.currentTarget.open)}>
@@ -81,12 +82,20 @@ export function ActivityDirectory({
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
 
   const loadProgress = useCallback(() => {
     const controller = new AbortController();
     fetch("/api/progress", { cache: "no-store", signal: controller.signal })
       .then((response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          setRecords([]);
+          setLoadError(false);
+          return [] as ProgressRecord[];
+        }
         if (!response.ok) throw new Error("Saved activity progress is unavailable.");
+        setRequiresSignIn(false);
         return response.json() as Promise<ProgressRecord[]>;
       })
       .then((rows) => {
@@ -94,7 +103,10 @@ export function ActivityDirectory({
         setLoadError(false);
       })
       .catch(() => {
-        if (!controller.signal.aborted) setLoadError(true);
+        if (!controller.signal.aborted) {
+          setRequiresSignIn(false);
+          setLoadError(true);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoaded(true);
@@ -196,12 +208,13 @@ export function ActivityDirectory({
             </button>)}
           </div>
           <label className="activity-status-filter">Saved progress
-            <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} disabled={!loaded || loadError}>
+            <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} disabled={!loaded || loadError || requiresSignIn}>
               {statusFilters.map((filter) => <option key={filter.value} value={filter.value}>{filter.label}</option>)}
             </select>
           </label>
         </div>
 
+        {requiresSignIn && <p className="activity-load-message" role="status">Sign in to view saved statuses and resume work. Search and phase filters remain available. <Link href="/sign-in?returnTo=%2Factivities">Sign in</Link></p>}
         {loadError && <p className="activity-load-message" role="status">Saved activity states could not be loaded. Search and phase filters still work.</p>}
         {!loadError && !loaded && <p className="activity-load-message" role="status">Loading your saved activity progress…</p>}
 
@@ -210,7 +223,7 @@ export function ActivityDirectory({
             const courseModule = moduleById.get(activity.moduleId);
             const saved = progressByActivity.get(activity.id);
             const savedStatus = saved?.status ?? "not_started";
-            const label = loadError ? "Progress unavailable" : !loaded ? "Loading progress" : formatStatus(savedStatus);
+            const label = requiresSignIn ? "Sign in to save" : loadError ? "Progress unavailable" : !loaded ? "Loading progress" : formatStatus(savedStatus);
             return <Link className="practice-card" data-phase={courseModule?.phase ?? "Foundations"} href={`/activities/${activity.id}`} key={activity.id}>
               <div className="practice-card-meta"><span>{activity.id} <i aria-hidden="true">·</i> Module {String(activity.moduleId).padStart(2, "0")}</span><span className={`practice-status${loaded && !loadError ? ` practice-status--${savedStatus}` : ""}`}>{label}</span></div>
               <h3>{activity.title}</h3>
@@ -234,7 +247,7 @@ export function ActivityDirectory({
           <span className="activity-result-count">{filteredTroubleshooting.length} of {troubleshooting.length}</span>
         </div>
         {filteredTroubleshooting.length ? <div className="troubleshooting-grid">
-          {filteredTroubleshooting.map((item) => <TroubleshootingCard key={item.id} item={item} record={progressByTroubleshooting.get(item.id)} progressLoaded={loaded} progressError={loadError} />)}
+          {filteredTroubleshooting.map((item) => <TroubleshootingCard key={item.id} item={item} record={progressByTroubleshooting.get(item.id)} progressLoaded={loaded} progressError={loadError} requiresSignIn={requiresSignIn} />)}
         </div> : <p className="troubleshooting-empty" role="status">No troubleshooting scenarios match this search.</p>}
       </section>
     </>

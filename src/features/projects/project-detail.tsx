@@ -4,6 +4,7 @@ import { MarkdownContent } from "@/components/ui/markdown-content";
 import { ProjectMilestoneWorkbench } from "@/features/projects/milestone-checklist";
 import { ProjectRecordReview } from "@/features/projects/project-record-review";
 import { ProjectFlowNav } from "@/features/projects/project-flow-nav";
+import { ProjectModuleLinks } from "@/features/projects/project-module-links";
 
 type Project = MajorProjectRecord | SmallProjectRecord;
 
@@ -73,7 +74,7 @@ export function ProjectDetail({ project }: { project: Project }) {
         <div>
           <p className="eyebrow">{project.track} · {project.id}</p>
           <h1>{project.title}</h1>
-          <p className="project-detail-meta">{project.estimatedTime} · Modules {project.relevantModules} · {milestones.length} checkpoints</p>
+          <div className="project-detail-meta"><span>{project.estimatedTime}</span><ProjectModuleLinks reference={project.relevantModules} className="project-detail-modules" /><span>{milestones.length} checkpoints</span></div>
         </div>
       </header>
 

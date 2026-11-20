@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { RefreshCw, Save } from "lucide-react";
 import { comfortLevels, formatStatus, progressStatuses, type ProgressInput, type ProgressRecord } from "@/features/progress/model";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useUnsavedChangesWarning } from "@/features/progress/use-unsaved-changes-warning";
+import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
 
 const blankRecord = (itemType: ProgressInput["itemType"], itemId: string): ProgressInput => ({
   itemType,
@@ -60,15 +62,23 @@ export function ProgressEditor({
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [requiresSignIn, setRequiresSignIn] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const editRevision = useRef(0);
+
+  useUnsavedChangesWarning(`progress:${itemType}:${itemId}`, isDirty);
 
   useEffect(() => {
     const controller = new AbortController();
     const params = new URLSearchParams({ itemType, itemId });
     fetch(`/api/progress?${params.toString()}`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
+        if (response.status === 401) {
+          setRequiresSignIn(true);
+          throw new Error("Sign in to open your personal learning record.");
+        }
         if (!response.ok) throw new Error("Could not load the saved note.");
         const rows = (await response.json()) as ProgressRecord[];
         const saved = rows[0];
@@ -105,12 +115,15 @@ export function ProgressEditor({
     setLoading(true);
     setError(false);
     setLoadFailed(false);
+    setRequiresSignIn(false);
     setMessage("");
     setLoadAttempt((attempt) => attempt + 1);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const submittedRevision = editRevision.current;
+    const submittedForm = form;
     setSaving(true);
     setError(false);
     setMessage("");
@@ -118,10 +131,11 @@ export function ProgressEditor({
       const response = await fetch("/api/progress", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(submittedForm),
       });
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
+        if (response.status === 401) setRequiresSignIn(true);
         const message = typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
           ? body.error
           : "The note could not be saved.";
@@ -132,8 +146,10 @@ export function ProgressEditor({
       }
       const saved = body as ProgressRecord;
       setUpdatedAt(saved.updatedAt);
-      setIsDirty(false);
-      setMessage("Saved on this device.");
+      setRequiresSignIn(false);
+      const hasNewerEdits = editRevision.current !== submittedRevision;
+      setIsDirty(hasNewerEdits);
+      setMessage(hasNewerEdits ? "Earlier changes saved to your account. Newer edits still need saving." : "Saved to your account.");
       window.dispatchEvent(new CustomEvent("progress-updated"));
     } catch (caught) {
       setError(true);
@@ -144,6 +160,7 @@ export function ProgressEditor({
   }
 
   function update<K extends keyof ProgressInput>(key: K, value: ProgressInput[K]) {
+    editRevision.current += 1;
     setForm((current) => ({ ...current, [key]: value }));
     setIsDirty(true);
     setError(false);
@@ -152,6 +169,7 @@ export function ProgressEditor({
 
   function updateCheckpointObservation(value: string) {
     if (!checkpointContext) return;
+    editRevision.current += 1;
     setForm((current) => ({
       ...current,
       taskObservations: {
@@ -170,20 +188,24 @@ export function ProgressEditor({
         <div className="form-field">
           <label htmlFor={`notes-${itemId}`}>Engineering log</label>
           <span className="field-hint" id={noteHintId}>Capture decisions that affect the whole project, why you chose them, and what remains uncertain.</span>
-          <Textarea id={`notes-${itemId}`} aria-describedby={noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Project-wide decision: …\nReasoning: …\nOpen question: …" />
+          <Textarea id={`notes-${itemId}`} aria-describedby={noteHintId} className="form-textarea" maxLength={3000} value={form.notes} disabled={loading || loadFailed} onChange={(event) => update("notes", event.target.value)} placeholder="Project-wide decision: …\nReasoning: …\nOpen question: …" />
         </div>
         <div className="form-field">
           <label htmlFor={`evidence-${itemId}`}>Final verification summary</label>
           <span className="field-hint" id={evidenceHintId}>Summarize the end-to-end checks that support your handoff and what they do not prove.</span>
-          <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder="End-to-end check: …\nExpected: …\nObserved: …\nLimit: …" />
+          <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} disabled={loading || loadFailed} onChange={(event) => update("evidence", event.target.value)} placeholder="End-to-end check: …\nExpected: …\nObserved: …\nLimit: …" />
           <span className="field-hint" id={evidencePrivacyId}>Keep saved evidence small and sanitized; omit passwords, tokens, private addresses, and personal data.</span>
         </div>
       </div>
       <div className="form-field progress-repository-field">
         <label htmlFor={`repository-${itemId}`}>Repository or project URL <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
-        <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
+        <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} disabled={loading || loadFailed} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
       </div>
     </>;
+  }
+
+  if (requiresSignIn && !isDirty) {
+    return <div id={`progress-editor-${itemId}`}><ProgressSignInNotice>Sign in to view and edit this private learning record. Your course content remains available.</ProgressSignInNotice></div>;
   }
 
   return (
@@ -194,26 +216,27 @@ export function ProgressEditor({
         : isProjectWorkbench
         ? "Keep design decisions, useful evidence, and open questions in this one project record. Save partial work whenever you need; completion remains your self-report."
         : bare && isPracticeRecord
-        ? "This self-reported record is saved in this Fieldnotes workspace; it does not prove mastery."
+        ? "This self-reported record is private to your account on this Fieldnotes server; it does not prove mastery."
         : isLessonStatus
-        ? "Lesson completion is learner-reported and does not indicate mastery."
+        ? "Choose a draft status, then save it below. Completion is self-reported and does not indicate mastery."
         : isModuleSummary
-          ? "Mark your module progress and add a short reflection if useful. This is a self-report, not a mastery check. Saved in this Fieldnotes workspace."
+          ? "Mark your module progress and add a short reflection if useful. This is a self-report, not a mastery check. Saved privately to your account."
         : isPracticeRecord
-          ? `Save partial work and return later. Record what you attempted, expected versus observed results, how you investigated, and how you verified the outcome. This is a self-report, not proof of mastery. Saved in this Fieldnotes workspace.`
-          : "Reading does not change this item’s status. Choose the status and independence level that reflect your work; the app does not verify mastery. This record is saved in this Fieldnotes workspace."}</p>
+          ? `Save partial work and return later. Record what you attempted, expected versus observed results, how you investigated, and how you verified the outcome. This is a self-report, not proof of mastery. Saved privately to your account.`
+          : "Reading does not change this item’s status. Choose the status and independence level that reflect your work; the app does not verify mastery. This record is private to your account."}</p>
+      {requiresSignIn && <ProgressSignInNotice reloadAfterSignIn={!isDirty}>Your session has expired. Your unsaved text is still open here. Sign in in another tab, return, and save again.</ProgressSignInNotice>}
       <form onSubmit={submit}>
         {isLessonStatus ? (
           <div className="progress-lesson-status-control">
             <Button className="button button-primary" type="button" disabled={loading || loadFailed} onClick={() => update("status", form.status === "completed" ? "in_progress" : "completed")}>
-              {form.status === "completed" ? "Mark as in progress" : "Mark lesson complete"}
+              {form.status === "completed" ? "Set draft to in progress" : "Set draft to complete"}
             </Button>
-            <span className="field-hint">{formatStatus(form.status)}</span>
+            <span className="field-hint">Draft status: {formatStatus(form.status)}</span>
           </div>
         ) : (
         <div className="form-field">
           <label htmlFor={`status-${itemId}`}>Status</label>
-          <select id={`status-${itemId}`} className="form-select" value={form.status} onChange={(event) => update("status", event.target.value as ProgressInput["status"])}>
+          <select id={`status-${itemId}`} className="form-select" value={form.status} disabled={loading || loadFailed} onChange={(event) => update("status", event.target.value as ProgressInput["status"])}>
             {progressStatuses.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
           </select>
         {isActivityLab && <span className="field-hint">Saving keeps this choice; it never marks the activity complete automatically.</span>}
@@ -229,6 +252,7 @@ export function ProgressEditor({
             className="form-textarea"
             maxLength={1200}
             value={form.taskObservations?.[checkpointContext.id] ?? ""}
+            disabled={loading || loadFailed}
             onChange={(event) => updateCheckpointObservation(event.target.value)}
             placeholder={`${checkpointContext.id} · ${checkpointContext.label}\nDecision: …\nObserved result: …\nEvidence path: …\nStill uncertain: …`}
           />
@@ -237,7 +261,7 @@ export function ProgressEditor({
         {!isCompact && showComfort && (
           <div className="form-field">
             <label htmlFor={`comfort-${itemId}`}>How independently can you do this?</label>
-            <select id={`comfort-${itemId}`} className="form-select" value={form.comfort ?? ""} onChange={(event) => update("comfort", event.target.value ? event.target.value as ProgressInput["comfort"] : null)}>
+            <select id={`comfort-${itemId}`} className="form-select" value={form.comfort ?? ""} disabled={loading || loadFailed} onChange={(event) => update("comfort", event.target.value ? event.target.value as ProgressInput["comfort"] : null)}>
               <option value="">Choose a level</option>
               {comfortLevels.map((level) => <option key={level} value={level}>{comfortLabels[level]}</option>)}
             </select>
@@ -248,7 +272,7 @@ export function ProgressEditor({
           isModuleSummary ? (
           <div className="form-field progress-summary-reflection">
             <label htmlFor={`notes-${itemId}`}>Reflection <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
-            <Textarea id={`notes-${itemId}`} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="What did you learn or want to revisit?" />
+            <Textarea id={`notes-${itemId}`} className="form-textarea" maxLength={3000} value={form.notes} disabled={loading || loadFailed} onChange={(event) => update("notes", event.target.value)} placeholder="What did you learn or want to revisit?" />
           </div>
           ) : null
         ) : (
@@ -269,7 +293,7 @@ export function ProgressEditor({
               : itemType === "activity" && recordContext
               ? `For ${recordContext}, describe what you attempted, what you expected, what you observed, and what you learned.`
               : isPracticeRecord ? "Describe what you attempted, expected, observed, and learned." : "Capture your goal, what you observed, any troubleshooting, and the lesson you took away."}</span>
-            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder={isActivityLab ? "Process and finding: …\nWhat it suggests: …\nWhat remains uncertain: …" : isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
+            <Textarea id={`notes-${itemId}`} aria-describedby={reflectionPrompt ? `${noteHintId} ${noteReflectionId}` : noteHintId} className="form-textarea" maxLength={3000} value={form.notes} disabled={loading || loadFailed} onChange={(event) => update("notes", event.target.value)} placeholder={isActivityLab ? "Process and finding: …\nWhat it suggests: …\nWhat remains uncertain: …" : isPracticeRecord ? "Attempt: … Expected: … Observed: … Learned: …" : "What did you predict? What did you observe? What would you revisit?"} />
             {reflectionPrompt && <span className="field-hint" id={noteReflectionId}>Reflection prompt: {reflectionPrompt}</span>}
           </div>
           <div className="form-field">
@@ -277,7 +301,7 @@ export function ProgressEditor({
             <span className="field-hint" id={evidenceHintId}>{isActivityLab
               ? "Record the commands and sanitized results that support your process and systemd observations."
               : itemType === "troubleshooting" ? "Record the cause hypothesis, evidence that distinguishes it, the minimal change tested, and repeatable verification." : itemType === "activity" ? "Use the evidence checklist above. Note the relevant command or setting, what it showed, and how you confirmed your interpretation." : "Record commands or configuration, expected and observed results, and how you checked them."}</span>
-            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} onChange={(event) => update("evidence", event.target.value)} placeholder={isActivityLab ? "Command and relevant result: …\nVerification: …" : isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
+            <Textarea id={`evidence-${itemId}`} aria-describedby={`${evidenceHintId} ${evidencePrivacyId}`} className="form-textarea" maxLength={3000} value={form.evidence} disabled={loading || loadFailed} onChange={(event) => update("evidence", event.target.value)} placeholder={isActivityLab ? "Command and relevant result: …\nVerification: …" : isPracticeRecord ? "Evidence: … Expected: … Observed: … Verified by: …" : "Commands or configuration, expected versus observed result, and verification…"} />
             <span className="field-hint" id={evidencePrivacyId}>Keep saved evidence small and sanitized; omit passwords, tokens, private addresses, and personal data.</span>
           </div>
         </div>
@@ -286,13 +310,13 @@ export function ProgressEditor({
             <summary>Repository or project URL (optional)</summary>
             <div className="form-field">
               <label htmlFor={`repository-${itemId}`}>Repository or project URL</label>
-              <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
+              <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} disabled={loading || loadFailed} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
             </div>
           </details>
         ) : (
           <div className="form-field progress-repository-field">
             <label htmlFor={`repository-${itemId}`}>Repository or project URL <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
-            <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
+            <Input id={`repository-${itemId}`} className="form-input" type="url" maxLength={512} value={form.repositoryUrl} disabled={loading || loadFailed} onChange={(event) => update("repositoryUrl", event.target.value)} placeholder="https://github.com/…" />
           </div>
         )}
         </>}

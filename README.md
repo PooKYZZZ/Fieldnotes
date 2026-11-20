@@ -1,14 +1,15 @@
 # Fieldnotes
 
-Fieldnotes is a self-hosted, local-first learning workspace for one learner's DevOps journey. It turns the supplied learning materials into a navigable curriculum with practical work and a persistent progress notebook.
+Fieldnotes is a self-hosted DevOps learning workspace. Its curriculum is public, while each signed-in learner gets a private progress notebook stored in the host's SQLite database.
 
-> **Current scope:** a single-learner MVP. There is no app-level sign-in, cloud sync, or multi-user support. Docker Compose binds to loopback by default. An optional Cloudflare Tunnel route can provide remote access only when Cloudflare Access is configured to allow your identity.
+> **Account model:** Google and GitHub sign-in create accounts on first use; no invitation is required. Progress is isolated by account in one SQLite file on the host. Authentication does not make the application database cloud-hosted or encrypt learner notes at rest. The optional Cloudflare Tunnel can route traffic, but Cloudflare Access is not required; Fieldnotes handles sign-in itself.
 
 ## What it does today
 
 - Organizes **24 learning modules** into a roadmap, with concepts, explanations, practice, checks, and references.
 - Provides **24 guided activities**, troubleshooting scenarios, and small and major project briefs.
 - Stores saved notes, self-reported progress, and project milestones in SQLite.
+- Keeps each learner's records separate and offers account session management.
 - Offers a searchable Resource Library with the eight supplied PDFs, official references, and glossary terms.
 - Supports validated JSON progress export and merge import. Backups are manual and unencrypted.
 
@@ -21,6 +22,8 @@ Next.js App Router, React, TypeScript, Tailwind CSS, shadcn/ui primitives, SQLit
 ## Run with Docker
 
 **Requirements:** Docker Desktop with Compose support, or Docker Engine with the Compose plugin. Port 3000 must be available.
+
+Before starting Compose, configure the production-only values in `.env` as described in [Account setup](#account-setup-before-publishing). Local development and production use separate secrets and provider credential variables.
 
 PowerShell:
 
@@ -42,23 +45,34 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Compose starts one app cont
 
 `docker compose down` stops and removes the container and network but **keeps** the `learning-data` volume. Do not use `docker compose down -v` unless you intend to permanently delete saved learning records.
 
+### Account setup before publishing
+
+1. Set `BETTER_AUTH_SECRET` and `FIELDNOTES_PROD_BETTER_AUTH_SECRET` to different unique random values of at least 32 characters. Keep them in `.env`; do not commit or paste them into chat. Replacing a production secret signs out existing sessions and can make previously encrypted OAuth tokens unreadable, so keep the production value stable and back it up securely.
+2. Set `FIELDNOTES_OWNER_EMAIL` to the email address you control through Google or GitHub. That provider must confirm the email as verified. The owner account is identified by this exact email; other visitors can create their own accounts but cannot claim existing progress.
+3. Use separate Google Cloud projects/OAuth clients for development and production. Put local client values in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; put production values in `FIELDNOTES_PROD_GOOGLE_CLIENT_ID` and `FIELDNOTES_PROD_GOOGLE_CLIENT_SECRET`. Register only `https://learn.cybertracesystem.com/api/auth/callback/google` on the production client. GitHub credentials follow the same split. Keep `FIELDNOTES_PUBLIC_URL` set to the public HTTPS origin.
+4. Publish the public `/privacy` and `/terms` pages on the verified domain, then complete the provider's branding and consent-screen setup. Fieldnotes requests basic identity only; it does not request access to Google Drive or GitHub repositories.
+5. Start or rebuild the service, then try signing in from a private browser window. Confirm public lessons still open when signed out, a learner can create an account at first sign-in, and their saved progress appears only in that account.
+
+Production does not enable password-based registration. Local Playwright tests enable a test-only email/password endpoint in a disposable database; it is disabled in production. Sessions are stored in SQLite and can last up to 30 days with regular use; they can be revoked from the account page. Account deletion requires a recent sign-in (within 10 minutes) and typing `DELETE`; it removes the account and saved work from the active database, but not downloaded exports or copies already in backups. Fieldnotes does not delete accounts because of inactivity. Removing a container does not remove the named data volume.
+
+If the database already contains shared progress, migration `0004` moves it into a private legacy archive. It is transferred into the account matching `FIELDNOTES_OWNER_EMAIL` only after that provider signs in with a verified email. Other accounts see no legacy records. Migration `0005` removes any unclaimed legacy archive if the owner account is explicitly deleted. Back up the Docker volume before upgrading, and do not delete it during deployment.
+
 ### Optional: use the existing CyberTrace Cloudflare Tunnel
 
-Fieldnotes has no built-in login. Protect the hostname with Cloudflare Access and allow only your own email before publishing a Tunnel route. Every authorized visit uses the same single-learner SQLite database and progress records; this does not create separate accounts.
+Cloudflare Tunnel can make the app reachable at `learn.cybertracesystem.com`; Fieldnotes OAuth remains the account sign-in. **Do not enable Cloudflare Access for this route** if the goal is to let learners reach the public lessons without a Cloudflare account.
 
-1. In Cloudflare Zero Trust, create a **Self-hosted** Access application for `learn.cybertracesystems.com`. Add an Allow policy for your email (for example, email one-time PIN) and confirm the policy before continuing. Cloudflare recommends creating the Access application before publishing the Tunnel route.
-2. Find the Docker network used by the existing `cloudflared` container with `docker network ls`. Add its exact name as `FIELDNOTES_TUNNEL_NETWORK` in your local `.env`. If `.env` already exists, add this line without replacing the file.
-3. Start Fieldnotes with the optional overlay:
+1. Find the Docker network used by the existing `cloudflared` container with `docker network ls`. Add its exact name as `FIELDNOTES_TUNNEL_NETWORK` in `.env` without replacing other settings.
+2. Start Fieldnotes with the optional overlay:
 
    ```powershell
    docker compose -f compose.yaml -f compose.cloudflare.yaml up --build -d
    ```
 
    This keeps the existing loopback address and the `learning-data` volume. The overlay connects the app to the existing Tunnel network and gives it the internal name `fieldnotes-lms`.
-4. In Cloudflare Zero Trust, open **Networks → Tunnels**, select the existing CyberTrace tunnel, and add a **Published application** route for `learn.cybertracesystems.com` with service `http://fieldnotes-lms:3000`. In Additional application settings, enable **Protect with Access** and use the team name and audience tag from the Fieldnotes Access app. Cloudflare creates the DNS route for the hostname.
-5. Open `https://learn.cybertracesystems.com` in a private browser window. Confirm that Cloudflare Access prompts for authentication, that an unauthorized identity is denied, and that your allowed identity reaches the LMS.
+3. In Cloudflare Zero Trust, add a **Published application** route for `learn.cybertracesystem.com` with service `http://fieldnotes-lms:3000`. Do not attach a Cloudflare Access application. Cloudflare creates the DNS route for the hostname.
+4. Open `https://learn.cybertracesystem.com` in a private browser window. Confirm that lessons are public, then use Google or GitHub when you want private saved progress.
 
-The host machine and Docker services must remain running for the site to be available. Do not publish the route without the Access application and a restrictive Allow policy. To return the app to local-only networking, start it again with `docker compose up --build -d`; the named data volume is retained.
+The host machine and Docker services must remain running for the site to be available. Because the route is public, configure OAuth credentials and a strong unique secret before publishing it. To return the app to local-only networking, start it again with `docker compose up --build -d`; the named data volume is retained.
 
 ## Local development
 
@@ -90,9 +104,9 @@ Useful commands:
 | `npm run build` | Production build and standalone preparation |
 | `npm start` | Run the built standalone app locally |
 | `npx playwright install chromium` | Install Playwright's browser |
-| `npm run test:e2e` | Production build followed by Playwright tests |
+| `npm run test:e2e` | Playwright tests against an isolated local development server and disposable SQLite database |
 
-The E2E command builds into the shared `.next` directory, so stop `npm run dev` before running it. If port 3000 is already in use, choose another free test port:
+The E2E suite starts a separate Next.js development server. If port 3000 is already in use, choose another free test port:
 
 ```powershell
 $env:PLAYWRIGHT_PORT = "3001"
@@ -107,18 +121,27 @@ The same test suite is run by [GitHub Actions CI](.github/workflows/ci.yml), whi
 | --- | --- | --- |
 | `APP_PORT` | `3000` | Host port published by Compose; set in `.env` |
 | `APP_BIND_ADDRESS` | `127.0.0.1` | Compose host bind address; keep loopback for this MVP |
-| `DATABASE_PATH` | `.data/lms.sqlite` locally; `/data/lms.sqlite` in Compose | SQLite file used by the app |
+| `DATABASE_PATH` | `.data/lms.sqlite` locally; `/data/lms.sqlite` in Compose | SQLite file for auth sessions and all learners' separate progress records |
+| `BETTER_AUTH_SECRET` | Required for local account operations | Unique secret used by local development |
+| `BETTER_AUTH_URL` | `http://127.0.0.1:3000` locally | Local canonical origin used for callbacks and trusted requests |
+| `FIELDNOTES_PROD_BETTER_AUTH_SECRET` | Required in Compose | Separate, stable production secret |
+| `FIELDNOTES_PUBLIC_URL` | `https://learn.cybertracesystem.com` | Production HTTPS origin; Better Auth rejects mismatches and non-HTTPS values |
+| `FIELDNOTES_OWNER_EMAIL` | Required in Compose | Verified Google/GitHub email that receives the owner role and existing legacy progress |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Empty until configured | Local development Google OAuth client only |
+| `FIELDNOTES_PROD_GOOGLE_CLIENT_ID`, `FIELDNOTES_PROD_GOOGLE_CLIENT_SECRET` | Empty until configured | Production Google OAuth client only |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Empty until configured | Local development GitHub OAuth client only |
+| `FIELDNOTES_PROD_GITHUB_CLIENT_ID`, `FIELDNOTES_PROD_GITHUB_CLIENT_SECRET` | Empty until configured | Production GitHub OAuth client only |
 
-Compose stores the database in its named `learning-data` volume. Local development and Compose use different databases by default. The progress API validates writes and imports, but the app has no user authentication; the loopback bind is the default security boundary. If the optional Tunnel route is configured, Cloudflare Access is the external authentication boundary. Saved notes are plain text, and exported JSON is not encrypted.
+Compose stores authentication and learning records in the named `learning-data` volume. Local development and Compose use different databases by default. Progress reads and writes require a valid session and are scoped to that session's user ID on the server. The course content remains public. Saved notes are plain text in SQLite, and exported JSON is not encrypted; protect host access and backups accordingly.
 
 ## Project documentation
 
 - [Architecture and project structure](docs/architecture.md) — routes, features, curriculum, persistence, and build layout.
 - [Development and testing](docs/development.md) — content and schema changes, validation commands, Docker workflow, and guidance for coding agents.
 
-## Future ideas—not implemented or committed
+## Not included
 
-Authentication, multiple learners, remote synchronization, AI-assisted tutoring, hosted deployment, and executable/provisioned labs are not part of the current application. They require separate product and security decisions before implementation.
+Fieldnotes does not provide cloud-hosted storage, organization/team accounts, automatic inactive-account deletion, password registration in production, AI tutoring, grading, deadline management, or lab provisioning. The owner must manage the host and its SQLite backups.
 
 ## Troubleshooting
 

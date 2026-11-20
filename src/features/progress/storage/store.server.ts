@@ -15,9 +15,14 @@ function getDatabase(): ProgressDatabase {
   return database;
 }
 
-export const listProgress = () => getDatabase().list();
-export const findProgress = (itemType: ProgressInput["itemType"], itemId: string) => getDatabase().find(itemType, itemId);
-export const saveProgress = (input: ProgressInput) => getDatabase().save(input);
-export const saveProgressMany = (inputs: ProgressInput[]) => getDatabase().saveMany(inputs);
+export const listProgress = (userId: string) => getDatabase().list(userId);
+export const findProgress = (userId: string, itemType: ProgressInput["itemType"], itemId: string) => getDatabase().find(userId, itemType, itemId);
+export const saveProgress = (userId: string, input: ProgressInput) => getDatabase().save(userId, input);
+export const saveProgressMany = (userId: string, inputs: ProgressInput[]) => getDatabase().saveMany(userId, inputs);
+export const getAuthDatabase = () => getDatabase().orm;
+export const prepareOwnerProgress = (userId: string) => {
+  getDatabase().ensureOwnerRole(userId);
+  return getDatabase().claimLegacyProgress(userId);
+};
 export const checkDatabase = () => getDatabase().health();
 

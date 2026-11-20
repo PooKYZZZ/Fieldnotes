@@ -61,7 +61,10 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build and run end-to-end tests
+      - name: Verify production build
+        run: npm run build
+
+      - name: Run authenticated browser tests
         run: npm run test:e2e
 
       - name: Build Docker image

@@ -1,5 +1,5 @@
 # Optional overlay for routing Fieldnotes through the existing CyberTrace Tunnel.
-# Create a Cloudflare Access application and allow policy before adding the public route.
+# This overlay only connects the app to the existing Tunnel network; do not add a Cloudflare Access gate.
 services:
   app:
     networks:

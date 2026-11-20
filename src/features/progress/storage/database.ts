@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "@/features/progress/storage/schema";
+import * as authSchema from "@/features/auth/storage/schema";
 import type { ProgressInput, ProgressRecord } from "@/features/progress/model";
 
 function applyMigrations(sqlite: InstanceType<typeof Database>, migrationDirectory: string): void {
@@ -58,23 +59,27 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
   sqlite.pragma("busy_timeout = 5000");
   sqlite.pragma("foreign_keys = ON");
   applyMigrations(sqlite, migrationDirectory);
-  const orm = drizzle(sqlite, { schema });
+  const orm = drizzle(sqlite, { schema: { ...schema, ...authSchema } });
 
-  function upsert(input: ProgressInput, now: number): ProgressRecord {
+  function upsert(userId: string, input: ProgressInput, createdAt: number, updatedAt = createdAt): ProgressRecord {
     const isActivity = input.itemType === "activity";
     const existingTaskObservations = isActivity && input.taskObservations === undefined
       ? orm.select({ taskObservations: schema.learningProgress.taskObservations })
         .from(schema.learningProgress)
-        .where(and(eq(schema.learningProgress.itemType, input.itemType), eq(schema.learningProgress.itemId, input.itemId)))
+        .where(and(
+          eq(schema.learningProgress.userId, userId),
+          eq(schema.learningProgress.itemType, input.itemType),
+          eq(schema.learningProgress.itemId, input.itemId),
+        ))
         .get()?.taskObservations
       : undefined;
     const taskObservations = input.taskObservations
       ?? (existingTaskObservations ? JSON.parse(existingTaskObservations) as Record<string, string> : {});
     const taskObservationsJson = JSON.stringify(taskObservations);
     orm.insert(schema.learningProgress)
-      .values({ ...input, taskObservations: taskObservationsJson, createdAt: now, updatedAt: now })
+      .values({ ...input, userId, taskObservations: taskObservationsJson, createdAt, updatedAt })
       .onConflictDoUpdate({
-        target: [schema.learningProgress.itemType, schema.learningProgress.itemId],
+        target: [schema.learningProgress.userId, schema.learningProgress.itemType, schema.learningProgress.itemId],
         set: {
           status: input.status,
           comfort: input.comfort,
@@ -82,30 +87,84 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
           evidence: input.evidence,
           repositoryUrl: input.repositoryUrl,
           ...(input.taskObservations !== undefined ? { taskObservations: taskObservationsJson } : {}),
-          updatedAt: now,
+          updatedAt,
         },
       })
       .run();
-    return { ...input, ...(isActivity ? { taskObservations } : {}), updatedAt: now };
+    return { ...input, ...(isActivity || input.itemType === "project" || input.itemType === "small_project" ? { taskObservations } : {}), updatedAt };
+  }
+
+  function findForUser(userId: string, itemType: ProgressInput["itemType"], itemId: string): ProgressRecord | undefined {
+    const row = orm.select().from(schema.learningProgress)
+      .where(and(
+        eq(schema.learningProgress.userId, userId),
+        eq(schema.learningProgress.itemType, itemType),
+        eq(schema.learningProgress.itemId, itemId),
+      ))
+      .get();
+    return row ? fromRow(row) : undefined;
   }
 
   return {
-    list(): ProgressRecord[] {
-      return orm.select().from(schema.learningProgress).all().map(fromRow);
+    orm,
+    list(userId: string): ProgressRecord[] {
+      return orm.select().from(schema.learningProgress)
+        .where(eq(schema.learningProgress.userId, userId))
+        .all().map(fromRow);
     },
-    find(itemType: ProgressInput["itemType"], itemId: string): ProgressRecord | undefined {
-      const row = orm.select().from(schema.learningProgress)
-        .where(and(eq(schema.learningProgress.itemType, itemType), eq(schema.learningProgress.itemId, itemId)))
-        .get();
-      return row ? fromRow(row) : undefined;
+    find(userId: string, itemType: ProgressInput["itemType"], itemId: string): ProgressRecord | undefined {
+      return findForUser(userId, itemType, itemId);
     },
-    save(input: ProgressInput): ProgressRecord {
-      return upsert(input, Date.now());
+    save(userId: string, input: ProgressInput): ProgressRecord {
+      return upsert(userId, input, Date.now());
     },
-    saveMany(inputs: ProgressInput[]): ProgressRecord[] {
+    saveMany(userId: string, inputs: ProgressInput[]): ProgressRecord[] {
       const now = Date.now();
-      const saveTransaction = sqlite.transaction(() => inputs.map((input) => upsert(input, now)));
+      const saveTransaction = sqlite.transaction(() => inputs.map((input) => upsert(userId, input, now)));
       return saveTransaction();
+    },
+    ensureOwnerRole(userId: string): void {
+      sqlite.prepare('UPDATE "user" SET role = ? WHERE id = ?').run("admin", userId);
+    },
+    claimLegacyProgress(userId: string): number {
+      const claim = sqlite.transaction(() => {
+        const legacyRows = sqlite.prepare("SELECT * FROM legacy_progress ORDER BY item_type, item_id")
+          .all() as Array<{
+            item_type: ProgressInput["itemType"];
+            item_id: string;
+            status: ProgressInput["status"];
+            comfort: ProgressInput["comfort"];
+            notes: string;
+            evidence: string;
+            repository_url: string;
+            task_observations: string;
+            created_at: number;
+            updated_at: number;
+          }>;
+
+        for (const row of legacyRows) {
+          const input: ProgressInput = {
+            itemType: row.item_type,
+            itemId: row.item_id,
+            status: row.status,
+            comfort: row.comfort,
+            notes: row.notes,
+            evidence: row.evidence,
+            repositoryUrl: row.repository_url,
+            ...((row.item_type === "activity" || row.item_type === "project" || row.item_type === "small_project")
+              ? { taskObservations: JSON.parse(row.task_observations) as Record<string, string> }
+              : {}),
+          };
+          const existing = findForUser(userId, row.item_type, row.item_id);
+          if (!existing || row.updated_at > existing.updatedAt) {
+            upsert(userId, input, row.created_at, row.updated_at);
+          }
+        }
+
+        sqlite.prepare("DELETE FROM legacy_progress").run();
+        return legacyRows.length;
+      });
+      return claim();
     },
     health(): { status: string; database: string } {
       const row = sqlite.prepare("SELECT 1 AS ok").get() as { ok: number };

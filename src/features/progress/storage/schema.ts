@@ -1,8 +1,10 @@
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { authUser } from "@/features/auth/storage/schema";
 
 export const learningProgress = sqliteTable(
   "learning_progress",
   {
+    userId: text("user_id").notNull().references(() => authUser.id, { onDelete: "cascade" }),
     itemType: text("item_type").notNull(),
     itemId: text("item_id").notNull(),
     status: text("status").notNull(),
@@ -14,6 +16,6 @@ export const learningProgress = sqliteTable(
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.itemType, table.itemId] })],
+  (table) => [primaryKey({ columns: [table.userId, table.itemType, table.itemId] })],
 );
 
