@@ -18,11 +18,13 @@ function stageFromHash(hash: string, stages: ProjectFlowStage[]) {
 
 export function ProjectFlowNav({ stages }: { stages: ProjectFlowStage[] }) {
   const [activeStage, setActiveStage] = useState(stages[0]?.id ?? "");
+  const [visitedStages, setVisitedStages] = useState(() => new Set(stages[0] ? [stages[0].id] : []));
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeIndex = Math.max(0, stages.findIndex(({ id }) => id === activeStage));
 
   const revealStage = useCallback((id: string, updateHistory = false, moveFocus = false) => {
     setActiveStage(id);
+    setVisitedStages((current) => current.has(id) ? current : new Set([...current, id]));
     if (updateHistory && window.location.hash !== `#${id}`) {
       window.history.pushState(null, "", `#${id}`);
     }
@@ -39,6 +41,7 @@ export function ProjectFlowNav({ stages }: { stages: ProjectFlowStage[] }) {
       const id = stageFromHash(window.location.hash, stages);
       if (!id) return;
       setActiveStage(id);
+      setVisitedStages((current) => current.has(id) ? current : new Set([...current, id]));
       if (window.location.hash) {
         window.requestAnimationFrame(() => document.querySelector(".project-detail-header")?.scrollIntoView({ block: "start" }));
       }
@@ -97,7 +100,7 @@ export function ProjectFlowNav({ stages }: { stages: ProjectFlowStage[] }) {
         hidden={activeStage !== id}
         tabIndex={0}
       >
-        {content}
+        {(id === "project-review" ? activeStage === id : visitedStages.has(id)) ? content : null}
       </div>)}
     </div>
 

@@ -1,10 +1,11 @@
 import path from "node:path";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import { defineConfig, devices } from "@playwright/test";
 
 const testRunId = process.env.FIELDNOTES_E2E_RUN_ID ?? randomBytes(16).toString("hex");
+if (!/^[a-f0-9]{32}$/.test(testRunId)) throw new Error("Invalid Fieldnotes browser test run identifier.");
 process.env.FIELDNOTES_E2E_RUN_ID = testRunId;
 const testDataDirectory = path.join(tmpdir(), `devops-fieldnotes-playwright-${testRunId}`);
 mkdirSync(testDataDirectory, { recursive: true });
@@ -39,8 +40,6 @@ Object.assign(process.env, {
   NEXT_TELEMETRY_DISABLED: "1",
   FIELDNOTES_NEXT_DIST_DIR: ".next-playwright",
 });
-process.on("exit", () => rmSync(testDataDirectory, { recursive: true, force: true }));
-
 export default defineConfig({
   testDir: "./tests/e2e",
   globalSetup: "./tests/e2e/global-setup.ts",

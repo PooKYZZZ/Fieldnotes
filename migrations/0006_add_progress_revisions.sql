@@ -1,0 +1,2 @@
+ALTER TABLE learning_progress
+ADD COLUMN revision INTEGER NOT NULL DEFAULT 1;

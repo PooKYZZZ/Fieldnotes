@@ -1,75 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ExternalLink, NotebookPen } from "lucide-react";
 import type { ProjectMilestone } from "@/content";
-import { formatStatus, type ProgressRecord } from "@/features/progress/model";
+import { formatStatus } from "@/features/progress/model";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
+import { useProgressList } from "@/features/progress/progress-list-context";
+import { useProgressRecords } from "@/features/progress/use-progress-records";
 
 export function ProjectRecordReview({ projectId, projectType, milestones }: {
   projectId: string;
   projectType: "project" | "small_project";
   milestones: ProjectMilestone[];
 }) {
-  const [record, setRecord] = useState<ProgressRecord>();
-  const [completedMilestones, setCompletedMilestones] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-
-  const load = useCallback((signal: AbortSignal) => {
-    fetch("/api/progress", { cache: "no-store", signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRequiresSignIn(true);
-          setLoadError(false);
-          setRecord(undefined);
-          setCompletedMilestones(new Set());
-          return null;
-        }
-        if (!response.ok) throw new Error("Could not load the saved project record.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        if (!rows) return;
-        const milestoneIds = new Set(milestones.map(({ id }) => id));
-        setRecord(rows.find((row) => row.itemType === projectType && row.itemId === projectId));
-        setCompletedMilestones(new Set(rows.filter((row) => row.itemType === "milestone" && row.status === "completed" && milestoneIds.has(row.itemId)).map((row) => row.itemId)));
-        setLoadError(false);
-      })
-      .catch(() => {
-        if (signal.aborted) return;
-        setRequiresSignIn(false);
-        setLoadError(true);
-        setRecord(undefined);
-        setCompletedMilestones(new Set());
-      })
-      .finally(() => !signal.aborted && setLoading(false));
-  }, [milestones, projectId, projectType]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal);
-    const refresh = () => {
-      setLoading(true);
-      load(controller.signal);
-    };
-    window.addEventListener("progress-updated", refresh);
-    return () => {
-      controller.abort();
-      window.removeEventListener("progress-updated", refresh);
-    };
-  }, [load, loadAttempt]);
-
-  function retryLoad() {
-    setLoading(true);
-    setLoadError(false);
-    setRequiresSignIn(false);
-    setLoadAttempt((attempt) => attempt + 1);
-  }
+  const summary = useProgressList();
+  const details = useProgressRecords({ itemType: projectType, itemId: projectId });
+  const loading = !summary.loaded || !details.loaded;
+  const loadError = summary.loadError || details.loadError;
+  const requiresSignIn = summary.requiresSignIn || details.requiresSignIn;
+  const retry = () => { summary.retry(); details.retry(); };
+  const record = details.records[0];
+  const milestoneIds = new Set(milestones.map(({ id }) => id));
+  const completedMilestones = new Set(summary.records
+    .filter((row) => row.itemType === "milestone" && row.status === "completed" && milestoneIds.has(row.itemId))
+    .map((row) => row.itemId));
 
   const recordedMilestones = milestones.flatMap((milestone, index) => {
     const note = record?.taskObservations?.[milestone.id]?.trim() ?? "";
@@ -84,7 +38,7 @@ export function ProjectRecordReview({ projectId, projectType, milestones }: {
     </div>
     {loading ? <p className="project-record-review-empty" role="status">Loading your saved project record…</p>
       : requiresSignIn ? <ProgressSignInNotice>Your project notes and checkpoint states are private to your account. Sign in to review them; the project guide stays public.</ProgressSignInNotice>
-      : loadError ? <div className="project-record-review-empty" role="status"><p>The saved project record could not be loaded.</p><button className="button button-outline" type="button" onClick={retryLoad}>Retry loading the record</button></div>
+      : loadError ? <div className="project-record-review-empty" role="status"><p>The saved project record could not be loaded.</p><button className="button button-outline" type="button" onClick={retry}>Retry loading the record</button></div>
       : <>
         {record ? <div className="project-record-review-state"><span>Overall project status · self-reported</span><strong>{formatStatus(record.status)}</strong><span>{record.updatedAt ? `Last saved ${new Date(record.updatedAt).toLocaleString()}` : "Saved project record"}</span></div>
       : <div className="project-record-review-empty"><p>No project record has been saved yet. You can start a draft at any checkpoint and finish this review later.</p><a className="button button-outline" href="#project-build">Open the project notebook <ArrowRight size={14} aria-hidden="true" /></a></div>}

@@ -10,6 +10,10 @@ An SSH connection depends on several independent checks: network reachability, s
 and permission to use the requested key or file. Change server settings only with a second session available and a
 known rollback path. Apply OS updates through the distribution's package manager and verify service health after
 changes.
+
+The server proves its identity with a host key. Your user key proves that you control an identity the server can accept. The host and the account have separate trust decisions. A TCP connection followed by `Permission denied` narrows the issue to the SSH authentication or account policy; a connection timeout leaves that question unanswered.
+
+**Practice on your own disposable VM.** Use the console to identify the VM’s host-key fingerprint and the learner account. Use your supported VM setup to authorize a lab-only public key for that account. From the client, compare the presented fingerprint with the guest console record, sign in with the lab identity, and run `hostname` and `id -un`. Keep the console available to undo changes and remove only the lab public-key entry afterward. If the VM has no approved client path, compare a successful login and a synthetic authentication failure on paper and label that result as simulated.
   </div>
   <TechnicalFigure
     src="/diagrams/module03/lesson-04.svg"

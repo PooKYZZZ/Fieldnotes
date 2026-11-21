@@ -34,9 +34,12 @@ export function SignInPanel({
     setPendingProvider(provider);
     setMessage("");
     try {
+      const errorDestination = new URL("/sign-in", window.location.origin);
+      errorDestination.searchParams.set("returnTo", safeDestination);
       const result = await authClient.signIn.social({
         provider,
         callbackURL: `${window.location.origin}${safeDestination}`,
+        errorCallbackURL: errorDestination.toString(),
       });
       if (result.error) {
         setMessage("Sign-in could not start. Check your connection and try again.");

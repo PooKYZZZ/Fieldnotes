@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowUpRight, NotebookPen, PencilLine, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
+import { useProgressRecords } from "@/features/progress/use-progress-records";
 
 export type NotebookItem = { itemType: ProgressRecord["itemType"]; itemId: string; label: string; href: string; editHref?: string; editLabel?: string; kind: string; investigationTasks?: { id: string; title: string }[]; checkpointTasks?: { id: string; title: string }[] };
-type ItemFilter = "all" | "module" | "lesson" | "activity" | "project" | "milestone";
+type ItemFilter = "all" | "module" | "lesson" | "activity" | "troubleshooting" | "project" | "milestone";
 
 const itemFilters: { value: ItemFilter; label: string }[] = [
   { value: "all", label: "All types" },
   { value: "module", label: "Modules" },
   { value: "lesson", label: "Lessons" },
   { value: "activity", label: "Activities" },
+  { value: "troubleshooting", label: "Troubleshooting" },
   { value: "project", label: "Projects" },
   { value: "milestone", label: "Milestones" },
 ];
@@ -33,61 +35,24 @@ function matchesType(record: ProgressRecord, filter: ItemFilter): boolean {
   return record.itemType === filter;
 }
 
-export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
-  const [records, setRecords] = useState<ProgressRecord[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-  const [loadAttempt, setLoadAttempt] = useState(0);
+export function ProgressNotebook({ items, initialTypeFilter = "all" }: { items: NotebookItem[]; initialTypeFilter?: ItemFilter }) {
+  const { records, loaded, loadError, requiresSignIn, retry } = useProgressRecords();
   const [query, setQuery] = useState("");
-  const [itemFilter, setItemFilter] = useState<ItemFilter>("all");
+  const [itemFilter, setItemFilter] = useState<ItemFilter>(initialTypeFilter);
   const [statusFilter, setStatusFilter] = useState<"all" | ProgressStatus>("all");
-
-  const loadProgress = useCallback(() => {
-    const controller = new AbortController();
-    fetch("/api/progress", { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRequiresSignIn(true);
-          return undefined;
-        }
-        if (!response.ok) throw new Error("Could not load saved progress.");
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        if (rows) setRecords(rows);
-        setLoadError(false);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setRequiresSignIn(false);
-          setLoadError(true);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoaded(true);
-      });
-    return controller;
-  }, []);
-
-  useEffect(() => {
-    let controller = loadProgress();
-    const refresh = () => {
-      controller.abort();
-      setLoaded(false);
-      controller = loadProgress();
-    };
-    window.addEventListener("progress-updated", refresh);
-    return () => {
-      controller.abort();
-      window.removeEventListener("progress-updated", refresh);
-    };
-  }, [loadAttempt, loadProgress]);
 
   const itemByKey = useMemo(() => new Map(items.map((item) => [`${item.itemType}:${item.itemId}`, item])), [items]);
   const savedItems = useMemo(() => records
-    .map((record) => ({ record, item: itemByKey.get(`${record.itemType}:${record.itemId}`) }))
-    .filter((entry): entry is { record: ProgressRecord; item: NotebookItem } => Boolean(entry.item))
+    .map((record) => ({
+      record,
+      item: itemByKey.get(`${record.itemType}:${record.itemId}`) ?? {
+        itemType: record.itemType,
+        itemId: record.itemId,
+        label: `${record.itemType.replaceAll("_", " ")} · ${record.itemId} (saved item)`,
+        href: record.itemType === "troubleshooting" ? "/activities#troubleshooting" : "/roadmap",
+        kind: "Legacy saved record",
+      },
+    }))
     .sort((left, right) => right.record.updatedAt - left.record.updatedAt), [itemByKey, records]);
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -113,7 +78,7 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
 
   if (!loaded) return <div className="progress-loading" role="status"><RefreshCw size={17} aria-hidden="true" />Loading your saved learning records…</div>;
   if (requiresSignIn) return <ProgressSignInNotice>Your learning records are private to your account. Sign in to open your notebook; lessons remain public.</ProgressSignInNotice>;
-  if (loadError) return <div className="progress-load-error" role="alert"><h2>Saved progress is unavailable</h2><p>Your records were not cleared. Check the app or local database, then retry.</p><button className="button button-outline" type="button" onClick={() => { setLoaded(false); setLoadError(false); setRequiresSignIn(false); setLoadAttempt((attempt) => attempt + 1); }}><RefreshCw size={14} aria-hidden="true" /> Try again</button></div>;
+  if (loadError) return <div className="progress-load-error" role="alert"><h2>Saved progress is unavailable</h2><p>Your records were not cleared. Check the app or local database, then retry.</p><button className="button button-outline" type="button" onClick={retry}><RefreshCw size={14} aria-hidden="true" /> Try again</button></div>;
 
   return <section className="progress-journal" aria-labelledby="saved-work-title">
     <div className="progress-overview-heading"><div><p className="eyebrow">Journey snapshot</p><h2>Learning overview</h2><p>Module states come from your saved records. They describe what you chose to track, not verified mastery.</p></div></div>
@@ -163,6 +128,6 @@ export function ProgressNotebook({ items }: { items: NotebookItem[] }) {
           {item.editHref && <Link className="progress-record-action" href={item.editHref}><PencilLine size={14} aria-hidden="true" />{item.editLabel ?? "Edit learning record"}</Link>}
         </div>
       </article>;
-    })}</div> : records.length ? <div className="progress-empty-filter" role="status"><Search size={23} aria-hidden="true" /><h3>No saved records match these filters.</h3><p>Try another type or status, or search for a different term.</p>{hasFilters && <button className="button button-outline" type="button" onClick={clearFilters}>Clear filters</button>}</div> : <div className="progress-first-entry"><div className="progress-first-icon"><NotebookPen size={24} aria-hidden="true" /></div><div><p className="eyebrow">A clean start</p><h3>Your learning notes will collect here</h3><p>Open a module, activity, or project to record what you practiced and how you verified it. A concise entry might include a goal, command or artifact, observation, troubleshooting, and takeaway.</p><Link className="button button-primary" href="/roadmap">Choose your next module <ArrowUpRight size={15} aria-hidden="true" /></Link></div></div>}
+    })}</div> : records.length ? <div className="progress-empty-filter" role="status"><Search size={23} aria-hidden="true" /><h3>No saved records match these filters.</h3><p>Try another type or status, or search for a different term.</p>{hasFilters && <button className="button button-outline" type="button" onClick={clearFilters}>Clear filters</button>}</div> : <div className="progress-first-entry"><div className="progress-first-icon"><NotebookPen size={24} aria-hidden="true" /></div><div><p className="eyebrow">A clean start</p><h3>Your learning notes will collect here</h3><p>Open a module, lesson, activity, troubleshooting scenario, or project to record what you practiced and how you verified it. A concise entry might include a goal, command or artifact, observation, troubleshooting, and takeaway.</p><Link className="button button-primary" href="/roadmap">Choose your next module <ArrowUpRight size={15} aria-hidden="true" /></Link></div></div>}
   </section>;
 }

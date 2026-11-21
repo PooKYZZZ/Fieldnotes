@@ -78,6 +78,7 @@ export default async function globalSetup(): Promise<void> {
     try {
       const response = await context.post("/api/auth/sign-up/email", {
         data: { name: user.name, email: user.email, password },
+        timeout: 90_000,
       });
       if (!response.ok()) {
         const body = await response.text().catch(() => "");
@@ -103,7 +104,7 @@ export default async function globalSetup(): Promise<void> {
   const ownerState = users[0].state!;
   const warmup = await request.newContext({ baseURL: testOrigin, storageState: ownerState });
   try {
-    const dashboard = await warmup.get("/");
+    const dashboard = await warmup.get("/", { timeout: 90_000 });
     if (!dashboard.ok()) throw new Error(`Could not warm the dashboard route (HTTP ${dashboard.status()}).`);
     const progress = await warmup.get("/api/progress");
     if (!progress.ok()) throw new Error(`Could not warm the private progress route (HTTP ${progress.status()}).`);

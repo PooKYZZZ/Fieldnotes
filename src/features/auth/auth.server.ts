@@ -65,7 +65,13 @@ export const authSetupMessage = !ownerEmail
     ? "Google or GitHub sign-in has not been configured yet. You can keep exploring lessons without an account."
     : undefined;
 
-export const auth = betterAuth({
+async function provisionVerifiedOwner(user: { id: string; email: string; emailVerified: boolean }) {
+  if (matchesConfiguredOwner(user.email, user.emailVerified, ownerEmail)) {
+    prepareOwnerProgress(user.id);
+  }
+}
+
+const createAuth = () => betterAuth({
   appName: "Fieldnotes",
   baseURL: authBaseURL,
   secret: effectiveAuthSecret,
@@ -81,6 +87,9 @@ export const auth = betterAuth({
     },
   }),
   socialProviders,
+  onAPIError: {
+    errorURL: `${authBaseURL}/sign-in?error=oauth`,
+  },
   emailAndPassword: {
     // E2E only; production accounts use Google/GitHub OAuth.
     enabled: testAuthEnabled,
@@ -136,20 +145,32 @@ export const auth = betterAuth({
             role: matchesConfiguredOwner(user.email, user.emailVerified, ownerEmail) ? "admin" : "user",
           },
         }),
+        after: provisionVerifiedOwner,
       },
+      update: { after: provisionVerifiedOwner },
     },
   },
 });
 
-export type FieldnotesSession = typeof auth.$Infer.Session;
+let auth: ReturnType<typeof createAuth> | undefined;
+
+export function getAuth() {
+  auth ??= createAuth();
+  return auth;
+}
+
+export type FieldnotesSession = ReturnType<typeof createAuth>["$Infer"]["Session"];
 
 export async function getCurrentSession(): Promise<FieldnotesSession | null> {
   assertAuthRuntimeConfiguration();
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (session && matchesConfiguredOwner(session.user.email, session.user.emailVerified, ownerEmail)) {
-    prepareOwnerProgress(session.user.id);
-  }
-  return session;
+  const requestHeaders = await headers();
+  return getAuth().api.getSession({ headers: requestHeaders });
+}
+
+export function assertAuthReadiness(): void {
+  assertAuthRuntimeConfiguration();
+  if (!ownerEmail) throw new Error("Fieldnotes owner account is not configured.");
+  if (enabledProviders.length === 0 && !testAuthEnabled) throw new Error("No sign-in provider is configured.");
 }
 
 export function assertAuthRuntimeConfiguration(): void {

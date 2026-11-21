@@ -25,14 +25,14 @@ export const lessonTitle = "Toil and learning from incidents";
     },
     {
       id: "question-2",
-      prompt: "In a lab, 98 of 100 eligible requests succeed against a 99% target over the same sample. What is the observed result?",
+      prompt: "A quiet hour has 18 successful requests out of 20. A busy hour has 172 out of 180. The combined target is 96%. Which interpretation is supported?",
       options: [
         "The target is met because most requests succeeded.",
-        "The 2% unsuccessful fraction exceeds the 1% illustrative error budget, though the small sample limits conclusions.",
-        "The sample proves the service's production reliability is 98%.",
+        "The combined SLI is 190/200, or 95%, so this sample misses the target.",
+        "Use the busiest hour’s raw success count as the combined result.",
       ],
       correctIndex: 1,
-      explanation: "Two failures are more than the one failure allowed by a 99% target in this 100-request example; a small sample is not production proof.",
+      explanation: "Use pooled successes and eligible requests for the combined window. The result describes the measured sample.",
     },
     {
       id: "question-3",

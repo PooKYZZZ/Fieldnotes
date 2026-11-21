@@ -7,6 +7,9 @@ import { eq } from "drizzle-orm";
 import { createProgressDatabase } from "@/features/progress/storage/database";
 import { authUser } from "@/features/auth/storage/schema";
 import type { ProgressInput } from "@/features/progress/model";
+import { modules } from "@/content";
+import { progressImportSchema } from "@/features/progress/validation";
+import { maxBackupBytes } from "@/features/progress/backup-limits";
 
 const migrationDirectory = path.join(process.cwd(), "migrations");
 const temporaryDirectories: string[] = [];
@@ -156,6 +159,110 @@ describe("account-scoped progress database", () => {
     expect(updated.status).toBe("needs_review");
     expect(reopened.list(ownerId)).toHaveLength(1);
     reopened.close();
+  });
+
+  it("rejects stale editor revisions without replacing the current record", () => {
+    const database = createDatabase();
+    const original = database.save(ownerId, record);
+    const updated = database.saveIfCurrent(ownerId, { ...record, status: "needs_review", notes: "The current tab's note." }, original.revision);
+    expect("record" in updated && updated.record.revision).toBe(original.revision + 1);
+
+    const stale = database.saveIfCurrent(ownerId, { ...record, status: "completed", notes: "A stale tab's note." }, original.revision);
+    expect(stale).toMatchObject({ conflict: { revision: original.revision + 1, notes: "The current tab's note." } });
+    expect(database.find(ownerId, "module", "M01")?.notes).toBe("The current tab's note.");
+    database.close();
+  });
+
+  it("keeps newer saved records when restoring older backup rows", () => {
+    const database = createDatabase();
+    const current = database.save(ownerId, record);
+    const staleMerge = database.mergeMany(ownerId, [{ ...record, notes: "Older backup note.", updatedAt: current.updatedAt }]);
+    expect(staleMerge).toMatchObject({ records: [], preservedCount: 1 });
+    expect(database.find(ownerId, "module", "M01")?.notes).toBe(record.notes);
+
+    const newerTimestamp = current.updatedAt + 1000;
+    const newerMerge = database.mergeMany(ownerId, [{ ...record, notes: "Newer backup note.", updatedAt: newerTimestamp }]);
+    expect(newerMerge).toMatchObject({ preservedCount: 0, records: [{ notes: "Newer backup note.", updatedAt: newerTimestamp }] });
+    expect(database.find(ownerId, "module", "M01")?.notes).toBe("Newer backup note.");
+    database.close();
+  });
+
+  it("keeps a local edit newer than a reimport from a clock-ahead installation", () => {
+    const database = createDatabase();
+    const backup = { ...record, notes: "Imported note", updatedAt: Date.now() + 120_000 };
+    const [restored] = database.mergeMany(ownerId, [backup]).records;
+    const edited = database.saveIfCurrent(ownerId, { ...record, notes: "Later local edit" }, restored.revision);
+
+    expect(edited).toMatchObject({ record: { updatedAt: backup.updatedAt, notes: "Later local edit" } });
+    expect(database.mergeMany(ownerId, [backup])).toEqual({ records: [], preservedCount: 1 });
+    expect(database.find(ownerId, record.itemType, record.itemId)?.notes).toBe("Later local edit");
+    database.close();
+  });
+
+  it("leaves the owner claim pending until the account is verified", () => {
+    const databasePath = makePath();
+    const timestamp = Date.now() - 1000;
+    seedPriorDatabase(databasePath, ["0001_create_learning_progress.sql"], [{ ...record, createdAt: timestamp, updatedAt: timestamp }]);
+    const database = createDatabase(databasePath);
+    database.orm.update(authUser).set({ emailVerified: false }).where(eq(authUser.id, ownerId)).run();
+
+    expect(database.claimLegacyProgress(ownerId)).toBe(0);
+    expect(database.list(ownerId)).toEqual([]);
+
+    database.orm.update(authUser).set({ emailVerified: true }).where(eq(authUser.id, ownerId)).run();
+    expect(database.claimLegacyProgress(ownerId)).toBe(1);
+    expect(database.orm.select({ role: authUser.role }).from(authUser).where(eq(authUser.id, ownerId)).get()).toEqual({ role: "admin" });
+    expect(database.find(ownerId, record.itemType, record.itemId)).toMatchObject({ notes: record.notes });
+    expect(database.claimLegacyProgress(ownerId)).toBe(0);
+    database.close();
+  });
+
+  it("round-trips a valid Unicode backup larger than the former one-megabyte limit", () => {
+    const timestamp = Date.now();
+    const field = "界🙂\u0000".repeat(750);
+    const lessonIds = modules.flatMap((learningModule) => learningModule.lessons.map(({ id }) => id)).slice(0, 60);
+    const payload = {
+      version: 3 as const,
+      exportedAt: new Date(timestamp).toISOString(),
+      records: lessonIds.map((itemId) => ({
+        itemType: "lesson" as const,
+        itemId,
+        status: "in_progress" as const,
+        comfort: null,
+        notes: field,
+        evidence: field,
+        repositoryUrl: "",
+        updatedAt: timestamp,
+      })),
+    };
+    const serialized = JSON.stringify(payload);
+    const byteLength = new TextEncoder().encode(serialized).byteLength;
+    expect(byteLength).toBeGreaterThan(1_000_000);
+    expect(byteLength).toBeLessThanOrEqual(maxBackupBytes);
+    const validated = progressImportSchema.parse(JSON.parse(serialized));
+
+    const database = createDatabase();
+    expect(database.mergeMany(ownerId, validated.records).records).toHaveLength(lessonIds.length);
+    const reExported = {
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      records: database.list(ownerId).map(({ itemType, itemId, status, comfort, notes, evidence, repositoryUrl, updatedAt, taskObservations }) => ({
+        itemType,
+        itemId,
+        status,
+        comfort,
+        notes,
+        evidence,
+        repositoryUrl,
+        updatedAt,
+        taskObservations,
+      })),
+    };
+    const restored = progressImportSchema.parse(JSON.parse(JSON.stringify(reExported)));
+    expect(restored.records).toHaveLength(lessonIds.length);
+    expect(restored.records[0]?.notes).toBe(field);
+    expect(restored.records[0]?.evidence).toBe(field);
+    database.close();
   });
 
   it("copies v2 records into an unclaimed archive and preserves A01 observations during owner adoption", () => {

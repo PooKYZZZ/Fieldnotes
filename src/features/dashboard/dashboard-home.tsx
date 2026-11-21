@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ProgressRecord } from "@/features/progress/model";
+import { useMemo } from "react";
+import { useProgressList } from "@/features/progress/progress-list-context";
 import { buildDashboardModel, type DashboardActivity, type DashboardMajorProject, type DashboardModule, type DashboardSmallProject } from "@/features/dashboard/model";
 import { ContinueLearningPanel, DashboardSidebar } from "@/features/dashboard/dashboard-panels";
 
@@ -16,50 +16,7 @@ export function DashboardHome({
   majorProjects: DashboardMajorProject[];
   smallProjects: DashboardSmallProject[];
 }) {
-  const [records, setRecords] = useState<ProgressRecord[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-
-  const loadProgress = useCallback(() => {
-    const controller = new AbortController();
-    fetch("/api/progress", { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRequiresSignIn(true);
-          setRecords([]);
-          setLoadError(false);
-          return [] as ProgressRecord[];
-        }
-        if (!response.ok) throw new Error("Could not load saved progress.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        setRecords(rows);
-        setLoadError(false);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setRequiresSignIn(false);
-          setLoadError(true);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoaded(true);
-      });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const cancelLoad = loadProgress();
-    window.addEventListener("progress-updated", loadProgress);
-    return () => {
-      cancelLoad();
-      window.removeEventListener("progress-updated", loadProgress);
-    };
-  }, [loadProgress, loadAttempt]);
+  const { records, loaded, loadError, requiresSignIn, retry } = useProgressList();
 
   const model = useMemo(
     () => buildDashboardModel(modules, activities, majorProjects, smallProjects, records),
@@ -72,9 +29,7 @@ export function DashboardHome({
     ? model.statusByModule.get(`M${String(currentActivityModule.id).padStart(2, "0")}`) ?? "not_started"
     : undefined;
   function retryProgress() {
-    setLoaded(false);
-    setLoadError(false);
-    setLoadAttempt((attempt) => attempt + 1);
+    retry();
   }
 
   return (

@@ -1,12 +1,17 @@
-import { existsSync, rmSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 export default async function globalTeardown(): Promise<void> {
+  const runId = process.env.FIELDNOTES_E2E_RUN_ID;
   const pidFile = process.env.FIELDNOTES_E2E_SERVER_PID_FILE;
-  if (!pidFile || !existsSync(pidFile)) return;
-
-  const serverPid = Number(readFileSync(pidFile, "utf8").trim());
-  if (Number.isSafeInteger(serverPid) && serverPid > 0) {
+  if (!runId || !/^[a-f0-9]{32}$/.test(runId) || !pidFile) return;
+  const runDirectory = path.join(tmpdir(), `devops-fieldnotes-playwright-${runId}`);
+  if (path.resolve(pidFile) !== path.join(runDirectory, "web-server.pid")) return;
+  const serverPid = existsSync(pidFile) ? Number(readFileSync(pidFile, "utf8").trim()) : undefined;
+  if (serverPid !== undefined && Number.isSafeInteger(serverPid) && serverPid > 0) {
     if (process.platform === "win32") {
       const result = spawnSync("taskkill", ["/PID", String(serverPid), "/T", "/F"], {
         stdio: "ignore",
@@ -32,5 +37,11 @@ export default async function globalTeardown(): Promise<void> {
     }
   }
 
-  rmSync(pidFile, { force: true });
+  try {
+    await rm(runDirectory, { recursive: true, force: true, maxRetries: 6, retryDelay: 250 });
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    if (process.platform !== "win32" || (code !== "EPERM" && code !== "EBUSY")) throw error;
+    console.warn(`Windows could not remove the disposable Fieldnotes test directory (${code}): ${runDirectory}`);
+  }
 }

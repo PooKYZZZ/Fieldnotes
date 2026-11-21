@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { NotebookPen, ShieldCheck } from "lucide-react";
 import { ProgressBackup } from "@/features/progress/progress-backup";
 import { ProgressNotebook, type NotebookItem } from "@/features/progress/progress-notebook";
-import { activities, majorProjects, modules, projectMilestones, smallProjects } from "@/content";
+import { activities, majorProjects, modules, projectMilestones, smallProjects, troubleshooting } from "@/content";
 import { a01Tasks } from "@/features/activities/a01-task-catalog";
 import { moduleDefinitions } from "@/content/curriculum/modules/definitions";
 
 export const metadata: Metadata = { title: "Progress notebook" };
 
-export default function ProgressPage() {
+export default async function ProgressPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
+  const params = await searchParams;
   const items: NotebookItem[] = [
     ...modules.map((item) => {
       const itemId = `M${String(item.id).padStart(2, "0")}`;
@@ -25,6 +26,10 @@ export default function ProgressPage() {
       const href = `/activities/${item.id}`;
       const investigationTasks = item.id === "A01" ? a01Tasks : item.investigationTasks ?? [];
       return { itemType: "activity" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: `${href}#progress-editor-${item.id}`, kind: "Activity", investigationTasks: investigationTasks.map(({ id, title }) => ({ id, title })) };
+    }),
+    ...troubleshooting.map((item) => {
+      const href = `/activities#troubleshooting-${item.id.toLowerCase()}`;
+      return { itemType: "troubleshooting" as const, itemId: item.id, label: `${item.id} · ${item.title}`, href, editHref: href, editLabel: "Open scenario", kind: "Troubleshooting" };
     }),
     ...smallProjects.map((item) => {
       const href = `/projects/${item.id}`;
@@ -45,7 +50,7 @@ export default function ProgressPage() {
     </header>
     <div className="progress-privacy-note"><ShieldCheck size={18} aria-hidden="true" /><p>Save sanitized evidence, not secrets. Keep passwords, access tokens, private addresses, work data, and personal information out of notes and screenshots.</p></div>
     <div className="progress-workspace">
-      <ProgressNotebook items={items} />
+      <ProgressNotebook items={items} initialTypeFilter={params.type === "project" ? "project" : "all"} />
       <aside className="progress-backup-rail" aria-label="Progress data tools"><ProgressBackup /></aside>
     </div>
   </>;

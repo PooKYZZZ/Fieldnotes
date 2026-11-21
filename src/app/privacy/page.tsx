@@ -23,7 +23,7 @@ export default function PrivacyPage() {
 
       <h2>How the information is used</h2>
       <p>Fieldnotes uses account details to authenticate you, keep your saved work separate from other learners, restore your records, and protect the service from automated sign-in abuse. It does not use account activity to grade you, advertise to you, or delete your account after inactivity.</p>
-      <p>The service is operated on a self-hosted computer. The operator and anyone with access to that host or its backups may be able to access the SQLite database. When you use <code>learn.cybertracesystem.com</code>, network traffic is routed through Cloudflare Tunnel; Cloudflare&apos;s own handling of network traffic is described in its <a href="https://www.cloudflare.com/privacypolicy/">Privacy Policy</a>.</p>
+      <p>The service is operated on a self-hosted computer. The operator and anyone with access to that host or its backups may be able to access the SQLite database. When you use <code>learn.cybertracesystems.com</code>, network traffic is routed through Cloudflare Tunnel; Cloudflare&apos;s own handling of network traffic is described in its <a href="https://www.cloudflare.com/privacypolicy/">Privacy Policy</a>.</p>
 
       <h2>Retention and deletion</h2>
       <p>Your account and learning records remain in the active Fieldnotes database until you delete your account or the operator removes the database. Authentication sessions expire after up to 30 days and are renewed during regular use. Fieldnotes does not automatically remove accounts or progress because of inactivity.</p>

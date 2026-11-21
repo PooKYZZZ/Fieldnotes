@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Resource library" };
 
 export default function ResourcesPage() {
   return <>
-    <header className="page-header"><div><p className="eyebrow">Your source material and references</p><h1>Resource library</h1><p className="page-description">The {libraryDocuments.length} supplied PDFs remain available unchanged. Curated official references are linked beside them; provider offers and product documentation can change, so confirm current terms when you use them.</p></div><span className="tag header-action">{libraryDocuments.length} source PDFs</span></header>
+    <header className="page-header"><div><p className="eyebrow">Your source material and references</p><h1>Resource library</h1><p className="page-description">Use the in-app lessons and activities for current prerequisites, lab steps, and verification. The {libraryDocuments.length} source PDFs are offline companions from an earlier edition. Provider offers and product documentation can change.</p></div><span className="tag header-action">{libraryDocuments.length} source PDFs</span></header>
     <ResourceLibraryDirectory documents={libraryDocuments} officialResources={officialResources} glossary={glossary} />
     <section id="cloud-safety" aria-labelledby="cloud-safety-title"><div className="section-heading"><div><h2 id="cloud-safety-title"><ShieldCheck size={18} style={{ verticalAlign: "-4px", color: "var(--green)" }} /> Cloud and lab safety</h2><p>Use local practice first; cloud credits and free-tier terms do not guarantee a zero bill.</p></div></div>
       <div className="card card-pad"><div className="checklist-grid">

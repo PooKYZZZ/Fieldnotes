@@ -1,0 +1,4 @@
+CREATE TABLE owner_progress_claims (
+  user_id TEXT PRIMARY KEY NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  claimed_at INTEGER NOT NULL
+) WITHOUT ROWID;

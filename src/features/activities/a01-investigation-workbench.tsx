@@ -8,105 +8,41 @@ import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { a01Tasks, type A01TaskSelection } from "@/features/activities/a01-task-catalog";
-import { formatStatus, type ComfortLevel, type ProgressInput, type ProgressRecord, type ProgressStatus } from "@/features/progress/model";
-import { useUnsavedChangesWarning } from "@/features/progress/use-unsaved-changes-warning";
+import { formatStatus, type ComfortLevel } from "@/features/progress/model";
+import { useActivityRecord } from "@/features/activities/use-activity-record";
+import { useAuthSession } from "@/features/auth/auth-session-context";
+import { ProgressConflictNotice } from "@/features/progress/progress-conflict";
+import { useModalInertSiblings } from "@/features/ui/use-modal-inert-siblings";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
-
-function blankRecord(itemId: string): ProgressInput {
-  return {
-    itemType: "activity",
-    itemId,
-    status: "not_started",
-    comfort: null,
-    notes: "",
-    evidence: "",
-    repositoryUrl: "",
-    taskObservations: {},
-  };
-}
-
-function savedFields(record: ProgressRecord): ProgressInput {
-  return {
-    itemType: record.itemType,
-    itemId: record.itemId,
-    status: record.status,
-    comfort: record.comfort,
-    notes: record.notes,
-    evidence: record.evidence,
-    repositoryUrl: record.repositoryUrl,
-    taskObservations: record.taskObservations ?? {},
-  };
-}
 
 function countObservations(observations: Record<string, string> | undefined): number {
   return a01Tasks.filter(({ id }) => Boolean(observations?.[id]?.trim())).length;
 }
 
 export function A01InvestigationWorkbench({ activity }: { activity: ActivityRecord }) {
-  const [record, setRecord] = useState<ProgressInput>(() => blankRecord(activity.id));
-  const [savedRecord, setSavedRecord] = useState<ProgressInput>(() => blankRecord(activity.id));
-  const [updatedAt, setUpdatedAt] = useState<number>();
+  const { userId } = useAuthSession();
+  return <A01InvestigationWorkbenchContent key={`${userId ?? "guest"}:${activity.id}`} activity={activity} />;
+}
+
+function A01InvestigationWorkbenchContent({ activity }: { activity: ActivityRecord }) {
+  const { record, savedRecord, updatedAt, isDirty, loading, loadFailed, requiresSignIn, saving, error, message, messageLocation, conflict, resolveConflict, save, update, retryLoad, setError, setMessage } = useActivityRecord(activity.id);
   const [selectedTaskId, setSelectedTaskId] = useState<A01TaskSelection>(a01Tasks[0].id);
   const [visibleTaskId, setVisibleTaskId] = useState<A01TaskId>(a01Tasks[0].id);
   const [focusRequest, setFocusRequest] = useState(0);
-  const [isDirty, setIsDirty] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageLocation, setMessageLocation] = useState<"notebook" | "review">("notebook");
-  const [error, setError] = useState(false);
   const focusTargetRef = useRef<A01TaskSelection | null>(null);
   const notebookReturnFocusRef = useRef<HTMLElement | null>(null);
+  const notebookRef = useRef<HTMLElement>(null);
+  const notebookToggleRef = useRef<HTMLButtonElement>(null);
+  useModalInertSiblings(notebookRef, mobileNotebookOpen);
   const taskObservationId = `task-observation-${activity.id}`;
   const taskPromptId = `activity-a01-task-prompt-${activity.id}`;
-  const disabled = loading || loadFailed || saving;
+  const disabled = loading || loadFailed || saving || Boolean(conflict);
   const currentTask = selectedTaskId === "legacy" ? undefined : a01Tasks.find(({ id }) => id === selectedTaskId)!;
   const currentObservation = currentTask ? record.taskObservations?.[currentTask.id] ?? "" : "";
   const recordedCount = countObservations(record.taskObservations);
   const savedText = updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet";
   const notebookState = loading ? "Loading saved notes" : loadFailed ? "Saved notes unavailable" : isDirty ? "Unsaved changes" : formatStatus(record.status);
-
-  useUnsavedChangesWarning(`a01-workbench:${activity.id}`, isDirty);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let authRequired = false;
-    const query = new URLSearchParams({ itemType: "activity", itemId: activity.id });
-    fetch(`/api/progress?${query.toString()}`, { cache: "no-store", signal: controller.signal })
-      .then(async (response) => {
-        if (response.status === 401) {
-          authRequired = true;
-          throw new Error("Sign in to open this private investigation notebook.");
-        }
-        if (!response.ok) throw new Error("Could not load this activity’s saved record.");
-        const rows = await response.json() as ProgressRecord[];
-        if (!Array.isArray(rows)) throw new Error("The saved record response was unexpected.");
-        const saved = rows[0] ? savedFields(rows[0]) : blankRecord(activity.id);
-        setRecord(saved);
-        setSavedRecord(saved);
-        setUpdatedAt(rows[0]?.updatedAt);
-        setIsDirty(false);
-        setRequiresSignIn(false);
-        setMessage("");
-        setError(false);
-        setLoadFailed(false);
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return;
-        setLoadFailed(true);
-        setRequiresSignIn(authRequired);
-        setError(!authRequired);
-        setMessage(authRequired ? "" : "The saved record could not be loaded. Retry before editing so existing notes are protected.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [activity.id, loadAttempt]);
 
   useEffect(() => {
     const updateVisibleTask = () => {
@@ -138,22 +74,50 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
   }, []);
 
   useEffect(() => {
-    if (!mobileNotebookOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
+    if (!mobileNotebookOpen || !window.matchMedia("(max-width: 1180px)").matches) return;
+    const previousFocus = document.activeElement;
+    const returnFocusTarget = notebookReturnFocusRef.current ?? notebookToggleRef.current;
+    notebookToggleRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.preventDefault();
         setMobileNotebookOpen(false);
-        const returnTarget = notebookReturnFocusRef.current ?? document.getElementById("a01-mobile-notebook-toggle");
-        requestAnimationFrame(() => returnTarget?.focus());
+        return;
+      }
+      if (event.key !== "Tab" || !notebookRef.current) return;
+      const controls = [...notebookRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )].filter((element) => element.offsetParent !== null);
+      if (controls.length === 0) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected && previousFocus !== document.body) previousFocus.focus();
+      else returnFocusTarget?.focus();
+    };
   }, [mobileNotebookOpen]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1180px)");
+    const closeOnDesktop = () => { if (!media.matches) setMobileNotebookOpen(false); };
+    media.addEventListener("change", closeOnDesktop);
+    return () => media.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   useEffect(() => {
     const revealLinkedNotebook = () => {
       if (window.location.hash !== `#progress-editor-${activity.id}`) return;
-      setMobileNotebookOpen(true);
+      if (window.matchMedia("(max-width: 1180px)").matches) setMobileNotebookOpen(true);
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
         document.getElementById(`progress-editor-${activity.id}`)?.scrollIntoView({ block: "start" });
       }));
@@ -176,64 +140,8 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
     focusTargetRef.current = null;
   }, [activity.id, focusRequest, mobileNotebookOpen, selectedTaskId, taskObservationId]);
 
-  async function save(status: ProgressStatus, location: "notebook" | "review", action: "draft" | "reopen" = "draft") {
-    setSaving(true);
-    setMessageLocation(location);
-    setError(false);
-    setMessage("");
-    const value: ProgressInput = { ...record, status };
-    try {
-      const response = await fetch("/api/progress", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(value),
-      });
-      const body: unknown = await response.json().catch(() => null);
-      if (!response.ok) {
-        if (response.status === 401) setRequiresSignIn(true);
-        const errorText = typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
-          ? body.error
-          : "The activity record could not be saved.";
-        throw new Error(errorText);
-      }
-      if (typeof body !== "object" || body === null || !("updatedAt" in body) || typeof body.updatedAt !== "number") {
-        throw new Error("The server returned an unexpected save response.");
-      }
-      const saved = body as ProgressRecord;
-      const normalized = savedFields(saved);
-      setRecord(normalized);
-      setSavedRecord(normalized);
-      setUpdatedAt(saved.updatedAt);
-      setIsDirty(false);
-      setRequiresSignIn(false);
-      const keptCompleted = record.status === "completed" && status === "completed";
-      setMessage(status === "completed"
-        ? keptCompleted ? "Draft saved to your account. The activity remains marked complete." : "Activity marked complete in your account."
-        : action === "reopen" ? "Activity marked in progress in your account." : "Draft saved to your account.");
-      window.dispatchEvent(new CustomEvent("progress-updated"));
-    } catch (caught) {
-      setError(true);
-      setMessage(caught instanceof Error ? caught.message : "The activity record could not be saved.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function update<K extends keyof ProgressInput>(key: K, value: ProgressInput[K]) {
-    setRecord((current) => ({ ...current, [key]: value }));
-    setIsDirty(true);
-    setError(false);
-    setMessage("");
-  }
-
   function updateObservation(taskId: A01TaskId, value: string) {
-    setRecord((current) => ({
-      ...current,
-      taskObservations: { ...(current.taskObservations ?? {}), [taskId]: value },
-    }));
-    setIsDirty(true);
-    setError(false);
-    setMessage("");
+    update("taskObservations", { ...record.taskObservations, [taskId]: value });
   }
 
   function selectTask(taskId: A01TaskSelection, trigger?: HTMLElement) {
@@ -276,14 +184,6 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
     void save("completed", "review");
   }
 
-  function retryLoad() {
-    setLoading(true);
-    setLoadFailed(false);
-    setError(false);
-    setMessage("");
-    setLoadAttempt((attempt) => attempt + 1);
-  }
-
   function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void save(record.status === "completed" ? "completed" : "in_progress", "notebook");
@@ -309,18 +209,21 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
 
         <div className="activity-a01-workspace">
           <div className="activity-a01-instructions" id="activity-steps">
-            {activity.steps && <MarkdownContent copyable taskIds={a01TaskIds} taskHints={activity.taskHints} taskDetails={activity.taskDetails} onRecordTask={recordTask}>{activity.steps}</MarkdownContent>}
+            {activity.steps && <MarkdownContent copyable taskIds={a01TaskIds} taskHints={activity.taskHints} taskDetails={activity.taskDetails} onRecordTask={recordTask} recordTaskDisabled={loading}>{activity.steps}</MarkdownContent>}
           </div>
 
-          <aside id="a01-notebook" className={`activity-a01-notebook${mobileNotebookOpen ? " activity-a01-notebook--open" : " activity-a01-notebook--closed"}`} aria-label="A01 investigation notebook">
+    {mobileNotebookOpen && <button className="activity-a01-notebook-backdrop" data-modal-dismiss type="button" tabIndex={-1} aria-label="Close investigation notebook" onClick={closeMobileNotebook} />}
+    <aside ref={notebookRef} id="a01-notebook" className={`activity-a01-notebook${mobileNotebookOpen ? " activity-a01-notebook--open" : " activity-a01-notebook--closed"}`} aria-label="A01 investigation notebook" role={mobileNotebookOpen ? "dialog" : undefined} aria-modal={mobileNotebookOpen || undefined}>
             <div className="activity-a01-mobile-notebook-controls">
               <Button
+                ref={notebookToggleRef}
                 id="a01-mobile-notebook-toggle"
                 className="button button-outline activity-a01-mobile-notebook-toggle"
                 type="button"
                 aria-label={mobileNotebookOpen ? "Close notebook" : "Open investigation notebook"}
                 aria-expanded={mobileNotebookOpen}
                 aria-controls={`progress-editor-${activity.id}`}
+                disabled={loading && !mobileNotebookOpen}
                 onClick={(event) => {
                   if (mobileNotebookOpen) {
                     closeMobileNotebook();
@@ -337,6 +240,7 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             </div>
 
             <form id={`progress-editor-${activity.id}`} className="activity-a01-notebook-panel" onSubmit={submitDraft}>
+              {conflict && <ProgressConflictNotice draft={record} current={conflict.current} onUseSaved={() => resolveConflict(false)} onKeepDraft={() => resolveConflict(true)} />}
               <div className="activity-a01-notebook-body">
                 <div className="activity-a01-notebook-heading">
                   <p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared record</p>
@@ -547,7 +451,13 @@ export function A01InvestigationWorkbench({ activity }: { activity: ActivityReco
             <p>{isDirty ? "Changes are not saved yet." : updatedAt ? savedText : "No draft has been saved yet."}</p>
           </div>
           <div className="activity-a01-review-actions">
-            <a className="button button-outline" href="#progress-editor-A01">Edit in the notebook</a>
+            <a className="button button-outline" href="#progress-editor-A01" onClick={(event) => {
+              if (!window.matchMedia("(max-width: 1180px)").matches) return;
+              event.preventDefault();
+              notebookReturnFocusRef.current = event.currentTarget;
+              window.history.replaceState(window.history.state, "", "#progress-editor-A01");
+              setMobileNotebookOpen(true);
+            }}>Edit in the notebook</a>
             <Button className="button button-outline" type="button" disabled={disabled} onClick={submitReviewDraft}>
               <Save size={15} aria-hidden="true" />Save draft
             </Button>

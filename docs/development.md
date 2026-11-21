@@ -76,7 +76,7 @@ An optional `compose.cloudflare.yaml` overlay connects the app to an existing Cy
 docker compose -f compose.yaml -f compose.cloudflare.yaml up --build -d
 ```
 
-For the public `learn.cybertracesystem.com` route, keep Cloudflare Tunnel as transport and let Better Auth handle accounts. Do not enable Cloudflare Access if visitors should be able to browse without a Cloudflare identity. Publish the public `/privacy` and `/terms` pages, configure production-only OAuth callbacks, and set the exact HTTPS app origin before publishing. This is still a single-host SQLite deployment: every learner account is logically isolated in one database file, and backups/host access remain the operator's responsibility. To remove the additional network attachment, apply the base Compose file again with `docker compose up --build -d`; the named data volume remains intact.
+For the public `learn.cybertracesystems.com` route, keep Cloudflare Tunnel as transport and let Better Auth handle accounts. Do not enable Cloudflare Access if visitors should be able to browse without a Cloudflare identity. Publish the public `/privacy` and `/terms` pages, configure production-only OAuth callbacks, and set the exact HTTPS app origin before publishing. This is still a single-host SQLite deployment: every learner account is logically isolated in one database file, and backups/host access remain the operator's responsibility. To remove the additional network attachment, apply the base Compose file again with `docker compose up --build -d`; the named data volume remains intact.
 
 ### Authentication and account-scoped progress
 
@@ -131,4 +131,4 @@ For the public `learn.cybertracesystem.com` route, keep Cloudflare Tunnel as tra
 - **Local sign-in is unavailable:** check `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `FIELDNOTES_OWNER_EMAIL`, and local `GOOGLE_*`/`GITHUB_*` settings in `.env`. Restart the app after changing them. Do not paste the secret into logs or support requests.
 - **Production sign-in is unavailable:** check `FIELDNOTES_PROD_BETTER_AUTH_SECRET`, `FIELDNOTES_PUBLIC_URL`, and production `FIELDNOTES_PROD_*` provider settings. `BETTER_AUTH_URL` must match the public HTTPS origin in production.
 - **Prior progress is not visible:** confirm you signed in with the verified email that exactly matches `FIELDNOTES_OWNER_EMAIL`; the older shared rows are not visible to other accounts.
-- **Container is not healthy:** inspect `docker compose logs app` and `docker compose ps`; the health endpoint is `/api/health`.
+- **Container is not healthy:** inspect `docker compose logs app` and `docker compose ps`; `/api/health` checks SQLite liveness. Use `/api/ready` to check whether both the database and authentication configuration are ready.

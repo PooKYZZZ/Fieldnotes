@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUnsavedChangesWarning } from "@/features/progress/use-unsaved-changes-warning";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
+import { useAuthSession } from "@/features/auth/auth-session-context";
+import { ProgressConflictNotice } from "@/features/progress/progress-conflict";
+import { progressAccountHeaders, progressConflict, progressDraftKey, readDraft, replaceDraft, storeDraft, type ProgressConflict, type ProgressDraft } from "@/features/progress/progress-draft";
 
 const blankRecord = (itemType: ProgressInput["itemType"], itemId: string): ProgressInput => ({
   itemType,
@@ -20,18 +23,26 @@ const blankRecord = (itemType: ProgressInput["itemType"], itemId: string): Progr
 });
 const comfortLabels = { familiar: "Familiar", guided: "Guided", independent: "Independent" };
 
-export function ProgressEditor({
-  itemType,
-  itemId,
-  title = "Progress note",
-  showComfort = false,
-  wide = false,
-  bare = false,
-  recordContext,
-  reflectionPrompt,
-  checkpointContext,
-  variant = "full",
-}: {
+function editableRecord(saved: ProgressRecord): ProgressInput {
+  return {
+    itemType: saved.itemType,
+    itemId: saved.itemId,
+    status: saved.status,
+    comfort: saved.comfort,
+    notes: saved.notes,
+    evidence: saved.evidence,
+    repositoryUrl: saved.repositoryUrl,
+    ...(saved.taskObservations ? { taskObservations: saved.taskObservations } : {}),
+  };
+}
+
+export function ProgressEditor(props: ProgressEditorProps) {
+  const { userId, pending } = useAuthSession();
+  const sessionKey = userId ?? (pending ? "session-pending" : "anonymous");
+  return <ProgressEditorInstance key={`${sessionKey}:${props.itemType}:${props.itemId}`} {...props} />;
+}
+
+type ProgressEditorProps = {
   itemType: ProgressInput["itemType"];
   itemId: string;
   title?: string;
@@ -42,7 +53,20 @@ export function ProgressEditor({
   reflectionPrompt?: string;
   checkpointContext?: { id: string; label: string };
   variant?: "full" | "module-summary" | "lesson-status" | "activity-lab" | "project-workbench";
-}) {
+};
+
+function ProgressEditorInstance({
+  itemType,
+  itemId,
+  title = "Progress note",
+  showComfort = false,
+  wide = false,
+  bare = false,
+  recordContext,
+  reflectionPrompt,
+  checkpointContext,
+  variant = "full",
+}: ProgressEditorProps) {
   const isModuleSummary = variant === "module-summary";
   const isLessonStatus = variant === "lesson-status";
   const isActivityLab = variant === "activity-lab";
@@ -54,6 +78,8 @@ export function ProgressEditor({
   const noteReflectionId = `notes-reflection-${itemId}`;
   const evidenceHintId = `evidence-help-${itemId}`;
   const evidencePrivacyId = `evidence-privacy-${itemId}`;
+  const { userId, pending: sessionPending } = useAuthSession();
+  const draftStorageKey = progressDraftKey(userId, itemType, itemId);
   const [form, setForm] = useState<ProgressInput>(() => blankRecord(itemType, itemId));
   const [updatedAt, setUpdatedAt] = useState<number>();
   const [isDirty, setIsDirty] = useState(false);
@@ -66,39 +92,48 @@ export function ProgressEditor({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const editRevision = useRef(0);
+  const [revision, setRevision] = useState<number | null>(null);
+  const [savedRecord, setSavedRecord] = useState<ProgressRecord | null>(null);
+  const [conflict, setConflict] = useState<ProgressConflict>();
+  const [accountChanged, setAccountChanged] = useState(false);
+  const draftRef = useRef<ProgressDraft>(undefined);
+  const formRef = useRef(form);
 
-  useUnsavedChangesWarning(`progress:${itemType}:${itemId}`, isDirty);
+  useUnsavedChangesWarning(`progress:${userId}:${itemType}:${itemId}`, isDirty, () => resolveConflict(false));
 
   useEffect(() => {
+    if (!userId) return;
     const controller = new AbortController();
     const params = new URLSearchParams({ itemType, itemId });
-    fetch(`/api/progress?${params.toString()}`, { cache: "no-store", signal: controller.signal })
+    fetch(`/api/progress?${params.toString()}`, { cache: "no-store", headers: progressAccountHeaders(userId), signal: controller.signal })
       .then(async (response) => {
+        if (controller.signal.aborted) return;
         if (response.status === 401) {
           setRequiresSignIn(true);
           throw new Error("Sign in to open your personal learning record.");
         }
+        if (response.status === 409) {
+          setAccountChanged(true);
+          return;
+        }
         if (!response.ok) throw new Error("Could not load the saved note.");
         const rows = (await response.json()) as ProgressRecord[];
-        const saved = rows[0];
-        if (saved) {
-          setForm({
-            itemType: saved.itemType,
-            itemId: saved.itemId,
-            status: saved.status,
-            comfort: saved.comfort,
-            notes: saved.notes,
-            evidence: saved.evidence,
-            repositoryUrl: saved.repositoryUrl,
-            ...(saved.taskObservations ? { taskObservations: saved.taskObservations } : itemType === "project" || itemType === "small_project" ? { taskObservations: {} } : {}),
-          });
-          setUpdatedAt(saved.updatedAt);
-          setIsDirty(false);
-          setRepositoryOpen(Boolean(saved.repositoryUrl));
-          if ((itemType === "project" || itemType === "small_project") && (saved.notes || saved.evidence || saved.repositoryUrl)) {
-            setProjectWideFieldsOpen(true);
-          }
+        if (controller.signal.aborted) return;
+        const saved = rows[0] ?? null;
+        const draft = readDraft(draftStorageKey, itemType, itemId);
+        const initial = draft?.form ?? (saved ? editableRecord(saved) : blankRecord(itemType, itemId));
+        const lastRevision = saved?.revision ?? null;
+        draftRef.current = draft;
+        formRef.current = initial;
+        setForm(initial);
+        setSavedRecord(saved);
+        setUpdatedAt(saved?.updatedAt);
+        setRevision(draft ? draft.expectedRevision : lastRevision);
+        setIsDirty(Boolean(draft));
+        setConflict(draft && draft.expectedRevision !== lastRevision ? { current: saved } : undefined);
+        setRepositoryOpen(Boolean(initial.repositoryUrl));
+        if ((itemType === "project" || itemType === "small_project") && (initial.notes || initial.evidence || initial.repositoryUrl)) {
+          setProjectWideFieldsOpen(true);
         }
       })
       .catch(() => {
@@ -109,7 +144,28 @@ export function ProgressEditor({
       })
       .finally(() => !controller.signal.aborted && setLoading(false));
     return () => controller.abort();
-  }, [itemType, itemId, loadAttempt]);
+  }, [draftStorageKey, itemType, itemId, loadAttempt, userId]);
+
+  function resolveConflict(keepDraft: boolean) {
+    const latest = conflict ? conflict.current : savedRecord;
+    const latestRevision = latest?.revision ?? null;
+    if (keepDraft) {
+      draftRef.current = storeDraft(draftStorageKey, formRef.current, latestRevision);
+    } else {
+      replaceDraft(draftStorageKey, draftRef.current);
+      draftRef.current = undefined;
+      const saved = latest ? editableRecord(latest) : blankRecord(itemType, itemId);
+      formRef.current = saved;
+      setForm(saved);
+      setIsDirty(false);
+    }
+    setSavedRecord(latest);
+    setRevision(latestRevision);
+    setUpdatedAt(latest?.updatedAt);
+    setConflict(undefined);
+    setError(false);
+    setMessage(keepDraft ? "Draft kept. Review your changes before saving again." : "Showing the saved version.");
+  }
 
   function retryLoad() {
     setLoading(true);
@@ -122,20 +178,27 @@ export function ProgressEditor({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const submittedRevision = editRevision.current;
-    const submittedForm = form;
+    if (!userId || accountChanged || requiresSignIn || saving || conflict) return;
+    const submittedDraft = draftRef.current;
+    const submittedForm = formRef.current;
     setSaving(true);
     setError(false);
     setMessage("");
     try {
       const response = await fetch("/api/progress", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submittedForm),
+        headers: progressAccountHeaders(userId, true),
+        body: JSON.stringify({ record: submittedForm, expectedRevision: revision }),
       });
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
         if (response.status === 401) setRequiresSignIn(true);
+        if (typeof body === "object" && body !== null && "code" in body && body.code === "ACCOUNT_CHANGED") setAccountChanged(true);
+        const changedRecord = progressConflict(body);
+        if (changedRecord) {
+          setConflict(changedRecord);
+          return;
+        }
         const message = typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
           ? body.error
           : "The note could not be saved.";
@@ -145,10 +208,16 @@ export function ProgressEditor({
         throw new Error("The server returned an unexpected save response.");
       }
       const saved = body as ProgressRecord;
+      setSavedRecord(saved);
       setUpdatedAt(saved.updatedAt);
+      setRevision(saved.revision);
       setRequiresSignIn(false);
-      const hasNewerEdits = editRevision.current !== submittedRevision;
+      const currentDraft = draftRef.current;
+      const hasNewerEdits = Boolean(currentDraft && currentDraft !== submittedDraft);
       setIsDirty(hasNewerEdits);
+      const remaining = hasNewerEdits && currentDraft ? { ...currentDraft, expectedRevision: saved.revision } : undefined;
+      replaceDraft(draftStorageKey, currentDraft, remaining);
+      draftRef.current = remaining;
       setMessage(hasNewerEdits ? "Earlier changes saved to your account. Newer edits still need saving." : "Saved to your account.");
       window.dispatchEvent(new CustomEvent("progress-updated"));
     } catch (caught) {
@@ -160,8 +229,10 @@ export function ProgressEditor({
   }
 
   function update<K extends keyof ProgressInput>(key: K, value: ProgressInput[K]) {
-    editRevision.current += 1;
-    setForm((current) => ({ ...current, [key]: value }));
+    const next = { ...formRef.current, [key]: value };
+    formRef.current = next;
+    setForm(next);
+    draftRef.current = storeDraft(draftStorageKey, next, revision);
     setIsDirty(true);
     setError(false);
     setMessage("");
@@ -169,14 +240,16 @@ export function ProgressEditor({
 
   function updateCheckpointObservation(value: string) {
     if (!checkpointContext) return;
-    editRevision.current += 1;
-    setForm((current) => ({
-      ...current,
+    const next = {
+      ...formRef.current,
       taskObservations: {
-        ...(current.taskObservations ?? {}),
+        ...(formRef.current.taskObservations ?? {}),
         [checkpointContext.id]: value,
       },
-    }));
+    };
+    formRef.current = next;
+    setForm(next);
+    draftRef.current = storeDraft(draftStorageKey, next, revision);
     setIsDirty(true);
     setError(false);
     setMessage("");
@@ -204,8 +277,11 @@ export function ProgressEditor({
     </>;
   }
 
-  if (requiresSignIn && !isDirty) {
-    return <div id={`progress-editor-${itemId}`}><ProgressSignInNotice>Sign in to view and edit this private learning record. Your course content remains available.</ProgressSignInNotice></div>;
+  if (requiresSignIn || accountChanged || (!userId && !sessionPending)) {
+    return <div id={`progress-editor-${itemId}`}><ProgressSignInNotice>{accountChanged
+      ? "The signed-in account changed. Reopen this page under the intended account before editing."
+      : isDirty ? "Your session expired. Sign in to the same account and reopen this page to recover your draft."
+        : "Sign in to view and edit this private learning record. Your course content remains available."}</ProgressSignInNotice></div>;
   }
 
   return (
@@ -224,7 +300,7 @@ export function ProgressEditor({
         : isPracticeRecord
           ? `Save partial work and return later. Record what you attempted, expected versus observed results, how you investigated, and how you verified the outcome. This is a self-report, not proof of mastery. Saved privately to your account.`
           : "Reading does not change this item’s status. Choose the status and independence level that reflect your work; the app does not verify mastery. This record is private to your account."}</p>
-      {requiresSignIn && <ProgressSignInNotice reloadAfterSignIn={!isDirty}>Your session has expired. Your unsaved text is still open here. Sign in in another tab, return, and save again.</ProgressSignInNotice>}
+      {conflict && <ProgressConflictNotice draft={form} current={conflict.current} onUseSaved={() => resolveConflict(false)} onKeepDraft={() => resolveConflict(true)} />}
       <form onSubmit={submit}>
         {isLessonStatus ? (
           <div className="progress-lesson-status-control">
@@ -324,7 +400,7 @@ export function ProgressEditor({
         )}
         <div className="form-footer progress-form-footer">
           <span className="field-hint">{loading ? "Loading saved progress…" : loadFailed ? "Saved progress could not be loaded" : isDirty ? `Unsaved changes${updatedAt ? ` · last saved ${new Date(updatedAt).toLocaleString()}` : ""}` : updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet"}</span>
-          <Button className="button button-primary" type="submit" disabled={saving || loading || loadFailed}>
+          <Button className="button button-primary" type="submit" disabled={saving || loading || loadFailed || Boolean(conflict)}>
             <Save size={15} aria-hidden="true" />{saving ? "Saving…" : isModuleSummary ? "Save module progress" : isProjectWorkbench ? "Save project notebook" : "Save learning record"}
           </Button>
         </div>

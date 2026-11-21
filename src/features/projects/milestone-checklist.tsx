@@ -1,88 +1,78 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, Check, RefreshCw, X } from "lucide-react";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import type { ProjectMilestone } from "@/content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
+import { useModalInertSiblings } from "@/features/ui/use-modal-inert-siblings";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
-import type { ProgressInput, ProgressRecord } from "@/features/progress/model";
+import type { ProgressInput } from "@/features/progress/model";
+import { useProgressList } from "@/features/progress/progress-list-context";
+import { useAuthSession } from "@/features/auth/auth-session-context";
+import { progressAccountHeaders } from "@/features/progress/progress-draft";
 
-export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }: {
+function subscribeToLocationChanges(onChange: () => void): () => void {
+  window.addEventListener("hashchange", onChange);
+  window.addEventListener("popstate", onChange);
+  return () => {
+    window.removeEventListener("hashchange", onChange);
+    window.removeEventListener("popstate", onChange);
+  };
+}
+
+function locationHashSnapshot(): string {
+  return window.location.hash;
+}
+
+type ProjectMilestoneProps = {
   projectId: string;
   projectType: "project" | "small_project";
   milestones: ProjectMilestone[];
-}) {
-  const [completed, setCompleted] = useState<Set<string>>(new Set());
-  const [selectedId, setSelectedId] = useState(milestones[0]?.id ?? "");
-  const [saving, setSaving] = useState<string>();
+};
+
+export function ProjectMilestoneWorkbench(props: ProjectMilestoneProps) {
+  const { userId } = useAuthSession();
+  return <ProjectMilestoneContent key={userId ?? "guest"} {...props} userId={userId} />;
+}
+
+function ProjectMilestoneContent({ projectId, projectType, milestones, userId }: ProjectMilestoneProps & { userId?: string }) {
+  const [selectedOverride, setSelectedOverride] = useState<string>();
+  const [pendingChanges, setPendingChanges] = useState<Map<string, boolean>>(new Map());
+  const [savedChanges, setSavedChanges] = useState<Map<string, { complete: boolean; revision: number }>>(new Map());
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-  const [loadAttempt, setLoadAttempt] = useState(0);
   const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
-  const userSelectedRef = useRef(false);
+  const { records, loaded, loadError, requiresSignIn, retry } = useProgressList();
+  const loading = !loaded;
+  const locationHash = useSyncExternalStore(subscribeToLocationChanges, locationHashSnapshot, () => "");
+  const savedMilestones = useMemo(() => {
+    const milestonesById = new Map(records
+      .filter((row) => row.itemType === "milestone")
+      .map((row) => [row.itemId, { complete: row.status === "completed", revision: row.revision }]));
+    for (const [id, saved] of savedChanges) {
+      if (saved.revision > (milestonesById.get(id)?.revision ?? 0)) milestonesById.set(id, saved);
+    }
+    return milestonesById;
+  }, [records, savedChanges]);
+  const completed = useMemo(() => {
+    const complete = new Set([...savedMilestones].filter(([, saved]) => saved.complete).map(([id]) => id));
+    for (const [id, pending] of pendingChanges) {
+      if (pending) complete.add(id);
+      else complete.delete(id);
+    }
+    return complete;
+  }, [savedMilestones, pendingChanges]);
+  const linkedCheckpointId = locationHash.startsWith("#milestone-") ? locationHash.slice("#milestone-".length) : "";
+  const linkedCheckpoint = milestones.find(({ id }) => id === linkedCheckpointId);
+  const selectedId = selectedOverride
+    ?? linkedCheckpoint?.id
+    ?? milestones.find(({ id }) => !completed.has(id))?.id
+    ?? milestones[0]?.id
+    ?? "";
   const notebookRef = useRef<HTMLElement>(null);
   const closeNotebookRef = useRef<HTMLButtonElement>(null);
+  useModalInertSiblings(notebookRef, mobileNotebookOpen);
   const notebookToggleRef = useRef<HTMLButtonElement>(null);
-
-  const load = useCallback(() => {
-    const controller = new AbortController();
-    fetch("/api/progress", { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRequiresSignIn(true);
-          setLoadError(false);
-          setCompleted(new Set());
-          return [] as ProgressRecord[];
-        }
-        if (!response.ok) throw new Error("Could not load saved project checkpoints.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        const milestoneIds = new Set(milestones.map(({ id }) => id));
-        const savedCompleted = new Set(rows
-          .filter((row) => row.itemType === "milestone" && row.status === "completed" && milestoneIds.has(row.itemId))
-          .map((row) => row.itemId));
-        setCompleted(savedCompleted);
-        if (!userSelectedRef.current) {
-          const linkedMilestoneId = window.location.hash.startsWith("#milestone-")
-            ? window.location.hash.slice("#milestone-".length)
-            : "";
-          const linkedMilestone = milestones.find(({ id }) => id === linkedMilestoneId);
-          setSelectedId(linkedMilestone?.id ?? milestones.find(({ id }) => !savedCompleted.has(id))?.id ?? milestones[0]?.id ?? "");
-        }
-        setLoadError(false);
-        setMessage("");
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        setRequiresSignIn(false);
-        setLoadError(true);
-        setMessage(error instanceof Error ? error.message : "Saved checkpoint states could not be loaded.");
-      })
-      .finally(() => !controller.signal.aborted && setLoading(false));
-    return controller;
-  }, [milestones]);
-
-  useEffect(() => {
-    const controller = load();
-    return () => controller.abort();
-  }, [load, loadAttempt]);
-
-  useEffect(() => {
-    function selectLinkedCheckpoint() {
-      if (!window.location.hash.startsWith("#milestone-")) return;
-      const linkedId = window.location.hash.slice("#milestone-".length);
-      if (!milestones.some(({ id }) => id === linkedId)) return;
-      userSelectedRef.current = true;
-      setSelectedId(linkedId);
-    }
-    window.addEventListener("hashchange", selectLinkedCheckpoint);
-    return () => window.removeEventListener("hashchange", selectLinkedCheckpoint);
-  }, [milestones]);
 
   useEffect(() => {
     if (!mobileNotebookOpen) return;
@@ -118,60 +108,68 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
     };
   }, [mobileNotebookOpen]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1180px)");
+    const closeOnDesktop = () => { if (!media.matches) setMobileNotebookOpen(false); };
+    media.addEventListener("change", closeOnDesktop);
+    return () => media.removeEventListener("change", closeOnDesktop);
+  }, []);
+
   async function toggle(milestone: ProjectMilestone) {
-    const isComplete = completed.has(milestone.id);
-    setSaving(milestone.id);
+    if (!userId || pendingChanges.has(milestone.id)) return;
+    const current = savedMilestones.get(milestone.id);
+    const complete = !current?.complete;
+    setSelectedOverride(milestone.id);
+    setPendingChanges((previous) => new Map(previous).set(milestone.id, complete));
     setMessage("Saving checkpoint…");
-    setCompleted((previous) => {
-      const next = new Set(previous);
-      if (isComplete) next.delete(milestone.id); else next.add(milestone.id);
-      return next;
-    });
     const input: ProgressInput = {
       itemType: "milestone",
       itemId: milestone.id,
-      status: isComplete ? "not_started" : "completed",
+      status: complete ? "completed" : "not_started",
       comfort: null,
       notes: "",
       evidence: "",
       repositoryUrl: "",
     };
     try {
-      const response = await fetch("/api/progress", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+      const response = await fetch("/api/progress", {
+        method: "PUT",
+        headers: progressAccountHeaders(userId, true),
+        body: JSON.stringify({ record: input, expectedRevision: current?.revision ?? null }),
+      });
       const result: unknown = await response.json().catch(() => null);
       if (!response.ok) {
-        if (response.status === 401) setRequiresSignIn(true);
+        if (response.status === 409) retry();
         const serverMessage = typeof result === "object" && result !== null && "error" in result && typeof result.error === "string"
           ? result.error
           : "Could not save this project checkpoint.";
         throw new Error(serverMessage);
       }
+      if (typeof result !== "object" || result === null || !("revision" in result) || typeof result.revision !== "number") {
+        throw new Error("The server returned an unexpected checkpoint save response.");
+      }
+      const revision = result.revision;
+      setSavedChanges((previous) => new Map(previous).set(milestone.id, { complete, revision }));
       setMessage("Checkpoint progress saved.");
-      setRequiresSignIn(false);
       window.dispatchEvent(new CustomEvent("progress-updated"));
     } catch (error) {
-      setCompleted((previous) => {
-        const next = new Set(previous);
-        if (isComplete) next.add(milestone.id); else next.delete(milestone.id);
-        return next;
-      });
       setMessage(error instanceof Error ? error.message : "Could not save this project checkpoint.");
     } finally {
-      setSaving(undefined);
+      setPendingChanges((previous) => {
+        const next = new Map(previous);
+        next.delete(milestone.id);
+        return next;
+      });
     }
   }
 
   function retryLoad() {
-    setLoading(true);
-    setLoadError(false);
-    setRequiresSignIn(false);
     setMessage("");
-    setLoadAttempt((attempt) => attempt + 1);
+    retry();
   }
 
   function selectMilestone(id: string) {
-    userSelectedRef.current = true;
-    setSelectedId(id);
+    setSelectedOverride(id);
     setMessage("");
     window.history.replaceState(null, "", `#milestone-${id}`);
   }
@@ -227,10 +225,10 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
               id={`milestone-check-${activeMilestone.id}`}
               type="checkbox"
               checked={completed.has(activeMilestone.id)}
-              disabled={loading || loadError || requiresSignIn || saving === activeMilestone.id}
+              disabled={loading || loadError || requiresSignIn || pendingChanges.has(activeMilestone.id)}
               onChange={() => void toggle(activeMilestone)}
             />
-            <span>{saving === activeMilestone.id ? "Saving" : completed.has(activeMilestone.id) ? "Self-reported complete" : "Mark checkpoint done"}</span>
+            <span>{pendingChanges.has(activeMilestone.id) ? "Saving" : completed.has(activeMilestone.id) ? "Self-reported complete" : "Mark checkpoint done"}</span>
           </label>
         </div>
         <div className="project-active-milestone-guidance"><MarkdownContent>{activeMilestone.guidance}</MarkdownContent></div>
@@ -266,13 +264,14 @@ export function ProjectMilestoneWorkbench({ projectId, projectType, milestones }
         type="button"
         aria-label="Open project notebook for this checkpoint"
         aria-expanded={mobileNotebookOpen}
+        disabled={loading}
         onClick={() => setMobileNotebookOpen(true)}
       >
         <BookOpen size={16} aria-hidden="true" /> Record a note for this checkpoint
       </button>
     </div>
 
-    {mobileNotebookOpen && <button className="project-notebook-backdrop" type="button" aria-label="Dismiss project notebook backdrop" onClick={() => setMobileNotebookOpen(false)} />}
+    {mobileNotebookOpen && <button className="project-notebook-backdrop" data-modal-dismiss type="button" aria-label="Dismiss project notebook backdrop" onClick={() => setMobileNotebookOpen(false)} />}
     <aside ref={notebookRef} className={`project-notebook${mobileNotebookOpen ? " project-notebook--open" : ""}`} aria-label="Project notebook" role={mobileNotebookOpen ? "dialog" : undefined} aria-modal={mobileNotebookOpen || undefined}>
       <div className="project-notebook-mobile-head">
         <p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared project record</p>

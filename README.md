@@ -49,7 +49,7 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Compose starts one app cont
 
 1. Set `BETTER_AUTH_SECRET` and `FIELDNOTES_PROD_BETTER_AUTH_SECRET` to different unique random values of at least 32 characters. Keep them in `.env`; do not commit or paste them into chat. Replacing a production secret signs out existing sessions and can make previously encrypted OAuth tokens unreadable, so keep the production value stable and back it up securely.
 2. Set `FIELDNOTES_OWNER_EMAIL` to the email address you control through Google or GitHub. That provider must confirm the email as verified. The owner account is identified by this exact email; other visitors can create their own accounts but cannot claim existing progress.
-3. Use separate Google Cloud projects/OAuth clients for development and production. Put local client values in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; put production values in `FIELDNOTES_PROD_GOOGLE_CLIENT_ID` and `FIELDNOTES_PROD_GOOGLE_CLIENT_SECRET`. Register only `https://learn.cybertracesystem.com/api/auth/callback/google` on the production client. GitHub credentials follow the same split. Keep `FIELDNOTES_PUBLIC_URL` set to the public HTTPS origin.
+3. Use separate Google Cloud projects/OAuth clients for development and production. Put local client values in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; put production values in `FIELDNOTES_PROD_GOOGLE_CLIENT_ID` and `FIELDNOTES_PROD_GOOGLE_CLIENT_SECRET`. Register only `https://learn.cybertracesystems.com/api/auth/callback/google` on the production client. GitHub credentials follow the same split. Keep `FIELDNOTES_PUBLIC_URL` set to the public HTTPS origin.
 4. Publish the public `/privacy` and `/terms` pages on the verified domain, then complete the provider's branding and consent-screen setup. Fieldnotes requests basic identity only; it does not request access to Google Drive or GitHub repositories.
 5. Start or rebuild the service, then try signing in from a private browser window. Confirm public lessons still open when signed out, a learner can create an account at first sign-in, and their saved progress appears only in that account.
 
@@ -59,7 +59,7 @@ If the database already contains shared progress, migration `0004` moves it into
 
 ### Optional: use the existing CyberTrace Cloudflare Tunnel
 
-Cloudflare Tunnel can make the app reachable at `learn.cybertracesystem.com`; Fieldnotes OAuth remains the account sign-in. **Do not enable Cloudflare Access for this route** if the goal is to let learners reach the public lessons without a Cloudflare account.
+Cloudflare Tunnel can make the app reachable at `learn.cybertracesystems.com`; Fieldnotes OAuth remains the account sign-in. **Do not enable Cloudflare Access for this route** if the goal is to let learners reach the public lessons without a Cloudflare account.
 
 1. Find the Docker network used by the existing `cloudflared` container with `docker network ls`. Add its exact name as `FIELDNOTES_TUNNEL_NETWORK` in `.env` without replacing other settings.
 2. Start Fieldnotes with the optional overlay:
@@ -69,8 +69,8 @@ Cloudflare Tunnel can make the app reachable at `learn.cybertracesystem.com`; Fi
    ```
 
    This keeps the existing loopback address and the `learning-data` volume. The overlay connects the app to the existing Tunnel network and gives it the internal name `fieldnotes-lms`.
-3. In Cloudflare Zero Trust, add a **Published application** route for `learn.cybertracesystem.com` with service `http://fieldnotes-lms:3000`. Do not attach a Cloudflare Access application. Cloudflare creates the DNS route for the hostname.
-4. Open `https://learn.cybertracesystem.com` in a private browser window. Confirm that lessons are public, then use Google or GitHub when you want private saved progress.
+3. In Cloudflare Zero Trust, add a **Published application** route for `learn.cybertracesystems.com` with service `http://fieldnotes-lms:3000`. Do not attach a Cloudflare Access application. Cloudflare creates the DNS route for the hostname.
+4. Open `https://learn.cybertracesystems.com` in a private browser window. Confirm that lessons are public, then use Google or GitHub when you want private saved progress.
 
 The host machine and Docker services must remain running for the site to be available. Because the route is public, configure OAuth credentials and a strong unique secret before publishing it. To return the app to local-only networking, start it again with `docker compose up --build -d`; the named data volume is retained.
 
@@ -125,7 +125,7 @@ The same test suite is run by [GitHub Actions CI](.github/workflows/ci.yml), whi
 | `BETTER_AUTH_SECRET` | Required for local account operations | Unique secret used by local development |
 | `BETTER_AUTH_URL` | `http://127.0.0.1:3000` locally | Local canonical origin used for callbacks and trusted requests |
 | `FIELDNOTES_PROD_BETTER_AUTH_SECRET` | Required in Compose | Separate, stable production secret |
-| `FIELDNOTES_PUBLIC_URL` | `https://learn.cybertracesystem.com` | Production HTTPS origin; Better Auth rejects mismatches and non-HTTPS values |
+| `FIELDNOTES_PUBLIC_URL` | `https://learn.cybertracesystems.com` | Production HTTPS origin; Better Auth rejects mismatches and non-HTTPS values |
 | `FIELDNOTES_OWNER_EMAIL` | Required in Compose | Verified Google/GitHub email that receives the owner role and existing legacy progress |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Empty until configured | Local development Google OAuth client only |
 | `FIELDNOTES_PROD_GOOGLE_CLIENT_ID`, `FIELDNOTES_PROD_GOOGLE_CLIENT_SECRET` | Empty until configured | Production Google OAuth client only |
@@ -147,7 +147,7 @@ Fieldnotes does not provide cloud-hosted storage, organization/team accounts, au
 
 - **Port conflict:** change `APP_PORT` in `.env` for Compose; use `PLAYWRIGHT_PORT` for browser tests.
 - **Progress looks missing:** check whether the app is using its local database or the separate Docker volume.
-- **Container is unhealthy:** inspect `docker compose ps` and `docker compose logs app`; health is checked at `/api/health`.
+- **Container is unhealthy:** inspect `docker compose ps` and `docker compose logs app`; SQLite liveness is checked at `/api/health`. `/api/ready` also reports whether authentication configuration is ready.
 - **SQLite install fails:** use Node.js 24 and install the platform's native build tools if npm cannot use a compatible prebuilt module.
 
 For more detail, see [Development and testing](docs/development.md).

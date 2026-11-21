@@ -31,7 +31,8 @@ export type ProgressInput = {
   taskObservations?: Record<string, string>;
 };
 
-export type ProgressRecord = ProgressInput & { updatedAt: number };
+export type ProgressRecord = ProgressInput & { updatedAt: number; revision: number };
+export type ProgressSummary = Pick<ProgressRecord, "itemType" | "itemId" | "status" | "updatedAt" | "revision"> & { hasContent: boolean };
 
 export function formatStatus(status: ProgressStatus): string {
   return {

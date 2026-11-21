@@ -9,11 +9,18 @@ few stable metrics, then add distributed tracing when there is a concrete cross-
 
 For example, a log row with `request_id`, `route`, `status` and `duration_ms` can be compared with a time-series
 increase in server errors. The ID should be random or opaque and should not encode a user identity or secret.
+
+Read the trace from left to right. The gateway's 180 ms server span contains a remote call whose database
+service span starts at 20 ms and lasts 145 ms. A cache operation overlaps part of that call. Adding the two child
+durations would count overlapping time twice. The database span explains where most elapsed time is represented,
+while a database log or a latency series can help determine whether that time was query work, queuing, or a wider
+pattern. The example omits the gateway's client span for the remote call. See
+[OpenTelemetry's span relationships](https://opentelemetry.io/docs/concepts/signals/traces/#spans).
   </div>
   <TechnicalFigure
     src="/diagrams/module16/lesson-03.svg"
-    alt="Trace context connects spans across services so correlated evidence can help locate slow operations."
-    caption="Trace context → service A span → service B span → correlated evidence → locate a slow operation."
+    alt="A gateway request spans 0 to 180 milliseconds. Its database service span runs from 20 to 165 milliseconds and a parallel cache span from 25 to 75 milliseconds."
+    caption="Read duration and overlap on one timeline. A parent includes the elapsed time of its children."
   />
 </ConceptSection>
 

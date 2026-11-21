@@ -36,6 +36,7 @@ export function MarkdownContent({
   taskHints,
   taskDetails,
   onRecordTask,
+  recordTaskDisabled = false,
 }: {
   children: string;
   headingIdPrefix?: string;
@@ -44,6 +45,7 @@ export function MarkdownContent({
   taskHints?: Partial<Record<string, string>>;
   taskDetails?: Partial<Record<string, string>>;
   onRecordTask?: (taskId: string) => void;
+  recordTaskDisabled?: boolean;
 }) {
   const components: Components = {
     ...(headingIdPrefix
@@ -80,6 +82,7 @@ export function MarkdownContent({
                   type="button"
                   className="activity-task-record"
                   aria-label={`Record Task ${taskPosition + 1} in the investigation notebook`}
+                  disabled={recordTaskDisabled}
                   onClick={() => onRecordTask(taskId)}
                 >
                   Record Task {taskPosition + 1}<ArrowRight size={14} aria-hidden="true" />

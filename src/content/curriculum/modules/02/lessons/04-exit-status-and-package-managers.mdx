@@ -15,7 +15,7 @@ For GNU `grep`, a no-match result is different from a command error. Capture the
 command:
 
 ```bash
-if grep -q -- 'timeout' app.log; then
+if grep -- 'timeout' app.log > /dev/null; then
   echo "matching line found"
 else
   status=$?
@@ -33,8 +33,8 @@ what executable the shell can find on its current `PATH`. See the [Bash manual o
   </div>
   <TechnicalFigure
     src="/diagrams/module02/lesson-04.svg"
-    alt="A command reports success or failure through its exit status; package managers use that result while tracking installed software."
-    caption="Command outcomes produce exit statuses, which help verify package manager operations and installed state."
+    alt="Run a command, interpret its documented exit status, then check the package inventory to see what changed."
+    caption="Use the command’s documented status meanings and verify installed state separately."
   />
 </ConceptSection>
 

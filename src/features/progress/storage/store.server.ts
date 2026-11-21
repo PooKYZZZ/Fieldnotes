@@ -10,7 +10,16 @@ let database: ProgressDatabase | undefined;
 function getDatabase(): ProgressDatabase {
   if (!database) {
     const databasePath = process.env.DATABASE_PATH ?? path.join(process.cwd(), ".data", "lms.sqlite");
-    database = createProgressDatabase(databasePath, path.join(process.cwd(), "migrations"));
+    const opened = createProgressDatabase(databasePath, path.join(process.cwd(), "migrations"));
+    try {
+      const configuredOwnerEmail = process.env.FIELDNOTES_OWNER_EMAIL?.trim();
+      const ownerId = configuredOwnerEmail ? opened.findVerifiedUserIdByEmail(configuredOwnerEmail) : undefined;
+      if (ownerId) opened.claimLegacyProgress(ownerId);
+    } catch (error) {
+      opened.close();
+      throw error;
+    }
+    database = opened;
   }
   return database;
 }
@@ -18,11 +27,11 @@ function getDatabase(): ProgressDatabase {
 export const listProgress = (userId: string) => getDatabase().list(userId);
 export const findProgress = (userId: string, itemType: ProgressInput["itemType"], itemId: string) => getDatabase().find(userId, itemType, itemId);
 export const saveProgress = (userId: string, input: ProgressInput) => getDatabase().save(userId, input);
+export const saveProgressIfCurrent = (userId: string, input: ProgressInput, expectedRevision: number | null) => getDatabase().saveIfCurrent(userId, input, expectedRevision);
 export const saveProgressMany = (userId: string, inputs: ProgressInput[]) => getDatabase().saveMany(userId, inputs);
+export const mergeProgressMany = (userId: string, inputs: Array<ProgressInput & { updatedAt: number }>) => getDatabase().mergeMany(userId, inputs);
 export const getAuthDatabase = () => getDatabase().orm;
-export const prepareOwnerProgress = (userId: string) => {
-  getDatabase().ensureOwnerRole(userId);
-  return getDatabase().claimLegacyProgress(userId);
-};
+export const prepareOwnerProgress = (userId: string) => getDatabase().claimLegacyProgress(userId);
+export const listProgressSummary = (userId: string) => getDatabase().listSummary(userId);
 export const checkDatabase = () => getDatabase().health();
 

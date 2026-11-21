@@ -1,42 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ArrowRight, BookOpen, CheckCircle2, CircleDashed, Layers3 } from "lucide-react";
-import type { ProgressRecord } from "@/features/progress/model";
+import { useProgressList } from "@/features/progress/progress-list-context";
 import { Progress } from "@/components/ui/progress";
 
 type CourseItem = { id: number; title: string; phase: string };
 const phaseNames = ["Foundations", "Infrastructure & Cloud", "Operations & Security"];
 
 export function DashboardProgress({ modules }: { modules: CourseItem[] }) {
-  const [records, setRecords] = useState<ProgressRecord[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-  const load = useCallback(() => {
-    fetch("/api/progress", { cache: "no-store" })
-      .then((response) => {
-        if (response.status === 401) {
-          setRequiresSignIn(true);
-          setRecords([]);
-          setLoadError(false);
-          return [] as ProgressRecord[];
-        }
-        if (!response.ok) throw new Error("Could not load saved progress.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => setRecords(rows))
-      .then(() => setLoadError(false))
-      .catch(() => { setRequiresSignIn(false); setLoadError(true); })
-      .finally(() => setLoaded(true));
-  }, []);
-  useEffect(() => {
-    load();
-    window.addEventListener("progress-updated", load);
-    return () => window.removeEventListener("progress-updated", load);
-  }, [load]);
+  const { records, loaded, loadError, requiresSignIn } = useProgressList();
 
   const modulesByStatus = useMemo(() => new Map(records.filter((record) => record.itemType === "module").map((record) => [record.itemId, record])), [records]);
   const completed = modules.filter((module) => modulesByStatus.get(`M${String(module.id).padStart(2, "0")}`)?.status === "completed").length;

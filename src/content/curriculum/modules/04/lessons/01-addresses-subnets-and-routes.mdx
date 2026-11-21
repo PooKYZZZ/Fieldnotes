@@ -24,3 +24,5 @@ the destination is down or blocked.
     caption="An IP address and subnet define local reachability, while the routing table selects the next hop."
   />
 </ConceptSection>
+
+With a host at `192.0.2.10/24`, `192.0.2.20` matches the local prefix while `198.51.100.20` does not. If the latter uses the default gateway, a route lookup can show `via 192.0.2.1` as the next hop and `src 192.0.2.10` as the selected source. Trace those fields before deciding where to inspect a failure. Route selection establishes the host’s intent to send, while a separate connection or application check establishes a response.

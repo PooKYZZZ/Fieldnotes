@@ -23,10 +23,13 @@ For GNU `grep`, status `0` means it selected a line, `1` means no line matched, 
 an error. The files alone do not tell you whether “no match” was expected, so check the status immediately after
 the command. The [Bash manual on redirections](https://www.gnu.org/software/bash/manual/html_node/Redirections.html)
 explains how the shell opens each destination.
+
+In the pipeline figure, `find . -name '*.log' | grep 'api' > report.txt` selects path names that contain
+`api`. To search for that text inside one log, pass the file itself as an argument to `grep 'api' app.log`.
   </div>
   <TechnicalFigure
     src="/diagrams/module02/lesson-02.svg"
-    alt="A shell pipeline sends standard output from one process to the next process's standard input. Standard error remains separate unless redirected."
-    caption="Figure 1. Standard output flows through a pipe while standard error remains separate; output redirection has its own file behavior."
+    alt="Find writes path names to standard output. The pipe feeds those names to grep, which writes selected names to report.txt. Diagnostic errors stay separate."
+    caption="This pipeline filters path names. Standard error stays separate from the names sent through the pipe."
   />
 </ConceptSection>

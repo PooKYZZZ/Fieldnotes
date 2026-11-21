@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Circle, Layers3, RefreshCw, Rocket } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
-import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
+import type { ProgressSummary, ProgressStatus } from "@/features/progress/model";
+import { useProgressList } from "@/features/progress/progress-list-context";
 import { ProjectModuleLinks } from "@/features/projects/project-module-links";
 
 export type MajorProjectSummary = {
@@ -38,9 +39,8 @@ function SavedStatus({ status, savedDraft, completedMilestones, loaded, loadErro
   return <StatusPill status={status ?? "not_started"} />;
 }
 
-function hasSavedProjectDraft(record?: ProgressRecord) {
-  return Boolean(record && (record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim()
-    || Object.values(record.taskObservations ?? {}).some((observation) => observation.trim())));
+function hasSavedProjectDraft(record?: ProgressSummary) {
+  return Boolean(record?.hasContent);
 }
 
 function projectHref(projectId: string, active: boolean, nextMilestone?: { id: string }, status?: ProgressStatus) {
@@ -114,54 +114,7 @@ function SmallToolCard({ project, status, completedMilestones, nextMilestone, ac
 }
 
 export function ProjectOverview({ majorProjects, smallProjects }: { majorProjects: MajorProjectSummary[]; smallProjects: SmallProjectSummary[] }) {
-  const [records, setRecords] = useState<ProgressRecord[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-
-  const loadProgress = useCallback(() => {
-    const controller = new AbortController();
-    fetch("/api/progress", { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRequiresSignIn(true);
-          setRecords([]);
-          setLoadError(false);
-          return [] as ProgressRecord[];
-        }
-        if (!response.ok) throw new Error("Saved project progress is unavailable.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        setRecords(rows);
-        setLoadError(false);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setRequiresSignIn(false);
-          setLoadError(true);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoaded(true);
-      });
-    return controller;
-  }, []);
-
-  useEffect(() => {
-    let activeController = loadProgress();
-    const refresh = () => {
-      activeController.abort();
-      setLoaded(false);
-      activeController = loadProgress();
-    };
-    window.addEventListener("progress-updated", refresh);
-    return () => {
-      activeController.abort();
-      window.removeEventListener("progress-updated", refresh);
-    };
-  }, [loadProgress]);
+  const { records, loaded, loadError, requiresSignIn } = useProgressList();
 
   const recordByItem = useMemo(() => new Map(records.map((record) => [`${record.itemType}:${record.itemId}`, record])), [records]);
   const completedMilestones = useMemo(() => new Set(records

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { activities, majorProjects, modules, smallProjects } from "@/content";
-import type { ProgressRecord } from "@/features/progress/model";
+import type { ProgressSummary } from "@/features/progress/model";
 import { buildDashboardModel, statusForModule } from "@/features/dashboard/model";
 
-function record(itemType: ProgressRecord["itemType"], itemId: string, status: ProgressRecord["status"], updatedAt: number): ProgressRecord {
-  return { itemType, itemId, status, comfort: null, notes: "", evidence: "", repositoryUrl: "", updatedAt };
+function record(itemType: ProgressSummary["itemType"], itemId: string, status: ProgressSummary["status"], updatedAt: number): ProgressSummary {
+  return { itemType, itemId, status, updatedAt, revision: 1, hasContent: false };
 }
 
 describe("dashboard learning model", () => {
@@ -21,10 +21,32 @@ describe("dashboard learning model", () => {
     expect(model.recentItems).toEqual([]);
   });
 
+  it("finishes a module's paired activity before starting the next module", () => {
+    const records = modules[0].lessons.map((lesson, index) => record("lesson", lesson.id, "completed", index + 1));
+    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+
+    expect(model.currentModule?.id).toBe(1);
+    expect(model.currentActivity?.id).toBe("A01");
+    expect(model.currentLesson).toBeUndefined();
+    expect(model.nextItems[0]).toMatchObject({ id: "M02-L01", href: "/modules/02/lessons/m02-l01" });
+  });
+
+  it("includes saved troubleshooting records in recent work", () => {
+    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, [
+      record("troubleshooting", "T03", "in_progress", 300),
+    ]);
+
+    expect(model.recentItems[0]).toMatchObject({
+      title: "Troubleshooting scenario T03",
+      href: "/activities#troubleshooting-t03",
+      detail: "Learning notes updated",
+    });
+  });
+
   it("keeps the latest module context while resuming newer saved project work", () => {
     const records = [
       record("module", "M01", "completed", 100),
-      { ...record("module", "M03", "needs_review", 300), notes: "Revisit service management." },
+      { ...record("module", "M03", "needs_review", 300), hasContent: true },
       record("module", "M02", "in_progress", 200),
       record("activity", "A03", "in_progress", 250),
       record("milestone", "P1.1", "completed", 350),
@@ -78,6 +100,7 @@ describe("dashboard learning model", () => {
       record("milestone", "S01.1", "completed", 200),
       {
         ...record("small_project", "S01", "not_started", 300),
+        hasContent: true,
         taskObservations: { "S01.1": "The fixture contract is documented." },
       },
     ];
@@ -99,6 +122,7 @@ describe("dashboard learning model", () => {
     const records = [
       {
         ...record("small_project", "S01", "not_started", 300),
+        hasContent: true,
         taskObservations: { "S01.1": "The fixture contract is documented." },
       },
       record("lesson", "M01-L02", "in_progress", 400),

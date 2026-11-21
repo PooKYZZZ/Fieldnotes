@@ -1,21 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
-<title id="title">Traces and correlation</title>
-<desc id="desc">Diagram showing Trace context, then Service A span, then Service B span, then Correlate evidence, then Find slow operation.</desc>
-<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6586a3"/></marker></defs>
-<rect width="960" height="360" rx="24" fill="#f4f7fb"/>
-<text x="48" y="64" fill="#15324b" font-family="Arial,sans-serif" font-size="25" font-weight="700">Traces and correlation</text>
-<path d="M 167 190 H 230" stroke="#6586a3" stroke-width="4" marker-end="url(#arrow)"/>
-<path d="M 351 190 H 414" stroke="#6586a3" stroke-width="4" marker-end="url(#arrow)"/>
-<path d="M 535 190 H 598" stroke="#6586a3" stroke-width="4" marker-end="url(#arrow)"/>
-<path d="M 719 190 H 782" stroke="#6586a3" stroke-width="4" marker-end="url(#arrow)"/>
-<rect x="42" y="160" width="140" height="58" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
-<text x="112" y="195" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600">Trace context</text>
-<rect x="226" y="215" width="140" height="58" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
-<text x="296" y="250" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600">Service A span</text>
-<rect x="410" y="160" width="140" height="58" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
-<text x="480" y="195" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600">Service B span</text>
-<rect x="594" y="215" width="140" height="58" rx="14" fill="#e4f1e8" stroke="#7794ad" stroke-width="2"/>
-<text x="664" y="250" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600">Correlate evidence</text>
-<rect x="778" y="160" width="140" height="58" rx="14" fill="#d8eafa" stroke="#7794ad" stroke-width="2"/>
-<text x="848" y="195" text-anchor="middle" fill="#173650" font-family="Arial,sans-serif" font-size="13" font-weight="600">Find slow operation</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 270" role="img" aria-labelledby="title desc">
+  <title id="title">Spans on a shared request timeline</title>
+  <desc id="desc">A 180 millisecond gateway request contains a 145 millisecond database service span and a 50 millisecond cache span. The two child spans overlap.</desc>
+  <rect width="660" height="270" rx="18" fill="#f4f7fb"/>
+  <g font-family="Arial,sans-serif" fill="#173650">
+    <text x="24" y="34" font-size="22" font-weight="700">One request, three spans</text>
+    <text x="600" y="60" text-anchor="end" font-size="14">elapsed time</text>
+    <g text-anchor="middle" font-size="14">
+      <text x="200" y="82">0 ms</text><text x="300" y="82">45</text><text x="400" y="82">90</text>
+      <text x="500" y="82">135</text><text x="600" y="82">180 ms</text>
+    </g>
+    <path d="M200 89V240 M300 89V240 M400 89V240 M500 89V240 M600 89V240" stroke="#a8b9ca" stroke-width="1"/>
+    <g font-size="17" font-weight="700">
+      <text x="24" y="123">Gateway request</text>
+      <text x="44" y="177">Database service</text>
+      <text x="44" y="231">Cache</text>
+    </g>
+    <path d="M30 132V226H40 M30 172H40" fill="none" stroke="#7e9ab4" stroke-width="2"/>
+    <rect x="200" y="102" width="400" height="33" rx="6" fill="#d5e9f9" stroke="#7399bc"/>
+    <rect x="244.4" y="156" width="322.3" height="33" rx="6" fill="#d8ece3" stroke="#759e8e"/>
+    <rect x="255.6" y="210" width="111.1" height="33" rx="6" fill="#f4e8ce" stroke="#a99465"/>
+    <g text-anchor="middle" font-size="15" font-weight="700">
+      <text x="400" y="124">180 ms</text>
+      <text x="406" y="178">145 ms</text>
+      <text x="311" y="232">50 ms</text>
+    </g>
+  </g>
 </svg>

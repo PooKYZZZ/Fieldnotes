@@ -17,3 +17,5 @@ process and grant only the capabilities it needs.
     caption="A container runs an image command, exits with a status, and may be restarted according to its policy."
   />
 </ConceptSection>
+
+On Docker Desktop, Linux containers share the kernel of Docker Desktop’s Linux environment, which runs in a VM or WSL-based runtime on supported non-Linux hosts. Host port publishing crosses that boundary. The address a process binds inside a container belongs to its container networking context.

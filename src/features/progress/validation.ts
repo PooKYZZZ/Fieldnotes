@@ -2,6 +2,7 @@ import { z } from "zod";
 import { activities, majorProjects, modules, projectMilestones, smallProjects, troubleshooting } from "@/content";
 import { a01TaskIds } from "@/content/a01-task-ids";
 import { comfortLevels, progressItemTypes, progressStatuses, type ProgressInput, type ProgressItemType } from "@/features/progress/model";
+import { maxBackupRecords } from "@/features/progress/backup-limits";
 
 const itemIdSchema = z.string().trim().min(2).max(16).regex(/^[A-Za-z0-9.-]+$/);
 
@@ -67,7 +68,7 @@ export const progressSchema = z.object({
 
 const progressBackupSchema = z.object({
   exportedAt: z.string().datetime(),
-  records: z.array(progressSchema.extend({ updatedAt: z.number().int().nonnegative() })).max(250),
+  records: z.array(progressSchema.extend({ updatedAt: z.number().int().nonnegative() })).max(maxBackupRecords),
 }).superRefine((backup, context) => {
   const seen = new Set<string>();
   backup.records.forEach((record, index) => {
@@ -88,6 +89,11 @@ export const progressImportSchema = z.discriminatedUnion("version", [
   progressBackupSchema.extend({ version: z.literal(2) }),
   progressBackupSchema.extend({ version: z.literal(3) }),
 ]);
+
+export const progressSaveRequestSchema = z.object({
+  record: progressSchema,
+  expectedRevision: z.number().int().positive().nullable(),
+});
 
 function isHttpUrl(value: string): boolean {
   if (value === "") return true;

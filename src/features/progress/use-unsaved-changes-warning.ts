@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-const dirtyForms = new Set<string>();
+const dirtyForms = new Map<string, () => void>();
 let listenersInstalled = false;
 let skipNextBeforeUnload = false;
 
@@ -31,6 +31,7 @@ function handleDocumentClick(event: MouseEvent) {
     && destination.search === current.search) return;
 
   if (window.confirm("You have unsaved changes. Leave this page and discard them?")) {
+    for (const discard of dirtyForms.values()) discard();
     skipNextBeforeUnload = true;
     window.setTimeout(() => { skipNextBeforeUnload = false; }, 0);
     return;
@@ -53,9 +54,11 @@ function syncListeners() {
   }
 }
 
-export function useUnsavedChangesWarning(key: string, isDirty: boolean) {
+export function useUnsavedChangesWarning(key: string, isDirty: boolean, onDiscard: () => void) {
+  const discard = useRef(onDiscard);
+  useEffect(() => { discard.current = onDiscard; }, [onDiscard]);
   useEffect(() => {
-    if (isDirty) dirtyForms.add(key);
+    if (isDirty) dirtyForms.set(key, () => discard.current());
     else dirtyForms.delete(key);
     syncListeners();
 

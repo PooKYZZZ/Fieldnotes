@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, BookOpenCheck, Compass, GraduationCap, LayoutDashboard, LibraryBig, Map, Menu, Rocket, X } from "lucide-react";
 import { AccountNavigation } from "@/features/auth/account-navigation";
+import { AuthSessionProvider } from "@/features/auth/auth-session-context";
+import { ProgressListProvider } from "@/features/progress/progress-list-context";
 
 const navigation = [
   { label: "Dashboard", shortLabel: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -73,7 +75,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const renderLinks = (items: typeof navigation) => items.map(({ label, shortLabel, href, icon: Icon }) => {
-    const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+    const active = href === "/"
+      ? pathname === "/"
+      : href === "/roadmap"
+        ? pathname === "/roadmap" || pathname.startsWith("/modules/")
+        : pathname === href || pathname.startsWith(`${href}/`);
     return <Link
       className="nav-link"
       href={href}
@@ -87,7 +93,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   });
 
   return (
-    <div className="app-shell">
+    <AuthSessionProvider><ProgressListProvider><div className="app-shell">
       <aside
         ref={sidebarRef}
         className={`sidebar${menuOpen ? " open" : ""}`}
@@ -95,6 +101,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         inert={compactViewport && !menuOpen}
         onKeyDown={keepFocusInMobileNavigation}
       >
+        <button className="mobile-nav-close" type="button" aria-label="Close navigation drawer" onClick={() => setMenuOpen(false)}>
+          <span>Close menu</span><X size={17} aria-hidden="true" />
+        </button>
         <Link className="brand" href="/" onClick={() => setMenuOpen(false)} aria-label="DevOps Fieldnotes home">
           <span className="brand-mark"><Compass size={22} aria-hidden="true" /></span>
           <span className="brand-name">Fieldnotes</span>
@@ -138,6 +147,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </footer>
       </div>
-    </div>
+    </div></ProgressListProvider></AuthSessionProvider>
   );
 }

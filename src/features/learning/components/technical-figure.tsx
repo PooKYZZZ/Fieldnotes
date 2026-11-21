@@ -34,6 +34,7 @@ export function TechnicalFigure({
       <img src={src} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
       <figcaption>
         <span className="learning-figure-caption-text">{caption}</span>
+        <a className="learning-figure-attribution" href={src} target="_blank" rel="noreferrer">Open full-size figure</a>
         {source && (
           <span className="learning-figure-attribution">
             Source: <a href={source.url} target="_blank" rel="noreferrer">{source.label}</a>

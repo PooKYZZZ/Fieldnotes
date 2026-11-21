@@ -39,7 +39,7 @@ test("public curriculum stays open while private progress requires a session", a
 
     const write = await page.request.put("/api/progress", {
       headers: { "Content-Type": "application/json", Origin: "http://127.0.0.1:" + (process.env.PLAYWRIGHT_PORT ?? "3000") },
-      data: progressRecord("Anonymous data must not be stored."),
+      data: { record: progressRecord("Anonymous data must not be stored."), expectedRevision: null },
     });
     expect(write.status()).toBe(401);
 
@@ -64,7 +64,7 @@ test("progress reads and writes are isolated to the signed-in account", async ({
 
   const ownerWrite = await page.request.put("/api/progress", {
     headers: { "Content-Type": "application/json", Origin: "http://127.0.0.1:" + (process.env.PLAYWRIGHT_PORT ?? "3000") },
-    data: { ...progressRecord("Owner's private project decision."), userId: "learner@fieldnotes.test" },
+    data: { record: { ...progressRecord("Owner's private project decision."), userId: "learner@fieldnotes.test" }, expectedRevision: null },
   });
   expect(ownerWrite.ok()).toBeTruthy();
 
@@ -80,7 +80,7 @@ test("progress reads and writes are isolated to the signed-in account", async ({
 
     const otherWrite = await otherPage.request.put("/api/progress", {
       headers: { "Content-Type": "application/json", Origin: "http://127.0.0.1:" + (process.env.PLAYWRIGHT_PORT ?? "3000") },
-      data: progressRecord("Second learner's separate note."),
+      data: { record: progressRecord("Second learner's separate note."), expectedRevision: null },
     });
     expect(otherWrite.ok()).toBeTruthy();
 
@@ -88,6 +88,17 @@ test("progress reads and writes are isolated to the signed-in account", async ({
     expect(await ownerRead.json()).toMatchObject([{ notes: "Owner's private project decision." }]);
     const otherRead = await otherPage.request.get("/api/progress?itemType=module&itemId=M24");
     expect(await otherRead.json()).toMatchObject([{ notes: "Second learner's separate note." }]);
+
+    const ownerSession = await page.request.get("/api/auth/get-session");
+    const { user: { id: ownerId } } = await ownerSession.json() as { user: { id: string } };
+    const staleAccountWrite = await otherPage.request.put("/api/progress", {
+      headers: { Origin: `http://127.0.0.1:${process.env.PLAYWRIGHT_PORT ?? "3000"}`, "X-Fieldnotes-Account": ownerId },
+      data: { record: progressRecord("A draft opened under the previous account."), expectedRevision: 1 },
+    });
+    expect(staleAccountWrite.status()).toBe(409);
+    expect(await staleAccountWrite.json()).toMatchObject({ code: "ACCOUNT_CHANGED" });
+    const afterSwitch = await otherPage.request.get("/api/progress?itemType=module&itemId=M24");
+    expect(await afterSwitch.json()).toMatchObject([{ notes: "Second learner's separate note." }]);
   } finally {
     await other.close();
   }
@@ -105,14 +116,22 @@ test("a provider failure gives a retryable message without exposing provider det
   });
   try {
     const page = await anonymous.newPage();
-    await page.goto("/sign-in");
+    await page.goto("/sign-in?returnTo=%2Fprojects%2FP3%23project-review");
     await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
-    await page.route("**/api/auth/sign-in/social", (route) => route.fulfill({
-      status: 503,
-      contentType: "application/json",
-      body: JSON.stringify({ code: "PROVIDER_UNAVAILABLE", message: "provider-internal-detail" }),
-    }));
+    let errorCallbackURL = "";
+    await page.route("**/api/auth/sign-in/social", async (route) => {
+      errorCallbackURL = route.request().postDataJSON().errorCallbackURL ?? "";
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "PROVIDER_UNAVAILABLE", message: "provider-internal-detail" }),
+      });
+    });
     await page.getByRole("button", { name: "Continue with Google" }).click();
+    await expect.poll(() => errorCallbackURL).not.toBe("");
+    const failedDestination = new URL(errorCallbackURL);
+    expect(failedDestination.pathname).toBe("/sign-in");
+    expect(failedDestination.searchParams.get("returnTo")).toBe("/projects/P3#project-review");
     await expect(page.getByRole("alert").filter({ hasText: "Sign-in could not start. Check your connection and try again." }))
       .toHaveText("Sign-in could not start. Check your connection and try again.");
     await expect(page.getByText("provider-internal-detail")).toHaveCount(0);

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, BookOpen, ChevronDown, Cloud, Search, SearchX, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ModuleSummary } from "@/content/catalog";
@@ -22,6 +23,7 @@ type RoadmapPhase = { name: CurriculumPhase; range: string };
 type StatusFilter = ProgressStatus | "all";
 const openPhasesStorageKey = "fieldnotes-roadmap-open-phases-v1";
 const openPhasesChangeEvent = "fieldnotes-roadmap-open-phases-change";
+const filtersChangeEvent = "fieldnotes-roadmap-filters-change";
 let memoryOpenPhasesSnapshot: string | undefined;
 let openPhasesStorageUnavailable = false;
 
@@ -67,6 +69,30 @@ const statusOptions: { value: StatusFilter; label: string }[] = [
   { value: "not_started", label: "Not started" },
 ];
 
+type RoadmapFilters = { query: string; phase: CurriculumPhase | "all"; status: StatusFilter };
+
+function subscribeToFilterChanges(onChange: () => void): () => void {
+  window.addEventListener("popstate", onChange);
+  window.addEventListener(filtersChangeEvent, onChange);
+  return () => {
+    window.removeEventListener("popstate", onChange);
+    window.removeEventListener(filtersChangeEvent, onChange);
+  };
+}
+
+function readRoadmapFilters(search: string, phases: RoadmapPhase[], progressAvailable: boolean): RoadmapFilters {
+  const params = new URLSearchParams(search);
+  const phase = params.get("phase");
+  const status = params.get("progress");
+  return {
+    query: params.get("q") ?? "",
+    phase: phases.some((option) => option.name === phase) ? phase as CurriculumPhase : "all",
+    status: progressAvailable && statusOptions.some((option) => option.value === status)
+      ? status as StatusFilter
+      : "all",
+  };
+}
+
 const phaseIcons: Record<CurriculumPhase, LucideIcon> = {
   Foundations: BookOpen,
   "Infrastructure & Cloud": Cloud,
@@ -84,9 +110,33 @@ export function RoadmapExplorer({
   progressAvailable: boolean;
   progressRequiresSignIn: boolean;
 }) {
-  const [query, setQuery] = useState("");
-  const [phaseFilter, setPhaseFilter] = useState<CurriculumPhase | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const routeSearch = useSearchParams().toString();
+  const search = useSyncExternalStore(
+    subscribeToFilterChanges,
+    () => window.location.search.slice(1),
+    () => routeSearch,
+  );
+  const urlFilters = useMemo(() => readRoadmapFilters(search, phases, progressAvailable), [phases, progressAvailable, search]);
+  const query = urlFilters.query;
+  const phaseFilter = urlFilters.phase;
+  const statusFilter = urlFilters.status;
+
+  function updateFilters(changes: Partial<RoadmapFilters>) {
+    const { pathname, search, hash } = window.location;
+    // Next observes history edits in a transition. Read the current URL so a
+    // subsequent interaction cannot restore filters from the previous render.
+    const next = { ...readRoadmapFilters(search, phases, progressAvailable), ...changes };
+    const params = new URLSearchParams(search);
+    params.delete("q");
+    params.delete("phase");
+    params.delete("progress");
+    if (next.query) params.set("q", next.query);
+    if (next.phase !== "all") params.set("phase", next.phase);
+    if (progressAvailable && next.status !== "all") params.set("progress", next.status);
+    const queryString = params.toString();
+    window.history.replaceState(null, "", `${pathname}${queryString ? `?${queryString}` : ""}${hash}`);
+    window.dispatchEvent(new Event(filtersChangeEvent));
+  }
   const phaseKeys = useMemo(() => phases.map(({ name }) => phaseKey(name)), [phases]);
   const defaultOpenPhasesSnapshot = useMemo(() => JSON.stringify(phaseKeys), [phaseKeys]);
   const getOpenPhasesSnapshot = useCallback(() => readOpenPhasesSnapshot(defaultOpenPhasesSnapshot), [defaultOpenPhasesSnapshot]);
@@ -131,9 +181,7 @@ export function RoadmapExplorer({
   }
 
   function clearFilters() {
-    setQuery("");
-    setPhaseFilter("all");
-    setStatusFilter("all");
+    updateFilters({ query: "", phase: "all", status: "all" });
   }
 
   return (
@@ -146,13 +194,13 @@ export function RoadmapExplorer({
             className="form-input"
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => updateFilters({ query: event.target.value })}
             placeholder="Search by title or topic"
           />
         </label>
         <div className="roadmap-select">
           <label htmlFor="roadmap-phase-filter">Phase</label>
-          <select id="roadmap-phase-filter" value={phaseFilter} onChange={(event) => setPhaseFilter(event.target.value as CurriculumPhase | "all")}>
+          <select id="roadmap-phase-filter" value={phaseFilter} onChange={(event) => updateFilters({ phase: event.target.value as CurriculumPhase | "all" })}>
             <option value="all">All phases</option>
             {phases.map((phase) => <option key={phase.name} value={phase.name}>{phase.name}</option>)}
           </select>
@@ -163,7 +211,7 @@ export function RoadmapExplorer({
             id="roadmap-progress-filter"
             value={statusFilter}
             disabled={!progressAvailable}
-            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            onChange={(event) => updateFilters({ status: event.target.value as StatusFilter })}
           >
             {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>

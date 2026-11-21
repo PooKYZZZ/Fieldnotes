@@ -4,13 +4,13 @@ export const lessonTitle = "Cost-aware experiments";
 <ConceptSection layout="split">
   <div className="learning-concept-copy">
 Before a lab, list its resources, region, size, expected runtime and cleanup procedure. Check the current calculator,
-offer conditions and account billing status. Stopping or deallocating a VM can stop some compute charges, but disks,
-public IPs, storage and other resources may still incur charges. Budgets and alerts provide visibility; they are not
-universal hard spending caps. For early practice, use a local VM or container when that teaches the same concept.
-Student offers, eligibility, credits, and service pricing can change. Check the current official offer and the
-subscription's billing state before planning a cloud lab. A budget or alert helps you notice spend, but may not stop
-every charge. You can learn the resource-dependency and ownership concepts with a diagram and local VM first; do not
-create a paid resource unless you have deliberately reviewed the current price and accepted the possible cost.
+offer conditions and account billing status. A guest shutdown can leave an Azure VM stopped and allocated, with
+compute billing continuing. Check for the deallocated power state to confirm that VM compute billing stopped.
+Inventory disks, addresses and other resources separately because their charges can continue. See
+[Azure VM states and billing](https://learn.microsoft.com/en-us/azure/virtual-machines/states-billing).
+
+A budget alert helps you notice spend. Verify account limits before provisioning, and choose the local lab path
+when you only need to practice the resource relationships and cleanup reasoning.
   </div>
   <TechnicalFigure
     src="/diagrams/module12/lesson-03.svg"

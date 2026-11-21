@@ -15,6 +15,7 @@ export const learningProgress = sqliteTable(
     taskObservations: text("task_observations").notNull().default("{}"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
+    revision: integer("revision").notNull().default(1),
   },
   (table) => [primaryKey({ columns: [table.userId, table.itemType, table.itemId] })],
 );

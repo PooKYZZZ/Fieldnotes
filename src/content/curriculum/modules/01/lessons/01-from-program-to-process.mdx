@@ -10,7 +10,7 @@ export const lessonTitle = "From program to process";
 
 On Linux, a shell commonly asks the kernel to create a child process and then execute a program in it. The `execve` system call replaces the calling process's program image with the new program; it does not itself create a new process. The kernel maps the program and its required data, prepares the initial state, and begins execution. The process has a process ID (PID); its parent process has a parent PID (PPID). Starting another copy of the same program normally creates another process with a different PID. As Figure 1 shows, a process can move between ready, running, and blocked states; being present does not mean it is using a CPU at that instant.
 
-Try `ps -eo pid,ppid,comm,state --sort=pid | head` in a Linux terminal. Pick a command you recognize and trace its PPID to its parent.
+If this is your first Linux terminal, [prepare the disposable VM and try a pipe](/guide#lab-readiness). Then try `ps -eo pid,ppid,comm,state --sort=pid | head` in a Linux terminal. Pick a command you recognize and trace its PPID to its parent.
 
 
 **Check:** If two terminal windows launch the same command, what would you inspect to tell whether they are two running instances?

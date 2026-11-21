@@ -1,11 +1,11 @@
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "@/features/progress/storage/schema";
 import * as authSchema from "@/features/auth/storage/schema";
-import type { ProgressInput, ProgressRecord } from "@/features/progress/model";
+import type { ProgressInput, ProgressRecord, ProgressSummary } from "@/features/progress/model";
 
 function applyMigrations(sqlite: InstanceType<typeof Database>, migrationDirectory: string): void {
   sqlite.exec(`
@@ -40,6 +40,7 @@ function fromRow(row: typeof schema.learningProgress.$inferSelect): ProgressReco
     evidence: row.evidence,
     repositoryUrl: row.repositoryUrl,
     updatedAt: row.updatedAt,
+    revision: row.revision,
   };
   if (row.itemType === "activity" || row.itemType === "project" || row.itemType === "small_project") {
     const taskObservations: unknown = JSON.parse(row.taskObservations);
@@ -55,13 +56,20 @@ function fromRow(row: typeof schema.learningProgress.$inferSelect): ProgressReco
 export function createProgressDatabase(databasePath: string, migrationDirectory: string) {
   mkdirSync(path.dirname(databasePath), { recursive: true });
   const sqlite = new Database(databasePath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("busy_timeout = 5000");
-  sqlite.pragma("foreign_keys = ON");
-  applyMigrations(sqlite, migrationDirectory);
+  try {
+    sqlite.pragma("journal_mode = WAL");
+    sqlite.pragma("busy_timeout = 5000");
+    sqlite.pragma("foreign_keys = ON");
+    applyMigrations(sqlite, migrationDirectory);
+  } catch (error) {
+    sqlite.close();
+    throw error;
+  }
   const orm = drizzle(sqlite, { schema: { ...schema, ...authSchema } });
 
-  function upsert(userId: string, input: ProgressInput, createdAt: number, updatedAt = createdAt): ProgressRecord {
+  function upsert(userId: string, input: ProgressInput, createdAt: number, importedUpdatedAt?: number): ProgressRecord {
+    const existing = findForUser(userId, input.itemType, input.itemId);
+    const updatedAt = importedUpdatedAt ?? Math.max(createdAt, existing?.updatedAt ?? 0);
     const isActivity = input.itemType === "activity";
     const existingTaskObservations = isActivity && input.taskObservations === undefined
       ? orm.select({ taskObservations: schema.learningProgress.taskObservations })
@@ -88,10 +96,16 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
           repositoryUrl: input.repositoryUrl,
           ...(input.taskObservations !== undefined ? { taskObservations: taskObservationsJson } : {}),
           updatedAt,
+          revision: sql`${schema.learningProgress.revision} + 1`,
         },
       })
       .run();
-    return { ...input, ...(isActivity || input.itemType === "project" || input.itemType === "small_project" ? { taskObservations } : {}), updatedAt };
+    return {
+      ...input,
+      ...(isActivity || input.itemType === "project" || input.itemType === "small_project" ? { taskObservations } : {}),
+      updatedAt,
+      revision: (existing?.revision ?? 0) + 1,
+    };
   }
 
   function findForUser(userId: string, itemType: ProgressInput["itemType"], itemId: string): ProgressRecord | undefined {
@@ -112,22 +126,80 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
         .where(eq(schema.learningProgress.userId, userId))
         .all().map(fromRow);
     },
+    listSummary(userId: string): ProgressSummary[] {
+      const rows = orm.select({
+        itemType: schema.learningProgress.itemType,
+        itemId: schema.learningProgress.itemId,
+        status: schema.learningProgress.status,
+        updatedAt: schema.learningProgress.updatedAt,
+        revision: schema.learningProgress.revision,
+        hasContent: sql<number>`CASE WHEN
+          length(trim(${schema.learningProgress.notes})) > 0
+          OR length(trim(${schema.learningProgress.evidence})) > 0
+          OR length(trim(${schema.learningProgress.repositoryUrl})) > 0
+          OR EXISTS (
+            SELECT 1 FROM json_each(${schema.learningProgress.taskObservations}) AS observation
+            WHERE length(trim(CAST(observation.value AS TEXT))) > 0
+          )
+          THEN 1 ELSE 0 END`,
+      }).from(schema.learningProgress)
+        .where(eq(schema.learningProgress.userId, userId))
+        .all();
+      return rows.map((row) => ({
+        ...row,
+        itemType: row.itemType as ProgressInput["itemType"],
+        status: row.status as ProgressInput["status"],
+        revision: row.revision,
+        hasContent: row.hasContent === 1,
+      }));
+    },
+    findVerifiedUserIdByEmail(email: string): string | undefined {
+      const row = sqlite.prepare('SELECT id FROM "user" WHERE lower(email) = lower(?) AND email_verified = 1 LIMIT 1')
+        .get(email) as { id: string } | undefined;
+      return row?.id;
+    },
     find(userId: string, itemType: ProgressInput["itemType"], itemId: string): ProgressRecord | undefined {
       return findForUser(userId, itemType, itemId);
     },
     save(userId: string, input: ProgressInput): ProgressRecord {
       return upsert(userId, input, Date.now());
     },
+    saveIfCurrent(userId: string, input: ProgressInput, expectedRevision: number | null): { record: ProgressRecord } | { conflict: ProgressRecord | undefined } {
+      const saveWhenCurrent = sqlite.transaction(() => {
+        const current = findForUser(userId, input.itemType, input.itemId);
+        if ((current?.revision ?? null) !== expectedRevision) return { conflict: current } as const;
+        return { record: upsert(userId, input, Date.now()) } as const;
+      });
+      return saveWhenCurrent();
+    },
     saveMany(userId: string, inputs: ProgressInput[]): ProgressRecord[] {
       const now = Date.now();
       const saveTransaction = sqlite.transaction(() => inputs.map((input) => upsert(userId, input, now)));
       return saveTransaction();
     },
-    ensureOwnerRole(userId: string): void {
-      sqlite.prepare('UPDATE "user" SET role = ? WHERE id = ?').run("admin", userId);
+    mergeMany(userId: string, inputs: Array<ProgressInput & { updatedAt: number }>): { records: ProgressRecord[]; preservedCount: number } {
+      const mergeTransaction = sqlite.transaction(() => {
+        const records: ProgressRecord[] = [];
+        let preservedCount = 0;
+        for (const input of inputs) {
+          const current = findForUser(userId, input.itemType, input.itemId);
+          if (current && current.updatedAt >= input.updatedAt) {
+            preservedCount += 1;
+            continue;
+          }
+          records.push(upsert(userId, input, input.updatedAt, input.updatedAt));
+        }
+        return { records, preservedCount };
+      });
+      return mergeTransaction();
     },
     claimLegacyProgress(userId: string): number {
       const claim = sqlite.transaction(() => {
+        const claimed = sqlite.prepare("SELECT 1 FROM owner_progress_claims WHERE user_id = ?").get(userId);
+        if (claimed) return 0;
+        const verifiedUser = sqlite.prepare('SELECT 1 FROM "user" WHERE id = ? AND email_verified = 1').get(userId);
+        if (!verifiedUser) return 0;
+        sqlite.prepare('UPDATE "user" SET role = ? WHERE id = ? AND role <> ?').run("admin", userId, "admin");
         const legacyRows = sqlite.prepare("SELECT * FROM legacy_progress ORDER BY item_type, item_id")
           .all() as Array<{
             item_type: ProgressInput["itemType"];
@@ -162,6 +234,7 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
         }
 
         sqlite.prepare("DELETE FROM legacy_progress").run();
+        sqlite.prepare("INSERT INTO owner_progress_claims (user_id, claimed_at) VALUES (?, ?)").run(userId, Date.now());
         return legacyRows.length;
       });
       return claim();

@@ -1,6 +1,6 @@
 import { milestonesForProjects } from "@/content/project-milestones";
 import type { ModuleRecord, ModuleSummary, SmallProjectRecord } from "@/content/catalog";
-import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
+import type { ProgressSummary, ProgressStatus } from "@/features/progress/model";
 
 export type ModuleStatus = ProgressStatus | "not_started";
 export type DashboardNextItem = {
@@ -60,7 +60,7 @@ function makeNextItems(
   activities: DashboardActivity[],
   majorProjects: DashboardMajorProject[],
   smallProjects: DashboardSmallProject[],
-  records: ProgressRecord[],
+  records: ProgressSummary[],
   currentModule: DashboardModule | undefined,
   currentActivity: DashboardActivity | undefined,
   currentLesson: (DashboardModule["lessons"][number] & { moduleId: number }) | undefined,
@@ -69,7 +69,7 @@ function makeNextItems(
   const items: DashboardNextItem[] = [];
   const lessonRecords = new Map(records.filter((record) => record.itemType === "lesson").map((record) => [record.itemId, record]));
   const activityRecords = new Map(records.filter((record) => record.itemType === "activity").map((record) => [record.itemId, record]));
-  const hasSavedWork = records.some((record) => record.status !== "not_started" || Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim()));
+  const hasSavedWork = records.some((record) => record.status !== "not_started" || record.hasContent);
 
   // The first-time learner already has a clear primary action. Suggest a later
   // step only after the learner has saved meaningful work, and never repeat the
@@ -121,7 +121,7 @@ function makeNextItems(
   const startedProjects = new Set(records
     .filter((record) => (record.itemType === "project" || record.itemType === "small_project")
       && (["in_progress", "needs_review"].includes(record.status)
-        || (record.status === "not_started" && Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim() || Object.values(record.taskObservations ?? {}).some((value) => value.trim())))))
+        || (record.status === "not_started" && record.hasContent)))
     .map((record) => record.itemId));
   for (const record of records) {
     if (record.itemType === "milestone" && record.status === "completed") {
@@ -155,7 +155,7 @@ function makeNextItems(
     .slice(0, 3);
 }
 
-function makeRecentItems(records: ProgressRecord[], modules: DashboardModule[], activities: DashboardActivity[], projects: DashboardMajorProject[], smallProjects: DashboardSmallProject[], excludedRecord?: string): DashboardRecentItem[] {
+function makeRecentItems(records: ProgressSummary[], modules: DashboardModule[], activities: DashboardActivity[], projects: DashboardMajorProject[], smallProjects: DashboardSmallProject[], excludedRecord?: string): DashboardRecentItem[] {
   const milestones = new Map(milestonesForProjects([...projects, ...smallProjects]).map((milestone) => [milestone.id, milestone]));
   const labels = new Map<string, { title: string; href: string; type: string }>();
   for (const learningModule of modules) labels.set(`module:${moduleKey(learningModule.id)}`, { title: learningModule.title, href: moduleHref(learningModule.id), type: "Module" });
@@ -171,9 +171,14 @@ function makeRecentItems(records: ProgressRecord[], modules: DashboardModule[], 
 
   return records
     .filter((record) => `${record.itemType}:${record.itemId}` !== excludedRecord)
-    .filter((record) => record.status !== "not_started" || Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim() || Object.values(record.taskObservations ?? {}).some((value) => value.trim())))
+    .filter((record) => record.status !== "not_started" || record.hasContent)
     .map((record) => {
-      const item = labels.get(`${record.itemType}:${record.itemId}`);
+      const item = labels.get(`${record.itemType}:${record.itemId}`)
+        ?? (record.itemType === "troubleshooting" ? {
+          title: `Troubleshooting scenario ${record.itemId}`,
+          href: `/activities#troubleshooting-${record.itemId.toLowerCase()}`,
+          type: "Troubleshooting",
+        } : undefined);
       if (!item) return undefined;
       const action = record.itemType === "milestone" && record.status === "completed"
         ? "Milestone completed"
@@ -200,7 +205,7 @@ export function buildDashboardModel(
   activities: DashboardActivity[],
   majorProjects: DashboardMajorProject[],
   smallProjects: DashboardSmallProject[],
-  records: ProgressRecord[],
+  records: ProgressSummary[],
 ): DashboardModel {
   const moduleRecords = new Map(records.filter((record) => record.itemType === "module").map((record) => [record.itemId, record]));
   const statusByModule = new Map(modules.map((module) => [moduleKey(module.id), moduleRecords.get(moduleKey(module.id))?.status ?? "not_started"]));
@@ -217,7 +222,7 @@ export function buildDashboardModel(
   }]));
   const activeTargets = records
     .filter((record) => record.status === "in_progress" || record.status === "needs_review"
-      || (record.status === "not_started" && Boolean(record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim() || Object.values(record.taskObservations ?? {}).some((value) => value.trim()))))
+      || (record.status === "not_started" && record.hasContent))
     .filter((record) => record.itemType === "module" || record.itemType === "lesson" || record.itemType === "activity")
     .sort((left, right) => right.updatedAt - left.updatedAt);
   const mostRecentActiveTarget = activeTargets[0];
@@ -228,11 +233,15 @@ export function buildDashboardModel(
   const activeModuleId = mostRecentActiveTarget?.itemType === "module"
     ? Number(mostRecentActiveTarget.itemId.replace(/^M/, ""))
     : activeLesson?.moduleId ?? activeActivity?.moduleId;
-  const nextLesson = modules.flatMap((module) => module.lessons.map((lesson) => ({ ...lesson, moduleId: module.id })))
-    .find((lesson) => statusByLesson.get(lesson.id) !== "completed");
+  const plannedModule = modules.find((module) => {
+    const hasUnfinishedLesson = module.lessons.some((lesson) => statusByLesson.get(lesson.id) !== "completed");
+    const pairedActivity = activities.find((activity) => activity.id === module.activityId);
+    const hasUnfinishedPairedActivity = pairedActivity && activityRecords.get(pairedActivity.id)?.status !== "completed";
+    return hasUnfinishedLesson || hasUnfinishedPairedActivity;
+  });
   const candidateModule = activeModuleId
     ? modules.find((module) => module.id === activeModuleId)
-    : nextLesson ? modules.find((module) => module.id === nextLesson.moduleId) : undefined;
+    : plannedModule;
   const unfinishedActivity = activities.find((activity) => activityRecords.get(activity.id)?.status !== "completed");
   const currentModule = candidateModule
     ?? (unfinishedActivity ? modules.find((module) => module.id === unfinishedActivity.moduleId) : undefined);
@@ -265,8 +274,7 @@ export function buildDashboardModel(
     const milestones = projectMilestones.filter((milestone) => milestone.projectId === project.id);
     const projectMilestoneIds = new Set(milestones.map((milestone) => milestone.id));
     const projectCompletionRecords = completedMilestoneRecords.filter((milestone) => projectMilestoneIds.has(milestone.itemId));
-    const hasSavedDraft = Boolean(record && (record.notes.trim() || record.evidence.trim() || record.repositoryUrl.trim()
-      || Object.values(record.taskObservations ?? {}).some((value) => value.trim())));
+    const hasSavedDraft = Boolean(record?.hasContent);
     const explicitlyActive = record?.status === "in_progress" || record?.status === "needs_review";
     if (!explicitlyActive && !hasSavedDraft && projectCompletionRecords.length === 0) return [];
     const updatedAt = Math.max(record?.updatedAt ?? 0, ...projectCompletionRecords.map((milestone) => milestone.updatedAt));

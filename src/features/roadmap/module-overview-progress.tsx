@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import type { ActivityRecord, ModuleRecord } from "@/content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
-import { formatStatus, type ProgressRecord, type ProgressStatus } from "@/features/progress/model";
+import { formatStatus, type ProgressStatus } from "@/features/progress/model";
 import { lessonRoute, moduleRoute } from "@/features/learning/routes";
+import { useProgressList } from "@/features/progress/progress-list-context";
 
 type Lesson = ModuleRecord["lessons"][number];
 
@@ -17,52 +18,8 @@ export function ModuleOverviewProgress({
   learningModule: ModuleRecord;
   activity?: ActivityRecord;
 }) {
-  const [records, setRecords] = useState<ProgressRecord[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
+  const { records, loaded, loadError, requiresSignIn, retry } = useProgressList();
   const moduleId = `M${String(learningModule.id).padStart(2, "0")}`;
-
-  const load = useCallback(() => {
-    const controller = new AbortController();
-    fetch("/api/progress", { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRecords([]);
-          setLoadError(false);
-          setRequiresSignIn(true);
-          return null;
-        }
-        if (!response.ok) throw new Error("Saved progress could not be loaded.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        if (rows) {
-          setRecords(rows);
-          setLoadError(false);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setLoadError(true);
-          setRequiresSignIn(false);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoaded(true);
-      });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const cancelLoad = load();
-    window.addEventListener("progress-updated", load);
-    return () => {
-      cancelLoad();
-      window.removeEventListener("progress-updated", load);
-    };
-  }, [load]);
 
   const lessonIds = useMemo(() => new Set(learningModule.lessons.map((lesson) => lesson.id)), [learningModule.lessons]);
   const lessonProgress = records.filter((record) => record.itemType === "lesson" && lessonIds.has(record.itemId));
@@ -93,7 +50,7 @@ export function ModuleOverviewProgress({
           </div>
           <p className="module-progress-note">Lesson completion is self-reported; it does not measure mastery.</p>
         </>}
-        {loadError && <button type="button" className="button button-outline module-progress-retry" onClick={load}>Retry progress loading</button>}
+        {loadError && <button type="button" className="button button-outline module-progress-retry" onClick={retry}>Retry progress loading</button>}
         {activity && <div className="module-related-record">
           <div>
             <p className="eyebrow">Guided activity</p>
@@ -123,50 +80,7 @@ export function ModuleLessonOutline({
   currentLessonId?: string;
   compact?: boolean;
 }) {
-  const [records, setRecords] = useState<ProgressRecord[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-
-  const load = useCallback(() => {
-    const controller = new AbortController();
-    fetch("/api/progress", { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRecords([]);
-          setLoadError(false);
-          setRequiresSignIn(true);
-          return null;
-        }
-        if (!response.ok) throw new Error("Saved progress could not be loaded.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        if (rows) {
-          setRecords(rows);
-          setLoadError(false);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setRecords([]);
-          setLoadError(true);
-          setRequiresSignIn(false);
-        }
-      })
-      .finally(() => { if (!controller.signal.aborted) setLoaded(true); });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const cancelLoad = load();
-    window.addEventListener("progress-updated", load);
-    return () => {
-      cancelLoad();
-      window.removeEventListener("progress-updated", load);
-    };
-  }, [load]);
+  const { records, loaded, loadError, requiresSignIn } = useProgressList();
 
   const savedById = new Map(records.filter((record) => record.itemType === "lesson").map((record) => [record.itemId, record.status]));
   const completed = lessons.filter((lesson) => savedById.get(lesson.id) === "completed").length;

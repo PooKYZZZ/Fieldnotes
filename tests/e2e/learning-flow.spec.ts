@@ -1,14 +1,21 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test, type APIRequestContext } from "@playwright/test";
+import type { ProgressInput } from "@/features/progress/model";
 
 const testPort = process.env.PLAYWRIGHT_PORT ?? "3000";
 const testOrigin = `http://127.0.0.1:${testPort}`;
 const screenshotDirectory = process.env.FIELDNOTES_SCREENSHOT_DIR ?? path.join(process.cwd(), "test-results", "fieldnotes-ui-review");
 mkdirSync(screenshotDirectory, { recursive: true });
 
-function progressRecord(itemType: string, itemId: string, status: string, notes = "") {
+function progressRecord(itemType: ProgressInput["itemType"], itemId: string, status: ProgressInput["status"], notes = ""): ProgressInput {
   return { itemType, itemId, status, comfort: null, notes, evidence: "", repositoryUrl: "" };
+}
+
+async function progressSaveBody(request: APIRequestContext, record: ReturnType<typeof progressRecord>) {
+  const response = await request.get(`${testOrigin}/api/progress?itemType=${encodeURIComponent(record.itemType)}&itemId=${encodeURIComponent(record.itemId)}`);
+  const rows = response.ok() ? await response.json() as Array<{ revision?: number }> : [];
+  return { record, expectedRevision: rows[0]?.revision ?? null };
 }
 
 test("dashboard gives a day-one learner one clear starting point and stays responsive", async ({ page }) => {
@@ -53,16 +60,32 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
   await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-after-390.png"), fullPage: true });
   await page.getByRole("button", { name: "Open navigation menu" }).click();
   await expect(page.getByRole("navigation", { name: "Learning pages" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "DevOps Fieldnotes home" })).toBeFocused();
+  const closeNavigation = page.getByRole("button", { name: "Close navigation drawer" });
+  await expect(closeNavigation).toBeFocused();
+  await expect(closeNavigation).toBeVisible();
   await expect(page.getByRole("link", { name: /Account for/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Close navigation menu" })).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("Shift+Tab");
   await expect(page.getByRole("link", { name: /Account for/ })).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("link", { name: "DevOps Fieldnotes home" })).toBeFocused();
+  await expect(closeNavigation).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Open navigation menu" })).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeFocused();
+  await page.setViewportSize({ width: 667, height: 375 });
+  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  const mobileDrawer = page.locator(".sidebar");
+  const drawerSize = await mobileDrawer.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(drawerSize.clientHeight).toBeLessThanOrEqual(375);
+  expect(drawerSize.scrollHeight).toBeGreaterThan(drawerSize.clientHeight);
+  await expect(page.getByRole("button", { name: "Close navigation drawer" })).toBeFocused();
+  await mobileDrawer.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  await expect(page.getByRole("link", { name: "Guide" })).toBeInViewport();
+  await expect(page.getByRole("link", { name: /Account for/ })).toBeInViewport();
+  await page.getByRole("button", { name: "Close navigation drawer" }).click();
   await page.getByRole("button", { name: "Open navigation menu" }).click();
   await page.getByRole("navigation", { name: "Learning pages" }).getByRole("link", { name: "Activities" }).click();
   await expect(page.getByRole("heading", { name: "Activities & labs" })).toBeVisible();
@@ -95,6 +118,15 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
   await page.getByRole("searchbox", { name: "Search modules by title or topic" }).fill("Linux users");
   await expect(page.locator(".module-grid .module-card")).toHaveCount(1);
   await expect(page.getByText("Linux users, processes and service management")).toBeVisible();
+  const roadmapSearch = page.getByRole("searchbox", { name: "Search modules by title or topic" });
+  await roadmapSearch.fill("Kubernetes");
+  await expect(page).toHaveURL(/q=Kubernetes/);
+  await expect(page.locator(".module-grid .module-card")).toHaveCount(1);
+  await page.locator('.module-card-link[href="/modules/18"]').click();
+  await expect(page).toHaveURL(/\/modules\/18$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/roadmap\?q=Kubernetes$/);
+  await expect(page.getByRole("searchbox", { name: "Search modules by title or topic" })).toHaveValue("Kubernetes");
   await page.getByRole("searchbox", { name: "Search modules by title or topic" }).fill("no module has this phrase");
   await expect(page.getByText("No modules match these filters.")).toBeVisible();
   await page.locator(".roadmap-empty").getByRole("button", { name: "Clear filters" }).click();
@@ -109,7 +141,7 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
 test("progress edits save to SQLite and survive a page reload", async ({ page }) => {
   const seededModule = await page.request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: { ...progressRecord("module", "M01", "not_started", "Older module note."), comfort: "guided", evidence: "Existing evidence stays attached to the module record.", repositoryUrl: "https://example.com/old-module-record" },
+    data: await progressSaveBody(page.request, { ...progressRecord("module", "M01", "not_started", "Older module note."), comfort: "guided", evidence: "Existing evidence stays attached to the module record.", repositoryUrl: "https://example.com/old-module-record" }),
   });
   expect(seededModule.ok()).toBeTruthy();
 
@@ -173,10 +205,69 @@ test("progress edits save to SQLite and survive a page reload", async ({ page })
   await expect(page.locator(".module-grid .module-card").first().locator(".module-card-activity-status")).toContainText("Not started");
 });
 
+test("unsaved editor drafts survive scenario collapse and browser Back", async ({ page }) => {
+  await page.goto("/activities");
+  const scenario = page.locator("#troubleshooting-t01");
+  await scenario.locator("summary.troubleshooting-summary").click();
+  const scenarioEditor = scenario.locator("#progress-editor-T01");
+  await scenarioEditor.getByLabel("Learning note").fill("Draft survives closing this scenario.");
+  await scenario.locator("summary.troubleshooting-summary").click();
+  await scenario.locator("summary.troubleshooting-summary").click();
+  await expect(scenarioEditor.getByLabel("Learning note")).toHaveValue("Draft survives closing this scenario.");
+
+  await page.goto("/");
+  await page.getByRole("link", { name: "Start lesson" }).click();
+  const lessonEditor = page.locator(".progress-editor--lesson-status");
+  await lessonEditor.getByRole("button", { name: "Set draft to complete" }).click();
+  await page.goBack();
+  await expect(page.getByRole("heading", { level: 1, name: "My learning" })).toBeVisible();
+  await page.goForward();
+  await expect(lessonEditor.locator(".progress-lesson-status-control .field-hint")).toHaveText("Draft status: Completed");
+
+  await page.goto("/activities");
+  await page.locator('a[href="/activities/A02"]').first().click();
+  const observation = page.getByRole("textbox", { name: "Task observation" });
+  await expect(observation).toBeEnabled();
+  await observation.fill("Activity draft survives browser Back.");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/activities$/);
+  await page.goForward();
+  await expect(observation).toHaveValue("Activity draft survives browser Back.");
+});
+
+test("a stale draft can be compared and deliberately saved against the latest revision", async ({ page }) => {
+  await page.goto("/activities#troubleshooting-t12");
+  const editor = page.locator("#progress-editor-T12");
+  const note = editor.getByRole("textbox", { name: "Learning note" });
+  await expect(note).toBeEnabled();
+  await note.fill("A draft written before the other save.");
+
+  const newerRecord = progressRecord("troubleshooting", "T12", "in_progress", "A newer note saved elsewhere.");
+  const newerSave = await page.request.put("/api/progress", {
+    headers: { Origin: testOrigin },
+    data: await progressSaveBody(page.request, newerRecord),
+  });
+  expect(newerSave.ok()).toBeTruthy();
+
+  const save = editor.getByRole("button", { name: "Save learning record" });
+  await save.click();
+  await expect(save).toBeDisabled();
+  await editor.getByText("Compare saved version", { exact: true }).click();
+  await expect(editor.getByText("A newer note saved elsewhere.", { exact: false })).toBeVisible();
+  await expect(note).toHaveValue("A draft written before the other save.");
+  await editor.getByRole("button", { name: "Keep my draft" }).click();
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(editor.getByText("Saved to your account.", { exact: true })).toBeVisible();
+
+  const saved = await page.request.get("/api/progress?itemType=troubleshooting&itemId=T12");
+  expect(await saved.json()).toMatchObject([{ notes: "A draft written before the other save." }]);
+});
+
 test("backup import merges records and export downloads the saved data", async ({ page, request }) => {
   const existing = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: progressRecord("module", "M02", "completed", "Existing record remains."),
+    data: await progressSaveBody(request, progressRecord("module", "M02", "completed", "Existing record remains.")),
   });
   expect(existing.ok()).toBeTruthy();
 
@@ -191,7 +282,10 @@ test("backup import merges records and export downloads the saved data", async (
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(backup)),
   });
-  await expect(page.getByText("1 record was imported. Matching items were updated; other saved records were kept.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Restore preview" })).toBeVisible();
+  await expect(page.getByText(/1 records? in the backup/)).toBeVisible();
+  await page.getByRole("button", { name: "Apply merge" }).click();
+  await expect(page.getByText("1 record was restored; 0 equal or newer saved records were kept.")).toBeVisible();
 
   const response = await request.get(`${testOrigin}/api/progress`);
   const rows = await response.json() as { itemId: string; status: string; notes: string }[];
@@ -221,7 +315,7 @@ test("backup import merges records and export downloads the saved data", async (
 test("activity directory filters by real phase, search text, and saved status", async ({ page, request }) => {
   const savedActivity = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: progressRecord("activity", "A03", "in_progress", "Temporary E2E activity state."),
+    data: await progressSaveBody(request, progressRecord("activity", "A03", "in_progress", "Temporary E2E activity state.")),
   });
   expect(savedActivity.ok()).toBeTruthy();
 
@@ -263,6 +357,15 @@ test("activity directory filters by real phase, search text, and saved status", 
   await troubleshootingCard.locator("summary.troubleshooting-summary").click();
   await expect(troubleshootingCard.locator("#progress-editor-T03").getByLabel("Learning note")).toHaveValue("Expected a read denial for the service identity; recorded the first failing path.");
   await troubleshootingCard.locator("summary.troubleshooting-summary").click();
+  await page.goto("/progress");
+  await page.getByRole("button", { name: "Troubleshooting" }).click();
+  const savedTroubleshooting = page.locator(".progress-record").filter({ hasText: "T03 ·" });
+  await expect(savedTroubleshooting).toContainText("Expected a read denial for the service identity");
+  await savedTroubleshooting.getByRole("link", { name: "Open scenario" }).click();
+  await expect(page).toHaveURL(/\/activities#troubleshooting-t03$/);
+  await expect(page.locator("#troubleshooting-t03")).toHaveJSProperty("open", true);
+  await expect(page.locator("#progress-editor-T03")).toBeVisible();
+  await page.goto("/activities");
   await page.screenshot({ path: path.join(screenshotDirectory, "activities-desktop.png"), fullPage: true });
   await page.getByRole("link", { name: /Troubleshooting scenarios/ }).click();
   await expect(page).toHaveURL(/#troubleshooting$/);
@@ -302,7 +405,7 @@ test("projects and progress notebook reflect saved milestone evidence", async ({
 
   const milestone = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: progressRecord("milestone", "P2.1", "completed"),
+    data: await progressSaveBody(request, progressRecord("milestone", "P2.1", "completed")),
   });
   expect(milestone.ok()).toBeTruthy();
   await page.goto("/projects");
@@ -316,6 +419,11 @@ test("projects and progress notebook reflect saved milestone evidence", async ({
   await expect(page.locator(".progress-stat").filter({ hasText: "Modules marked complete" })).toContainText("1");
   await expect(page.locator(".progress-stat").filter({ hasText: "Modules in progress" })).toContainText("1");
   await expect(page.locator(".progress-stat").filter({ hasText: "Modules needing review" })).toContainText("1");
+  await page.goto("/projects/P3#project-review");
+  await page.locator(".project-record-review").getByRole("link", { name: "Progress notebook" }).click();
+  await expect(page).toHaveURL(/\/progress\?type=project$/);
+  await expect(page.getByRole("button", { name: "Projects" })).toHaveAttribute("aria-pressed", "true");
+  await page.goto("/progress");
   await expect(page.getByText(/^P2\.1 ·/)).toBeVisible();
   await expect(page.getByText("Records are ordered by their last saved time.")).toBeVisible();
   await page.getByRole("searchbox", { name: "Search saved learning records" }).fill("P2.1");
@@ -541,21 +649,17 @@ test("edits made during an outstanding project save remain visibly unsaved", asy
   let releaseSave!: () => void;
   const saveStarted = new Promise<void>((resolve) => { requestSaveStarted = resolve; });
   const saveGate = new Promise<void>((resolve) => { releaseSave = resolve; });
-  let submittedBody: Record<string, unknown> | undefined;
+  let submittedBody: { record: ProgressInput; expectedRevision: number | null } | undefined;
 
   await page.route("**/api/progress", async (route) => {
     if (route.request().method() !== "PUT") {
       await route.continue();
       return;
     }
-    submittedBody = route.request().postDataJSON() as Record<string, unknown>;
+    submittedBody = route.request().postDataJSON() as typeof submittedBody;
     requestSaveStarted();
     await saveGate;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ...submittedBody, updatedAt: Date.now() }),
-    });
+    await route.continue();
   });
 
   await page.goto("/projects/S02#project-build");
@@ -565,10 +669,12 @@ test("edits made during an outstanding project save remain visibly unsaved", asy
   await note.fill("First revision submitted to the server.");
   await notebook.getByRole("button", { name: "Save project notebook" }).click();
   await saveStarted;
-  await note.fill("Newer revision typed while the first save is pending.");
-
-  expect((submittedBody?.taskObservations as Record<string, string>)?.["S02.1"]).toBe("First revision submitted to the server.");
-  releaseSave();
+  try {
+    await note.fill("Newer revision typed while the first save is pending.");
+    expect(submittedBody?.record.taskObservations?.["S02.1"]).toBe("First revision submitted to the server.");
+  } finally {
+    releaseSave();
+  }
 
   await expect(note).toHaveValue("Newer revision typed while the first save is pending.");
   await expect(notebook.locator(".form-footer .field-hint")).toContainText("Unsaved changes");
@@ -578,10 +684,10 @@ test("edits made during an outstanding project save remain visibly unsaved", asy
 test("saved progress fields stay unavailable until the existing record finishes loading", async ({ page, request }) => {
   const savedProject = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: {
+    data: await progressSaveBody(request, {
       ...progressRecord("small_project", "S02", "in_progress", "Existing project-wide note."),
       taskObservations: { "S02.1": "Existing checkpoint evidence must load first." },
-    },
+    }),
   });
   expect(savedProject.ok()).toBeTruthy();
 
@@ -616,6 +722,7 @@ test("dirty project notes warn before route navigation and can be kept or discar
   await page.goto("/projects/S02#project-build");
   const note = page.locator("#progress-editor-S02").getByLabel("Checkpoint note · S02.1");
   await expect(note).toBeEnabled();
+  const savedNote = await note.inputValue();
   await note.fill("Keep this note if I cancel navigation.");
 
   let firstDialogType = "";
@@ -636,6 +743,10 @@ test("dirty project notes warn before route navigation and can be kept or discar
   await page.getByRole("navigation", { name: "Learning pages" }).getByRole("link", { name: "Activities" }).click();
   expect(secondDialogType).toBe("confirm");
   await expect(page).toHaveURL(/\/activities/);
+
+  await page.goto("/projects/S02#project-build");
+  await expect(note).toBeEnabled();
+  await expect(note).toHaveValue(savedNote);
 });
 
 test("dirty project notes warn before a full-page navigation such as refresh", async ({ page }) => {
@@ -696,12 +807,12 @@ test("unsaved lesson status and investigation notes are protected across the lea
 test("project cards distinguish saved checkpoint work from an explicitly started project", async ({ page, request }) => {
   const project = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: progressRecord("small_project", "S01", "not_started"),
+    data: await progressSaveBody(request, progressRecord("small_project", "S01", "not_started")),
   });
   expect(project.ok()).toBeTruthy();
   const checkpoint = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: progressRecord("milestone", "S01.1", "completed"),
+    data: await progressSaveBody(request, progressRecord("milestone", "S01.1", "completed")),
   });
   expect(checkpoint.ok()).toBeTruthy();
 
@@ -726,16 +837,16 @@ test("dashboard resumes a saved project draft at its next unfinished checkpoint"
   await page.setViewportSize({ width: 1440, height: 900 });
   const savedProject = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: {
+    data: await progressSaveBody(request, {
       ...progressRecord("small_project", "S01", "not_started"),
       taskObservations: { "S01.1": "The synthetic event contract and expected counts are recorded." },
-    },
+    }),
   });
   expect(savedProject.ok()).toBeTruthy();
 
   const firstCheckpoint = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: progressRecord("milestone", "S01.1", "completed"),
+    data: await progressSaveBody(request, progressRecord("milestone", "S01.1", "completed")),
   });
   expect(firstCheckpoint.ok()).toBeTruthy();
 
@@ -778,10 +889,10 @@ test("dashboard resumes a saved project draft at its next unfinished checkpoint"
 
   const reviewState = await request.put(`${testOrigin}/api/progress`, {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: {
+    data: await progressSaveBody(request, {
       ...progressRecord("small_project", "S01", "needs_review"),
       taskObservations: { "S01.1": "The synthetic event contract and expected counts are recorded." },
-    },
+    }),
   });
   expect(reviewState.ok()).toBeTruthy();
   await page.goto("/");
@@ -893,16 +1004,20 @@ test("Module 23 recovery lesson renders its knowledge check and A23 practice evi
   await knowledgeCheck.getByRole("button", { name: "Check answer" }).click();
   await expect(knowledgeCheck.getByText("That is correct.")).toBeVisible();
   await knowledgeCheck.getByRole("button", { name: "Next question" }).click();
+  await expect(knowledgeCheck.locator("legend")).toBeFocused();
   await knowledgeCheck.getByRole("radio").nth(0).check();
   await knowledgeCheck.getByRole("button", { name: "Check answer" }).click();
   await expect(knowledgeCheck.getByText(/Review the distinction/)).toBeVisible();
   await knowledgeCheck.getByRole("button", { name: "Next question" }).click();
+  await expect(knowledgeCheck.locator("legend")).toBeFocused();
   await knowledgeCheck.getByRole("radio").nth(2).check();
   await knowledgeCheck.getByRole("button", { name: "Check answer" }).click();
   await knowledgeCheck.getByRole("button", { name: "See result" }).click();
   await expect(knowledgeCheck.getByText("2 of 3 correct")).toBeVisible();
+  await expect(knowledgeCheck.getByRole("heading", { name: "2 of 3 correct" })).toBeFocused();
   await knowledgeCheck.getByRole("button", { name: "Try again" }).click();
   await expect(knowledgeCheck.getByText("Question 1 of 3")).toBeVisible();
+  await expect(knowledgeCheck.locator("legend")).toBeFocused();
 
   const lessonScreenshots = [
     { width: 1920, height: 1080, name: "1920" },
@@ -1045,7 +1160,7 @@ test("module learning flow links directly to practice and readable activity evid
 test("other activities link each practical step to one shared saved notebook", async ({ page, request }) => {
   const legacyA02 = await request.put(testOrigin + "/api/progress", {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: {
+    data: await progressSaveBody(request, {
       itemType: "activity",
       itemId: "A02",
       status: "in_progress",
@@ -1053,7 +1168,7 @@ test("other activities link each practical step to one shared saved notebook", a
       notes: "Earlier A02 reflection remains unassigned.",
       evidence: "Earlier inventory evidence remains attached.",
       repositoryUrl: "https://example.test/a02-notes",
-    },
+    }),
   });
   expect(legacyA02.ok()).toBeTruthy();
 
@@ -1178,7 +1293,7 @@ test("other activities link each practical step to one shared saved notebook", a
 test("A01 keeps task observations in one notebook through save, review, and reopen", async ({ page, request }) => {
   const legacyA01 = await request.put(testOrigin + "/api/progress", {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: {
+    data: await progressSaveBody(request, {
       itemType: "activity",
       itemId: "A01",
       status: "in_progress",
@@ -1186,7 +1301,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
       notes: "Previously saved A01 finding from the existing notebook.",
       evidence: "Earlier sanitized ps and /proc evidence.",
       repositoryUrl: "https://example.test/a01-notes",
-    },
+    }),
   });
   expect(legacyA01.ok()).toBeTruthy();
 
@@ -1409,6 +1524,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
     },
   });
   expect(legacyImport.ok()).toBeTruthy();
+  expect(await legacyImport.json()).toMatchObject({ preservedCount: 1 });
   currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as A01Rows;
   expect(currentRows).toHaveLength(1);
   expect(currentRows[0].taskObservations["choose-process"]).toContain("Revised after review:");
@@ -1416,7 +1532,8 @@ test("A01 keeps task observations in one notebook through save, review, and reop
 
   await page.goto("/progress");
   await expect(page.getByText("Revised after review: RSS can change between snapshots", { exact: false })).toBeVisible();
-  await expect(page.getByText("Imported older A01 note.")).toBeVisible();
+  await expect(page.getByText("Previously saved A01 finding from the existing notebook.")).toBeVisible();
+  await expect(page.getByText("Imported older A01 note.")).toHaveCount(0);
   const a01BackupDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export JSON" }).click();
   const a01BackupPath = await (await a01BackupDownload).path();
@@ -1604,6 +1721,10 @@ test("primary pages and a dedicated lesson route reflow at a 320px viewport", as
   expect(troubleshootingWidths.documentWidth, "expanded troubleshooting must not overflow the viewport").toBeLessThanOrEqual(troubleshootingWidths.viewportWidth);
   expect(troubleshootingWidths.scenarioWidth).toBeLessThanOrEqual(troubleshootingWidths.bodyWidth);
   await page.screenshot({ path: path.join(screenshotDirectory, "small-mobile-troubleshooting-t03.png"), fullPage: true });
+
+  await page.goto("/modules/00");
+  await expect(page.getByRole("heading", { level: 1, name: /page.*found|not.*found/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /learning roadmap/i })).toHaveAttribute("href", "/roadmap");
 });
 
 test("progress API validates IDs, same-origin writes, and payload sizes", async ({ request }) => {
@@ -1614,7 +1735,7 @@ test("progress API validates IDs, same-origin writes, and payload sizes", async 
 
   const crossOriginWrite = await request.put("/api/progress", {
     headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
-    data: progressRecord("module", "M01", "completed"),
+    data: await progressSaveBody(request, progressRecord("module", "M01", "completed")),
   });
   expect(crossOriginWrite.status()).toBe(403);
 
@@ -1626,7 +1747,7 @@ test("progress API validates IDs, same-origin writes, and payload sizes", async 
 
   const invalidRecord = await request.put("/api/progress", {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
-    data: { ...progressRecord("module", "M01", "completed"), repositoryUrl: "javascript:alert(1)" },
+    data: await progressSaveBody(request, { ...progressRecord("module", "M01", "completed"), repositoryUrl: "javascript:alert(1)" }),
   });
   expect(invalidRecord.status()).toBe(400);
 

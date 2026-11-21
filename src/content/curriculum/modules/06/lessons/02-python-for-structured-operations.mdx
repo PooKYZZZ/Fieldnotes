@@ -29,3 +29,61 @@ to make the script appear successful.
     caption="A structured operation parses input, validates it, and produces an output with errors handled."
   />
 </ConceptSection>
+
+### Worked example · validate a list before counting it
+
+The input contract is a JSON array of strings. An empty array is valid. A missing file is an I/O failure, and a readable file with the wrong format is an input failure. The caller can tell those cases apart from the exit status even when stdout is redirected.
+
+```python
+import argparse
+import json
+from pathlib import Path
+import sys
+
+
+def main(argv, out=sys.stdout, err=sys.stderr):
+    parser = argparse.ArgumentParser(description="Count labels in a local JSON file")
+    parser.add_argument("file", type=Path)
+    args = parser.parse_args(argv)
+    try:
+        labels = json.loads(args.file.read_text(encoding="utf-8"))
+    except OSError:
+        print("Could not read input file.", file=err)
+        return 1
+    except (UnicodeError, json.JSONDecodeError):
+        print("Expected UTF-8 JSON.", file=err)
+        return 2
+    if not isinstance(labels, list) or not all(isinstance(label, str) for label in labels):
+        print("Expected an array of strings.", file=err)
+        return 2
+    print(len(labels), file=out)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
+```
+
+Save that as `count_labels.py`. Before running the command, write down the result for `["start", "ready"]`, `[]`, a zero-byte file and a missing path. Compare stdout, stderr and exit status. Here is one standard-library test of the empty-array boundary, kept separate so importing the command never reads a file.
+
+```python
+from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
+
+from count_labels import main
+
+
+class CountLabelsTest(unittest.TestCase):
+    def test_empty_array_is_valid(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "empty.json"
+            path.write_text("[]", encoding="utf-8")
+            stdout, stderr = StringIO(), StringIO()
+            self.assertEqual(main([str(path)], stdout, stderr), 0)
+            self.assertEqual(stdout.getvalue(), "0\n")
+            self.assertEqual(stderr.getvalue(), "")
+```
+
+Save the test as `test_count_labels.py` and run `python3 -m unittest -v`. Add a test that checks a rejected payload has no stdout. In [A06](/activities/A06), apply the same process to a different contract: actual event objects and counts by level.

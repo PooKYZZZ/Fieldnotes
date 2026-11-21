@@ -9,10 +9,14 @@ graph before creating anything. For a small lab, sketch the links before provisi
 
 ```text
 VM ── managed disk
- ├── network interface ── subnet / network security group
- └── optional public IP
+ └── network interface
+      └── IP configuration
+           ├── subnet
+           └── optional public IP
 ```
 
+An Azure network security group can apply at the interface or subnet. The optional public IP is associated with
+an [IP configuration on the network interface](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/associate-public-ip-address-vm).
 Each resource can have a separate lifecycle, and delete behavior depends on its configuration. Before cleanup,
 inventory what was created, check each resource's current deletion options, then verify the resource group and
 billing view after removal. “The VM is gone” does not establish that its disk, address or other resources were
@@ -20,7 +24,7 @@ removed.
   </div>
   <TechnicalFigure
     src="/diagrams/module12/lesson-02.svg"
-    alt="A VM has separate disk, network interface, and optional public IP dependencies; the interface attaches to a subnet governed by network security rules."
-    caption="The VM branches to its managed disk, network interface, and optional public IP. The network interface attaches to a subnet with security rules; these resources have separate lifecycles."
+    alt="A virtual machine attaches to a managed disk and a network interface. The interface's IP configuration connects to a subnet and may be associated with a public IP."
+    caption="Follow the relationships from the VM through the network interface to find resources that may remain after VM deletion."
   />
 </ConceptSection>

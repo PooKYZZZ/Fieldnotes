@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import { activities, modules } from "@/content";
 import { curriculumPhaseNames } from "@/content/taxonomy";
-import { listProgress } from "@/features/progress/storage/store.server";
+import { listProgressSummary } from "@/features/progress/storage/store.server";
 import { getCurrentSession } from "@/features/auth/auth.server";
-import type { ProgressRecord } from "@/features/progress/model";
+import type { ProgressSummary } from "@/features/progress/model";
 import { RoadmapExplorer } from "@/features/roadmap/roadmap-explorer";
 
 export const metadata: Metadata = { title: "Learning roadmap" };
 export const dynamic = "force-dynamic";
 
 export default async function RoadmapPage() {
-  let records: ProgressRecord[] = [];
+  let records: ProgressSummary[] = [];
   let session = null;
   let authUnavailable = false;
   try {
@@ -22,7 +22,7 @@ export default async function RoadmapPage() {
   let progressAvailable = Boolean(session);
   if (session) {
     try {
-      records = listProgress(session.user.id);
+      records = listProgressSummary(session.user.id);
     } catch {
       progressAvailable = false;
     }

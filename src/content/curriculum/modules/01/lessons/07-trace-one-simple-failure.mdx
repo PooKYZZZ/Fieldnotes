@@ -5,7 +5,7 @@ export const reviewTitle = "Trace one simple failure";
 
 <ConceptSection layout="reading">
   <div className="learning-concept-copy">
-Suppose a process is visible but cannot read `/var/log/service.log`. The process exists, so startup succeeded. Next inspect the service identity, directory traversal permissions, file permissions, mount state, and exact error. The evidence may point to a path or access problem; restarting the VM would not explain which condition failed.
+Suppose a process is visible but cannot read `/var/log/service.log`. The process exists. That observation does not establish that startup finished, the service is ready, or it can read the file. Next inspect the service identity, directory traversal permissions, file permissions, mount state, and exact error. The evidence may point to a path or access problem; restarting the VM would not explain which condition failed.
   </div>
 </ConceptSection>
 

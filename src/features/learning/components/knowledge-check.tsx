@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, RotateCcw, XCircle } from "lucide-react";
 
 type KnowledgeQuestion = {
@@ -16,7 +16,17 @@ export function KnowledgeCheck({ id, title, questions }: { id: string; title: st
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [finished, setFinished] = useState(false);
+  const focusTarget = useRef<"question" | "result" | undefined>(undefined);
+  const questionRef = useRef<HTMLLegendElement>(null);
+  const resultRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusTarget.current === "question") questionRef.current?.focus();
+    if (focusTarget.current === "result") resultRef.current?.focus();
+    focusTarget.current = undefined;
+  }, [questionIndex, finished]);
+
   const current = questions[questionIndex];
+  if (!current) return null;
   const hasAnswered = Object.hasOwn(answers, current.id);
   const isCorrect = answers[current.id] === current.correctIndex;
   const score = questions.reduce((count, question) => count + Number(answers[question.id] === question.correctIndex), 0);
@@ -29,10 +39,12 @@ export function KnowledgeCheck({ id, title, questions }: { id: string; title: st
   function continueCheck() {
     if (questionIndex === questions.length - 1) {
       setFinished(true);
+      focusTarget.current = "result";
       return;
     }
     setQuestionIndex((index) => index + 1);
     setSelectedIndex(null);
+    focusTarget.current = "question";
   }
 
   function restartCheck() {
@@ -40,9 +52,8 @@ export function KnowledgeCheck({ id, title, questions }: { id: string; title: st
     setSelectedIndex(null);
     setAnswers({});
     setFinished(false);
+    focusTarget.current = "question";
   }
-
-  if (!current) return null;
 
   return (
     <section className="learning-knowledge-check" data-knowledge-check={id} aria-labelledby={`${id}-title`}>
@@ -55,14 +66,14 @@ export function KnowledgeCheck({ id, title, questions }: { id: string; title: st
       {finished ? (
         <div className="knowledge-check-result" role="status">
           <CheckCircle2 size={20} aria-hidden="true" />
-          <div><strong>{score} of {questions.length} correct</strong><p>Use the explanations to decide what to revisit before your next practice step.</p></div>
+          <div><h5 ref={resultRef} tabIndex={-1}>{score} of {questions.length} correct</h5><p>Use the explanations to decide what to revisit before your next practice step.</p></div>
           <button className="button button-outline" type="button" onClick={restartCheck}><RotateCcw size={14} aria-hidden="true" /> Try again</button>
         </div>
       ) : (
         <>
           <p className="knowledge-check-progress">Question {questionIndex + 1} of {questions.length}</p>
           <fieldset className="knowledge-check-question" disabled={hasAnswered}>
-            <legend>{current.prompt}</legend>
+            <legend ref={questionRef} tabIndex={-1}>{current.prompt}</legend>
             {current.options.map((option, index) => (
               <label className="knowledge-check-option" key={option}>
                 <input

@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, BookOpenCheck, ChevronDown, Search } from "lucide-react";
 import type { ActivityRecord, ModuleRecord, TroubleshootingRecord } from "@/content/catalog";
-import { formatStatus, type ProgressRecord, type ProgressStatus } from "@/features/progress/model";
+import { formatStatus, type ProgressSummary, type ProgressStatus } from "@/features/progress/model";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
+import { useProgressList } from "@/features/progress/progress-list-context";
 
 type ActivityModule = Pick<ModuleRecord, "id" | "title" | "phase">;
 type Phase = ModuleRecord["phase"];
@@ -32,17 +33,23 @@ function phaseForActivity(activity: ActivityRecord, moduleById: Map<number, Acti
 
 function TroubleshootingCard({ item, record, progressLoaded, progressError, requiresSignIn }: {
   item: TroubleshootingRecord;
-  record?: ProgressRecord;
+  record?: ProgressSummary;
   progressLoaded: boolean;
   progressError: boolean;
   requiresSignIn: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (window.location.hash === `#troubleshooting-${item.id.toLowerCase()}` && detailsRef.current) {
+      detailsRef.current.open = true;
+    }
+  }, [item.id]);
   const status = requiresSignIn ? "Sign in to save" : progressError ? "Progress unavailable" : !progressLoaded ? "Loading progress" : formatStatus(record?.status ?? "not_started");
   const statusClass = progressLoaded && !progressError && !requiresSignIn ? ` practice-status--${record?.status ?? "not_started"}` : "";
 
   return (
-    <details id={`troubleshooting-${item.id.toLowerCase()}`} className="troubleshooting-card" onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <details ref={detailsRef} id={`troubleshooting-${item.id.toLowerCase()}`} className="troubleshooting-card" onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary className="troubleshooting-summary">
         <span>{item.id}</span>
         <strong>{item.title}</strong>
@@ -79,54 +86,7 @@ export function ActivityDirectory({
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState<(typeof phaseFilters)[number]["value"]>("all");
   const [status, setStatus] = useState<(typeof statusFilters)[number]["value"]>("all");
-  const [records, setRecords] = useState<ProgressRecord[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [requiresSignIn, setRequiresSignIn] = useState(false);
-
-  const loadProgress = useCallback(() => {
-    const controller = new AbortController();
-    fetch("/api/progress", { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (response.status === 401) {
-          setRequiresSignIn(true);
-          setRecords([]);
-          setLoadError(false);
-          return [] as ProgressRecord[];
-        }
-        if (!response.ok) throw new Error("Saved activity progress is unavailable.");
-        setRequiresSignIn(false);
-        return response.json() as Promise<ProgressRecord[]>;
-      })
-      .then((rows) => {
-        setRecords(rows);
-        setLoadError(false);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setRequiresSignIn(false);
-          setLoadError(true);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoaded(true);
-      });
-    return controller;
-  }, []);
-
-  useEffect(() => {
-    let activeController = loadProgress();
-    const refresh = () => {
-      activeController.abort();
-      setLoaded(false);
-      activeController = loadProgress();
-    };
-    window.addEventListener("progress-updated", refresh);
-    return () => {
-      activeController.abort();
-      window.removeEventListener("progress-updated", refresh);
-    };
-  }, [loadProgress]);
+  const { records, loaded, loadError, requiresSignIn } = useProgressList();
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const moduleById = useMemo(() => new Map(modules.map((module) => [module.id, module])), [modules]);
