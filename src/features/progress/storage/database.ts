@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "@/features/progress/storage/schema";
 import * as authSchema from "@/features/auth/storage/schema";
 import type { ProgressInput, ProgressRecord, ProgressSummary } from "@/features/progress/model";
+import { isValidPersistedProgressTimestamp, maxDateTimestampMs } from "@/features/progress/timestamp";
 
 function applyMigrations(sqlite: InstanceType<typeof Database>, migrationDirectory: string): void {
   sqlite.exec(`
@@ -69,22 +70,15 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
 
   function upsert(userId: string, input: ProgressInput, createdAt: number, importedUpdatedAt?: number): ProgressRecord {
     const existing = findForUser(userId, input.itemType, input.itemId);
-    const updatedAt = importedUpdatedAt ?? Math.max(createdAt, existing?.updatedAt ?? 0);
-    const isActivity = input.itemType === "activity";
-    const existingTaskObservations = isActivity && input.taskObservations === undefined
-      ? orm.select({ taskObservations: schema.learningProgress.taskObservations })
-        .from(schema.learningProgress)
-        .where(and(
-          eq(schema.learningProgress.userId, userId),
-          eq(schema.learningProgress.itemType, input.itemType),
-          eq(schema.learningProgress.itemId, input.itemId),
-        ))
-        .get()?.taskObservations
-      : undefined;
-    const taskObservations = input.taskObservations
-      ?? (existingTaskObservations ? JSON.parse(existingTaskObservations) as Record<string, string> : {});
-    const taskObservationsJson = JSON.stringify(taskObservations);
-    orm.insert(schema.learningProgress)
+    const previousUpdatedAt = existing?.updatedAt;
+    const nextTimestamp = previousUpdatedAt === undefined || !isValidPersistedProgressTimestamp(previousUpdatedAt, createdAt)
+      ? createdAt
+      : previousUpdatedAt < maxDateTimestampMs
+        ? Math.max(createdAt, previousUpdatedAt + 1)
+        : createdAt;
+    const updatedAt = importedUpdatedAt ?? (isValidPersistedProgressTimestamp(nextTimestamp, createdAt) ? nextTimestamp : createdAt);
+    const taskObservationsJson = JSON.stringify(input.taskObservations ?? {});
+    const savedRow = orm.insert(schema.learningProgress)
       .values({ ...input, userId, taskObservations: taskObservationsJson, createdAt, updatedAt })
       .onConflictDoUpdate({
         target: [schema.learningProgress.userId, schema.learningProgress.itemType, schema.learningProgress.itemId],
@@ -99,13 +93,10 @@ export function createProgressDatabase(databasePath: string, migrationDirectory:
           revision: sql`${schema.learningProgress.revision} + 1`,
         },
       })
-      .run();
-    return {
-      ...input,
-      ...(isActivity || input.itemType === "project" || input.itemType === "small_project" ? { taskObservations } : {}),
-      updatedAt,
-      revision: (existing?.revision ?? 0) + 1,
-    };
+      .returning()
+      .get();
+    if (!savedRow) throw new Error("The saved progress record could not be read back.");
+    return fromRow(savedRow);
   }
 
   function findForUser(userId: string, itemType: ProgressInput["itemType"], itemId: string): ProgressRecord | undefined {

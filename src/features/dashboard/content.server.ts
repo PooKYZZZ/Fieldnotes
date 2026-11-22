@@ -1,6 +1,6 @@
 import "server-only";
 
-import { activities, majorProjects, modules, smallProjects } from "@/content/catalog";
+import { activities, majorProjects, modules, projectMilestones, smallProjects } from "@/content/catalog";
 import type { DashboardActivity, DashboardMajorProject, DashboardModule, DashboardSmallProject } from "@/features/dashboard/model";
 
 function preview(text: string, maxLength = 180): string {
@@ -16,6 +16,13 @@ export function getDashboardContent(): {
   majorProjects: DashboardMajorProject[];
   smallProjects: DashboardSmallProject[];
 } {
+  const milestonesByProject = new Map<string, { id: string; label: string }[]>();
+  for (const { projectId, id, label } of projectMilestones) {
+    const milestones = milestonesByProject.get(projectId) ?? [];
+    milestones.push({ id, label });
+    milestonesByProject.set(projectId, milestones);
+  }
+
   return {
     modules: modules.map(({ id, title, phase, level, intro, activityId, lessons }) => ({
       id,
@@ -27,15 +34,15 @@ export function getDashboardContent(): {
       lessons: lessons.map(({ id: lessonId, title: lessonTitle }) => ({ id: lessonId, title: lessonTitle })),
     })),
     activities: activities.map(({ id, moduleId, title }) => ({ id, moduleId, title })),
-    majorProjects: majorProjects.map(({ id, title, details }) => ({
+    majorProjects: majorProjects.map(({ id, title }) => ({
       id,
       title,
-      details: { "Build milestones": details["Build milestones"] ?? "" },
+      milestones: milestonesByProject.get(id) ?? [],
     })),
-    smallProjects: smallProjects.map(({ id, title, details }) => ({
+    smallProjects: smallProjects.map(({ id, title }) => ({
       id,
       title,
-      details: { "Build milestones": details["Build milestones"] ?? "" },
+      milestones: milestonesByProject.get(id) ?? [],
     })),
   };
 }

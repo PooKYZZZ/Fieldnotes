@@ -113,7 +113,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <p className="nav-group-title reference-nav-title">Reference</p>
         <nav className="side-nav" aria-label="Reference pages">{renderLinks(resourcesNavigation)}</nav>
         <p className="nav-group-title account-nav-title">Account</p>
-        <nav className="side-nav" aria-label="Account pages"><AccountNavigation /></nav>
+        <nav className="side-nav" aria-label="Account pages"><AccountNavigation onNavigate={() => setMenuOpen(false)} /></nav>
       </aside>
 
       <button

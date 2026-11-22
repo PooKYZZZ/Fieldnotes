@@ -65,14 +65,20 @@ Cloudflare Tunnel can make the app reachable at `learn.cybertracesystems.com`; F
 2. Start Fieldnotes with the optional overlay:
 
    ```powershell
+   $changes = git status --porcelain
+   $env:FIELDNOTES_SOURCE_REVISION = if ($changes) { "uncommitted" } else { (git rev-parse HEAD).Trim() }
+   docker compose -f compose.yaml -f compose.cloudflare.yaml config --quiet
    docker compose -f compose.yaml -f compose.cloudflare.yaml up --build -d
+   docker image inspect devops-fieldnotes:local --format '{{.Id}} {{index .Config.Labels "org.opencontainers.image.revision"}}'
    ```
 
-   This keeps the existing loopback address and the `learning-data` volume. The overlay connects the app to the existing Tunnel network and gives it the internal name `fieldnotes-lms`.
+   This keeps the existing loopback address and the `learning-data` volume. The overlay connects the app to the existing Tunnel network and gives it the internal name `fieldnotes-lms`. Record the image ID and revision output with the release. A dirty checkout is labeled `uncommitted`; do not label it with `HEAD` as if that commit alone described the image.
 3. In Cloudflare Zero Trust, add a **Published application** route for `learn.cybertracesystems.com` with service `http://fieldnotes-lms:3000`. Do not attach a Cloudflare Access application. Cloudflare creates the DNS route for the hostname.
 4. Open `https://learn.cybertracesystems.com` in a private browser window. Confirm that lessons are public, then use Google or GitHub when you want private saved progress.
 
-The host machine and Docker services must remain running for the site to be available. Because the route is public, configure OAuth credentials and a strong unique secret before publishing it. To return the app to local-only networking, start it again with `docker compose up --build -d`; the named data volume is retained.
+The host machine and Docker services must remain running for the site to be available. Because the route is public, configure OAuth credentials and a strong unique secret before publishing it. To return the app to local-only networking, start it again with `docker compose -f compose.yaml up --build -d`; the named data volume is retained.
+
+CI builds the image from the checked-out `GITHUB_SHA` and verifies its `org.opencontainers.image.revision` label. The image ID or digest identifies the actual artifact; the label alone does not prove that a running service uses that image.
 
 ## Local development
 
@@ -113,6 +119,10 @@ $env:PLAYWRIGHT_PORT = "3001"
 npm run test:e2e
 ```
 
+`npm start` loads the project-root `.env*` files using Next.js precedence, then starts the generated standalone server. An exported `DATABASE_PATH` takes precedence; relative paths are resolved from the project root, absolute paths stay absolute, and `:memory:` remains in-memory. The default is `.data/lms.sqlite` beside the project, outside `.next`.
+
+Before rebuilding an older checkout, check whether `.next/standalone/.data/lms.sqlite` contains saved work. Snapshot it and compare it with the project-root `.data/lms.sqlite` before the build, because Next.js replaces generated output. Do not copy one database over the other automatically; use the approved restore or merge process after identifying which records are missing. `npm start` uses the project-root database after this change.
+
 The same test suite is run by [GitHub Actions CI](.github/workflows/ci.yml), which also builds the Docker image.
 
 ## Configuration and data
@@ -122,6 +132,7 @@ The same test suite is run by [GitHub Actions CI](.github/workflows/ci.yml), whi
 | `APP_PORT` | `3000` | Host port published by Compose; set in `.env` |
 | `APP_BIND_ADDRESS` | `127.0.0.1` | Compose host bind address; keep loopback for this MVP |
 | `DATABASE_PATH` | `.data/lms.sqlite` locally; `/data/lms.sqlite` in Compose | SQLite file for auth sessions and all learners' separate progress records |
+| `FIELDNOTES_NEXT_DIST_DIR` | `.next` | Internal Next.js output directory; Playwright sets this to isolate its test build |
 | `BETTER_AUTH_SECRET` | Required for local account operations | Unique secret used by local development |
 | `BETTER_AUTH_URL` | `http://127.0.0.1:3000` locally | Local canonical origin used for callbacks and trusted requests |
 | `FIELDNOTES_PROD_BETTER_AUTH_SECRET` | Required in Compose | Separate, stable production secret |

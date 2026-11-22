@@ -6,7 +6,10 @@ import { ArrowUpRight, NotebookPen, PencilLine, RefreshCw, Search, ShieldCheck }
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressRecord, ProgressStatus } from "@/features/progress/model";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
+import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
+import { ProgressAccountChangedNotice } from "@/features/progress/progress-account-changed-notice";
 import { useProgressRecords } from "@/features/progress/use-progress-records";
+import { formatSavedDate } from "@/features/progress/date-format";
 
 export type NotebookItem = { itemType: ProgressRecord["itemType"]; itemId: string; label: string; href: string; editHref?: string; editLabel?: string; kind: string; investigationTasks?: { id: string; title: string }[]; checkpointTasks?: { id: string; title: string }[] };
 type ItemFilter = "all" | "module" | "lesson" | "activity" | "troubleshooting" | "project" | "milestone";
@@ -36,7 +39,7 @@ function matchesType(record: ProgressRecord, filter: ItemFilter): boolean {
 }
 
 export function ProgressNotebook({ items, initialTypeFilter = "all" }: { items: NotebookItem[]; initialTypeFilter?: ItemFilter }) {
-  const { records, loaded, loadError, requiresSignIn, retry } = useProgressRecords();
+  const { records, loaded, loadError, requiresSignIn, accountChanged, sessionUnavailable, retry } = useProgressRecords();
   const [query, setQuery] = useState("");
   const [itemFilter, setItemFilter] = useState<ItemFilter>(initialTypeFilter);
   const [statusFilter, setStatusFilter] = useState<"all" | ProgressStatus>("all");
@@ -77,6 +80,8 @@ export function ProgressNotebook({ items, initialTypeFilter = "all" }: { items: 
   const clearFilters = () => { setQuery(""); setItemFilter("all"); setStatusFilter("all"); };
 
   if (!loaded) return <div className="progress-loading" role="status"><RefreshCw size={17} aria-hidden="true" />Loading your saved learning records…</div>;
+  if (sessionUnavailable) return <AuthUnavailableNotice message="Your account could not be checked. Your public learning material remains available; saved records are hidden until the account service responds." onRetry={retry} />;
+  if (accountChanged) return <ProgressAccountChangedNotice />;
   if (requiresSignIn) return <ProgressSignInNotice>Your learning records are private to your account. Sign in to open your notebook; lessons remain public.</ProgressSignInNotice>;
   if (loadError) return <div className="progress-load-error" role="alert"><h2>Saved progress is unavailable</h2><p>Your records were not cleared. Check the app or local database, then retry.</p><button className="button button-outline" type="button" onClick={retry}><RefreshCw size={14} aria-hidden="true" /> Try again</button></div>;
 
@@ -102,12 +107,11 @@ export function ProgressNotebook({ items, initialTypeFilter = "all" }: { items: 
     </div>
 
     {filteredItems.length ? <div className="progress-record-list">{filteredItems.map(({ record, item }) => {
-      const updatedAt = new Date(record.updatedAt);
-      const formattedDate = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(updatedAt);
+      const savedDate = formatSavedDate(record.updatedAt, { dateStyle: "medium" });
       return <article className="progress-record" key={`${record.itemType}-${record.itemId}`}>
         <div className="progress-record-marker" aria-hidden="true"><NotebookPen size={17} /></div>
         <div className="progress-record-body">
-          <div className="progress-record-heading"><div><p className="progress-record-meta">{item.kind} <span aria-hidden="true">·</span> <time dateTime={updatedAt.toISOString()}>Saved {formattedDate}</time></p><h3><Link href={item.href}>{item.label}<ArrowUpRight size={14} aria-hidden="true" /></Link></h3></div><StatusPill status={record.status} /></div>
+          <div className="progress-record-heading"><div><p className="progress-record-meta">{item.kind} <span aria-hidden="true">·</span> {savedDate.dateTime ? <time dateTime={savedDate.dateTime}>Saved {savedDate.text}</time> : <span>{savedDate.text}</span>}</p><h3><Link href={item.href}>{item.label}<ArrowUpRight size={14} aria-hidden="true" /></Link></h3></div><StatusPill status={record.status} /></div>
           {record.comfort && <p className="progress-record-detail"><strong>Confidence:</strong> {record.comfort[0].toUpperCase() + record.comfort.slice(1)}</p>}
           {record.itemType === "activity" && item.investigationTasks && record.taskObservations && <div className="progress-record-task-observations" aria-label={`Saved ${record.itemId} task observations`}>
             {item.investigationTasks.map((task) => {

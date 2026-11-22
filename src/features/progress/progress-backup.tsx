@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Download, FileUp } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-session-context";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
+import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
 import { maxBackupBytes } from "@/features/progress/backup-limits";
 import { progressAccountHeaders } from "@/features/progress/progress-draft";
 import type { ProgressRecord } from "@/features/progress/model";
@@ -53,10 +54,11 @@ function serverError(value: unknown, fallback: string): string {
 }
 
 export function ProgressBackup() {
-  const { userId, pending } = useAuthSession();
-  if (pending) return <p role="status">Loading backup options…</p>;
-  if (!userId) return <ProgressSignInNotice>Sign in to export or restore your learning records.</ProgressSignInNotice>;
-  return <AccountProgressBackup key={userId} userId={userId} />;
+  const session = useAuthSession();
+  if (session.status === "loading") return <p role="status">Loading backup options…</p>;
+  if (session.status === "unavailable") return <AuthUnavailableNotice message="Your account could not be checked. Backup and restore stay unavailable until the account service responds." onRetry={() => void session.retry()} />;
+  if (session.status === "signed-out") return <ProgressSignInNotice>Sign in to export or restore your learning records.</ProgressSignInNotice>;
+  return <AccountProgressBackup key={session.userId} userId={session.userId} />;
 }
 
 function AccountProgressBackup({ userId }: { userId: string }) {
@@ -167,7 +169,7 @@ function AccountProgressBackup({ userId }: { userId: string }) {
       const preservedCount = typeof result === "object" && result !== null && "preservedCount" in result && typeof result.preservedCount === "number"
         ? result.preservedCount
         : 0;
-      window.dispatchEvent(new CustomEvent("progress-updated"));
+      window.dispatchEvent(new CustomEvent("progress-updated", { detail: { source: "restore" } }));
       setPendingImport(undefined);
       setMessage(`${importedCount} ${importedCount === 1 ? "record was" : "records were"} restored; ${preservedCount} equal or newer saved ${preservedCount === 1 ? "record was" : "records were"} kept.`);
     } catch (caught) {
@@ -192,7 +194,7 @@ function AccountProgressBackup({ userId }: { userId: string }) {
       <div className="progress-backup-copy">
         <p className="eyebrow">Your local data</p>
         <h2 id="progress-backup-title">Backup and restore</h2>
-        <p>Export notes and progress to a JSON file, or preview a restore before merging. Matching records are updated only when the backup is newer; equal or newer saved records are kept.</p>
+        <p>Export notes and progress to a JSON file, or preview a restore before merging. Matching records are updated only when the backup is newer; equal or newer saved records are kept. If an older record shows “Saved date unavailable,” or a backup date is rejected as too far in the future, open its Edit link and save it before exporting a backup to restore elsewhere.</p>
       </div>
       <div className="progress-backup-actions">
         <button className="button button-outline" type="button" onClick={exportProgress} disabled={busy}><Download size={15} /> Export JSON</button>
@@ -203,7 +205,7 @@ function AccountProgressBackup({ userId }: { userId: string }) {
       </div>
       {preview && <div className="progress-restore-preview" aria-labelledby="progress-restore-preview-title">
         <h3 id="progress-restore-preview-title">Restore preview</h3>
-        <p>{preview.totalCount} records in the backup · {preview.overlappingCount} match records already saved here · {preview.preservedCount} equal or newer saved records will be kept · {preview.totalCount - preview.preservedCount} records will be restored.</p>
+        <p>Estimates at preview time: {preview.totalCount} records in the backup · {preview.overlappingCount} match records already saved here · {preview.preservedCount} equal or newer saved records will be kept · {preview.totalCount - preview.preservedCount} records will be restored. Current records are checked again when you apply.</p>
         {preview.overlaps.length > 0 && <ul aria-label="Matching saved records">
           {preview.overlaps.map((item) => <li key={`${item.itemType}:${item.itemId}`}>
             <strong>{item.itemType} {item.itemId}</strong>: {item.preserveCurrent ? "keep the saved record" : "replace with the newer backup record"}

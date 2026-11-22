@@ -6,6 +6,8 @@ import { ArrowRight, CheckCircle2, Circle, Layers3, RefreshCw, Rocket } from "lu
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ProgressSummary, ProgressStatus } from "@/features/progress/model";
 import { useProgressList } from "@/features/progress/progress-list-context";
+import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
+import { ProgressAccountChangedNotice } from "@/features/progress/progress-account-changed-notice";
 import { ProjectModuleLinks } from "@/features/projects/project-module-links";
 
 export type MajorProjectSummary = {
@@ -114,7 +116,7 @@ function SmallToolCard({ project, status, completedMilestones, nextMilestone, ac
 }
 
 export function ProjectOverview({ majorProjects, smallProjects }: { majorProjects: MajorProjectSummary[]; smallProjects: SmallProjectSummary[] }) {
-  const { records, loaded, loadError, requiresSignIn } = useProgressList();
+  const { records, loaded, loadError, requiresSignIn, accountChanged, sessionUnavailable, retry } = useProgressList();
 
   const recordByItem = useMemo(() => new Map(records.map((record) => [`${record.itemType}:${record.itemId}`, record])), [records]);
   const completedMilestones = useMemo(() => new Set(records
@@ -156,6 +158,8 @@ export function ProjectOverview({ majorProjects, smallProjects }: { majorProject
   }
 
   return <>
+    {sessionUnavailable && <AuthUnavailableNotice message="Your account could not be checked. Saved project progress stays hidden until the account service responds." onRetry={retry} />}
+    {accountChanged && <ProgressAccountChangedNotice />}
     <div className="project-overview-stats" aria-label="Project collection summary">
       <div><Rocket size={18} aria-hidden="true" /><strong>{majorProjects.length}</strong><span>major builds</span></div>
       <div><Layers3 size={18} aria-hidden="true" /><strong>{smallProjects.length}</strong><span>focused builds</span></div>

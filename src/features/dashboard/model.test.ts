@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { activities, majorProjects, modules, smallProjects } from "@/content";
+import { activities, majorProjects, modules, projectMilestones, smallProjects } from "@/content";
 import type { ProgressSummary } from "@/features/progress/model";
 import { buildDashboardModel, statusForModule } from "@/features/dashboard/model";
+
+const projectSummaries = [...majorProjects, ...smallProjects].map(({ id, title }) => ({
+  id,
+  title,
+  milestones: projectMilestones.filter((milestone) => milestone.projectId === id)
+    .map(({ id: milestoneId, label }) => ({ id: milestoneId, label })),
+}));
+const majorProjectSummaries = majorProjects.map((project) => projectSummaries.find(({ id }) => id === project.id)!);
+const smallProjectSummaries = smallProjects.map((project) => projectSummaries.find(({ id }) => id === project.id)!);
 
 function record(itemType: ProgressSummary["itemType"], itemId: string, status: ProgressSummary["status"], updatedAt: number): ProgressSummary {
   return { itemType, itemId, status, updatedAt, revision: 1, hasContent: false };
@@ -9,7 +18,7 @@ function record(itemType: ProgressSummary["itemType"], itemId: string, status: P
 
 describe("dashboard learning model", () => {
   it("gives a first-time learner one clear primary lesson and no duplicate next action", () => {
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, []);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, []);
 
     expect(model.currentModule?.id).toBe(1);
     expect(model.currentModuleStatus).toBe("not_started");
@@ -23,7 +32,7 @@ describe("dashboard learning model", () => {
 
   it("finishes a module's paired activity before starting the next module", () => {
     const records = modules[0].lessons.map((lesson, index) => record("lesson", lesson.id, "completed", index + 1));
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.currentModule?.id).toBe(1);
     expect(model.currentActivity?.id).toBe("A01");
@@ -32,7 +41,7 @@ describe("dashboard learning model", () => {
   });
 
   it("includes saved troubleshooting records in recent work", () => {
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, [
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, [
       record("troubleshooting", "T03", "in_progress", 300),
     ]);
 
@@ -51,7 +60,7 @@ describe("dashboard learning model", () => {
       record("activity", "A03", "in_progress", 250),
       record("milestone", "P1.1", "completed", 350),
     ];
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.currentModule?.id).toBe(3);
     expect(model.currentModuleStatus).toBe("needs_review");
@@ -70,7 +79,7 @@ describe("dashboard learning model", () => {
       record("module", "M01", "completed", 100),
       record("activity", "A03", "in_progress", 300),
     ];
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.currentModule?.id).toBe(3);
     expect(model.currentActivity?.id).toBe("A03");
@@ -85,7 +94,7 @@ describe("dashboard learning model", () => {
       record("activity", "A01", "needs_review", 200),
       record("lesson", "M01-L02", "in_progress", 300),
     ];
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.currentLesson).toMatchObject({ id: "M01-L02", moduleId: 1 });
     expect(model.currentLessonStatus).toBe("in_progress");
@@ -104,7 +113,7 @@ describe("dashboard learning model", () => {
         taskObservations: { "S01.1": "The fixture contract is documented." },
       },
     ];
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.currentProject).toMatchObject({
       id: "S01",
@@ -118,6 +127,61 @@ describe("dashboard learning model", () => {
     expect(model.nextItems.some((item) => item.detail === "Log explorer")).toBe(false);
   });
 
+  it("does not suggest another checkpoint for an explicitly completed project", () => {
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, [
+      record("small_project", "S01", "completed", 300),
+      record("milestone", "S01.1", "completed", 200),
+    ]);
+
+    expect(model.currentProject).toBeUndefined();
+    expect(model.nextItems.some((item) => item.id === "S01.2")).toBe(false);
+  });
+
+  it("resumes a checkpoint-only project record", () => {
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, [
+      record("milestone", "S01.1", "completed", 200),
+    ]);
+
+    expect(model.currentProject).toMatchObject({
+      id: "S01",
+      checkpoint: { id: "S01.2" },
+      completedCheckpointCount: 1,
+      hasSavedDraft: false,
+    });
+  });
+
+  it("resumes a project marked for review", () => {
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, [
+      record("project", "P1", "needs_review", 500),
+    ]);
+
+    expect(model.currentProject).toMatchObject({ id: "P1", status: "needs_review" });
+  });
+
+  it("keeps an all-checkpoints-complete project available for review", () => {
+    const s01Milestones = smallProjectSummaries.find(({ id }) => id === "S01")!.milestones;
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, [
+      record("small_project", "S01", "in_progress", 500),
+      ...s01Milestones.map((milestone, index) => record("milestone", milestone.id, "completed", 100 + index)),
+    ]);
+
+    expect(model.currentProject).toMatchObject({
+      id: "S01",
+      checkpoint: undefined,
+      completedCheckpointCount: s01Milestones.length,
+      totalCheckpointCount: s01Milestones.length,
+    });
+  });
+
+  it("chooses the most recently updated of two active projects", () => {
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, [
+      record("small_project", "S01", "in_progress", 300),
+      record("small_project", "S02", "needs_review", 400),
+    ]);
+
+    expect(model.currentProject).toMatchObject({ id: "S02", status: "needs_review" });
+  });
+
   it("keeps a newer active lesson ahead of an older saved project draft", () => {
     const records = [
       {
@@ -127,7 +191,7 @@ describe("dashboard learning model", () => {
       },
       record("lesson", "M01-L02", "in_progress", 400),
     ];
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.currentProject).toBeUndefined();
     expect(model.currentLesson).toMatchObject({ id: "M01-L02", moduleId: 1 });
@@ -136,7 +200,7 @@ describe("dashboard learning model", () => {
 
   it("uses explicit completion records and does not invent recent work", () => {
     const records = modules.map((learningModule, index) => record("module", `M${String(learningModule.id).padStart(2, "0")}`, "completed", index + 1));
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.completedModules).toBe(modules.length);
     expect(model.currentModule?.id).toBe(1);
@@ -153,7 +217,7 @@ describe("dashboard learning model", () => {
       record("lesson", "M01-L01", "completed", 150),
       record("lesson", "M01-L02", "in_progress", 300),
     ];
-    const model = buildDashboardModel(modules, activities, majorProjects, smallProjects, records);
+    const model = buildDashboardModel(modules, activities, majorProjectSummaries, smallProjectSummaries, records);
 
     expect(model.currentLesson).toMatchObject({ id: "M01-L02", moduleId: 1 });
     expect(model.currentLessonStatus).toBe("in_progress");

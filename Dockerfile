@@ -17,10 +17,12 @@ COPY . .
 RUN npm run build
 
 FROM base AS runtime
+ARG SOURCE_REVISION=uncommitted
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
     DATABASE_PATH=/data/lms.sqlite
+LABEL org.opencontainers.image.revision="${SOURCE_REVISION}"
 RUN groupadd --system --gid 1001 nodejs \
     && useradd --system --uid 1001 --gid nodejs --home-dir /app nextjs \
     && mkdir -p /data \

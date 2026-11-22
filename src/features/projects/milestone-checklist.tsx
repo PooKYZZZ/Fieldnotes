@@ -1,28 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, Check, RefreshCw, X } from "lucide-react";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import type { ProjectMilestone } from "@/content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
 import { useModalInertSiblings } from "@/features/ui/use-modal-inert-siblings";
 import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
+import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
+import { ProgressAccountChangedNotice } from "@/features/progress/progress-account-changed-notice";
 import type { ProgressInput } from "@/features/progress/model";
 import { useProgressList } from "@/features/progress/progress-list-context";
 import { useAuthSession } from "@/features/auth/auth-session-context";
 import { progressAccountHeaders } from "@/features/progress/progress-draft";
-
-function subscribeToLocationChanges(onChange: () => void): () => void {
-  window.addEventListener("hashchange", onChange);
-  window.addEventListener("popstate", onChange);
-  return () => {
-    window.removeEventListener("hashchange", onChange);
-    window.removeEventListener("popstate", onChange);
-  };
-}
+import { subscribeToProjectLocation, updateProjectHash } from "@/features/projects/project-location";
 
 function locationHashSnapshot(): string {
   return window.location.hash;
+}
+
+function checkpointFromHash(hash: string, milestones: ProjectMilestone[]): ProjectMilestone | undefined {
+  if (!hash.startsWith("#milestone-")) return undefined;
+  const id = hash.slice("#milestone-".length);
+  return milestones.find((milestone) => milestone.id === id);
 }
 
 type ProjectMilestoneProps = {
@@ -42,10 +42,25 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
   const [savedChanges, setSavedChanges] = useState<Map<string, { complete: boolean; revision: number }>>(new Map());
   const [message, setMessage] = useState("");
   const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
-  const { records, loaded, loadError, requiresSignIn, retry } = useProgressList();
+  const { records, loaded, loadError, requiresSignIn, accountChanged, sessionUnavailable, retry } = useProgressList();
   const loading = !loaded;
-  const locationHash = useSyncExternalStore(subscribeToLocationChanges, locationHashSnapshot, () => "");
+  const hideSavedProgress = requiresSignIn || accountChanged || sessionUnavailable;
+  const subscribeToLocation = useCallback((onChange: () => void) => {
+    let previousLinkedCheckpoint = checkpointFromHash(window.location.hash, milestones)?.id;
+    return subscribeToProjectLocation(() => {
+      const linkedCheckpoint = checkpointFromHash(window.location.hash, milestones);
+      if (linkedCheckpoint) {
+        previousLinkedCheckpoint = linkedCheckpoint.id;
+        setSelectedOverride(linkedCheckpoint.id);
+      } else if (previousLinkedCheckpoint) {
+        setSelectedOverride(previousLinkedCheckpoint);
+      }
+      onChange();
+    });
+  }, [milestones]);
+  const locationHash = useSyncExternalStore(subscribeToLocation, locationHashSnapshot, () => "");
   const savedMilestones = useMemo(() => {
+    if (hideSavedProgress) return new Map<string, { complete: boolean; revision: number }>();
     const milestonesById = new Map(records
       .filter((row) => row.itemType === "milestone")
       .map((row) => [row.itemId, { complete: row.status === "completed", revision: row.revision }]));
@@ -53,24 +68,26 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
       if (saved.revision > (milestonesById.get(id)?.revision ?? 0)) milestonesById.set(id, saved);
     }
     return milestonesById;
-  }, [records, savedChanges]);
+  }, [hideSavedProgress, records, savedChanges]);
   const completed = useMemo(() => {
     const complete = new Set([...savedMilestones].filter(([, saved]) => saved.complete).map(([id]) => id));
+    if (hideSavedProgress) return complete;
     for (const [id, pending] of pendingChanges) {
       if (pending) complete.add(id);
       else complete.delete(id);
     }
     return complete;
-  }, [savedMilestones, pendingChanges]);
-  const linkedCheckpointId = locationHash.startsWith("#milestone-") ? locationHash.slice("#milestone-".length) : "";
-  const linkedCheckpoint = milestones.find(({ id }) => id === linkedCheckpointId);
-  const selectedId = selectedOverride
-    ?? linkedCheckpoint?.id
+  }, [hideSavedProgress, savedMilestones, pendingChanges]);
+  const hasCheckpointHash = locationHash.startsWith("#milestone-");
+  const linkedCheckpoint = checkpointFromHash(locationHash, milestones);
+  const selectedId = linkedCheckpoint?.id
+    ?? (hasCheckpointHash ? undefined : selectedOverride)
     ?? milestones.find(({ id }) => !completed.has(id))?.id
     ?? milestones[0]?.id
     ?? "";
   const notebookRef = useRef<HTMLElement>(null);
   const closeNotebookRef = useRef<HTMLButtonElement>(null);
+  const skipLocationFocusRef = useRef(false);
   useModalInertSiblings(notebookRef, mobileNotebookOpen);
   const notebookToggleRef = useRef<HTMLButtonElement>(null);
 
@@ -87,7 +104,7 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
       }
       if (event.key !== "Tab" || !notebookRef.current) return;
       const controls = [...notebookRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), a[href], summary, input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
       )].filter((element) => element.offsetParent !== null);
       if (controls.length === 0) return;
       const first = controls[0];
@@ -116,7 +133,7 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
   }, []);
 
   async function toggle(milestone: ProjectMilestone) {
-    if (!userId || pendingChanges.has(milestone.id)) return;
+    if (!userId || !loaded || loadError || hideSavedProgress || pendingChanges.has(milestone.id)) return;
     const current = savedMilestones.get(milestone.id);
     const complete = !current?.complete;
     setSelectedOverride(milestone.id);
@@ -171,7 +188,9 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
   function selectMilestone(id: string) {
     setSelectedOverride(id);
     setMessage("");
-    window.history.replaceState(null, "", `#milestone-${id}`);
+    const hash = `#milestone-${id}`;
+    skipLocationFocusRef.current = window.location.hash !== hash;
+    updateProjectHash(hash, "replace");
   }
 
   const selectedIndex = Math.max(0, milestones.findIndex(({ id }) => id === selectedId));
@@ -180,15 +199,21 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
 
   useEffect(() => {
     if (!activeMilestone || window.location.hash !== `#milestone-${activeMilestone.id}`) return;
-    requestAnimationFrame(() => document.getElementById(`milestone-${activeMilestone.id}`)?.scrollIntoView({ block: "start" }));
-  }, [activeMilestone]);
+    const skipFocus = skipLocationFocusRef.current;
+    skipLocationFocusRef.current = false;
+    requestAnimationFrame(() => {
+      const target = document.getElementById(`milestone-title-${activeMilestone.id}`);
+      document.getElementById(`milestone-${activeMilestone.id}`)?.scrollIntoView({ block: "start" });
+      if (!skipFocus) target?.focus({ preventScroll: true });
+    });
+  }, [activeMilestone, locationHash]);
 
   return <div className="project-build-workspace">
     <div className="project-build-main">
       <div className="project-build-selector">
         <div className="project-build-progress-copy">
           <strong>{milestones.length} build checkpoints</strong>
-          <span>{requiresSignIn ? "Sign in to view saved progress" : `${completedCount} self-reported complete`}</span>
+          <span>{sessionUnavailable ? "Account unavailable" : accountChanged ? "Account changed · reload to continue" : requiresSignIn ? "Sign in to view saved progress" : `${completedCount} self-reported complete`}</span>
         </div>
         <nav className="project-checkpoint-map" aria-label="Build checkpoints">
           {milestones.map((milestone, index) => {
@@ -213,12 +238,14 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
       </div>
 
       {requiresSignIn && <ProgressSignInNotice>Your checkpoint states and notes are private to your account. Sign in to save or review them; the project guidance remains open.</ProgressSignInNotice>}
+      {sessionUnavailable && <AuthUnavailableNotice message="Your account could not be checked. Checkpoint progress stays hidden and saving is paused; the project guidance remains open." onRetry={retry} />}
+      {accountChanged && <ProgressAccountChangedNotice />}
 
       {activeMilestone ? <article className="project-active-milestone" id={`milestone-${activeMilestone.id}`} aria-labelledby={`milestone-title-${activeMilestone.id}`}>
         <div className="project-active-milestone-heading">
           <div>
             <p className="eyebrow">Checkpoint {selectedIndex + 1} of {milestones.length} · {activeMilestone.id}</p>
-            <h3 id={`milestone-title-${activeMilestone.id}`}>{activeMilestone.label}</h3>
+            <h3 id={`milestone-title-${activeMilestone.id}`} tabIndex={-1}>{activeMilestone.label}</h3>
           </div>
           <label className="project-milestone-toggle" htmlFor={`milestone-check-${activeMilestone.id}`}>
             <input
@@ -255,7 +282,7 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
       </details> : null}
 
       {loading && <p className="form-message" role="status">Loading saved project checkpoints…</p>}
-      {!loading && loadError && <button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} aria-hidden="true" /> Try loading checkpoints again</button>}
+      {!loading && loadError && !sessionUnavailable && !accountChanged && <button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} aria-hidden="true" /> Try loading checkpoints again</button>}
       <p className="form-message project-checkpoint-message" role="status" aria-live="polite">{message}</p>
       {!loading && !loadError && <p className="project-milestone-footnote"><Check size={13} aria-hidden="true" /> Checkpoint states are self-reported. Save the evidence and explain what each check supports in your project notebook.</p>}
       <button

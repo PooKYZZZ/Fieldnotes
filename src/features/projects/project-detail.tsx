@@ -3,6 +3,7 @@ import { projectMilestones, type MajorProjectRecord, type ProjectMilestone, type
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { ProjectMilestoneWorkbench } from "@/features/projects/milestone-checklist";
 import { ProjectRecordReview } from "@/features/projects/project-record-review";
+import { ProjectRecordProvider } from "@/features/projects/project-record-context";
 import { ProjectFlowNav } from "@/features/projects/project-flow-nav";
 import { ProjectModuleLinks } from "@/features/projects/project-module-links";
 
@@ -78,7 +79,7 @@ export function ProjectDetail({ project }: { project: Project }) {
         </div>
       </header>
 
-      <ProjectFlowNav stages={[
+      <ProjectRecordProvider projectId={project.id} projectType={itemType}><ProjectFlowNav stages={[
         {
           id: "project-assignment",
           label: "Overview",
@@ -111,7 +112,7 @@ export function ProjectDetail({ project }: { project: Project }) {
           id: "project-review",
           label: "Review",
           content: <ProjectStage id="project-review" title="Review your work and prepare the handoff" eyebrow="04 · Verify, reflect, and share" className="project-review-stage">
-            <ProjectRecordReview projectId={project.id} projectType={itemType} milestones={milestones} />
+            <ProjectRecordReview projectId={project.id} milestones={milestones} />
             {reviewSections.slice(0, 3).map((section) => <ProjectContent key={section.key} project={project} section={section} />)}
             <details className="project-supporting-details">
               <summary>Open optional extensions and self-review</summary>
@@ -122,7 +123,7 @@ export function ProjectDetail({ project }: { project: Project }) {
             </details>
           </ProjectStage>,
         },
-      ]} />
+      ]} /></ProjectRecordProvider>
     </div>
   </>;
 }

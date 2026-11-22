@@ -47,6 +47,10 @@ Next.js loads `.env*` files for app configuration. Compose reads `.env` for host
 | `npx playwright install chromium` | Install the browser used by Playwright |
 | `npm run test:e2e` | Run Playwright against an isolated local Next.js server and disposable SQLite database |
 
+`npm start` loads project-root `.env*` files with Next.js precedence before starting standalone output. An exported `DATABASE_PATH` wins; relative paths resolve from the project root, absolute paths remain absolute, and `:memory:` remains in-memory. Without it, local standalone storage is `.data/lms.sqlite` at the project root, outside generated output. Before rebuilding an older checkout, snapshot and inspect `.next/standalone/.data/lms.sqlite` if present and compare it with the project-root database. Rebuilds replace generated output, so restore or merge any missing records using the approved recovery process; do not overwrite either database automatically.
+
+`FIELDNOTES_NEXT_DIST_DIR` is an internal output-directory setting used by Playwright to isolate test builds. Local production builds use the default `.next` directory and `npm start` expects that location.
+
 The browser suite creates separate owner and learner accounts, stores their test-only session cookies in the operating system's temporary folder, and deletes the isolated database on exit. It does not use the local `.data/lms.sqlite` or the Docker volume. The test server listens on port 3000 by default; choose another free port if needed:
 
 ```powershell
@@ -70,13 +74,116 @@ docker compose logs -f app
 
 The app is exposed on `127.0.0.1:${APP_PORT:-3000}` and stores auth users, sessions, and account-scoped progress in the named `learning-data` volume. `docker compose down` removes the container and network but retains that volume. Do not use `docker compose down -v` unless permanent deletion of learner data is intended. Before an upgrade that adds or changes a migration, make a SQLite/volume backup.
 
-An optional `compose.cloudflare.yaml` overlay connects the app to an existing CyberTrace Cloudflare Tunnel network. The app remains bound to loopback on the host and is reachable through the Tunnel by the internal Docker alias `fieldnotes-lms:3000`. Set `FIELDNOTES_TUNNEL_NETWORK` in the local `.env` to the existing `cloudflared` ingress network name, then run:
+An optional `compose.cloudflare.yaml` overlay connects the app to an existing CyberTrace Cloudflare Tunnel network. The app remains bound to loopback on the host and is reachable through the Tunnel by the internal Docker alias `fieldnotes-lms:3000`. Set `FIELDNOTES_TUNNEL_NETWORK` in the local `.env` to the existing `cloudflared` ingress network name. Use the same two-file command for validation and public recreation; Compose merges the overlay onto the base file in the order shown ([Compose merge rules](https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/)). Record the image ID and revision label after building:
 
 ```powershell
+$changes = git status --porcelain
+$env:FIELDNOTES_SOURCE_REVISION = if ($changes) { "uncommitted" } else { (git rev-parse HEAD).Trim() }
+docker compose -f compose.yaml -f compose.cloudflare.yaml config --quiet
 docker compose -f compose.yaml -f compose.cloudflare.yaml up --build -d
+docker image inspect devops-fieldnotes:local --format '{{.Id}} {{index .Config.Labels "org.opencontainers.image.revision"}}'
 ```
 
-For the public `learn.cybertracesystems.com` route, keep Cloudflare Tunnel as transport and let Better Auth handle accounts. Do not enable Cloudflare Access if visitors should be able to browse without a Cloudflare identity. Publish the public `/privacy` and `/terms` pages, configure production-only OAuth callbacks, and set the exact HTTPS app origin before publishing. This is still a single-host SQLite deployment: every learner account is logically isolated in one database file, and backups/host access remain the operator's responsibility. To remove the additional network attachment, apply the base Compose file again with `docker compose up --build -d`; the named data volume remains intact.
+`SOURCE_REVISION` becomes the `org.opencontainers.image.revision` label. CI supplies the checked-out commit SHA. For a dirty local checkout, use `uncommitted` rather than the current `HEAD`; retain the image ID or digest and the source status with the release record. The label identifies the declared source revision, not the running image or a clean source tree by itself.
+
+For the public `learn.cybertracesystems.com` route, keep Cloudflare Tunnel as transport and let Better Auth handle accounts. Do not enable Cloudflare Access if visitors should be able to browse without a Cloudflare identity. Publish the public `/privacy` and `/terms` pages, configure production-only OAuth callbacks, and set the exact HTTPS app origin before publishing. This is still a single-host SQLite deployment: every learner account is logically isolated in one database file, and backups/host access remain the operator's responsibility. To remove the additional network attachment, apply the base Compose file again with `docker compose -f compose.yaml up --build -d`; the named data volume remains intact.
+
+### SQLite snapshots and restore drills
+
+The live database uses SQLite WAL mode. Do not copy only `/data/lms.sqlite` while the app is running: committed changes may still be in its WAL file. Use the installed `better-sqlite3` Online Backup API to create a consistent snapshot, then copy that snapshot out of the Docker volume. The snapshot contains learner records, auth state, and the migration ledger; learner JSON exports do not replace it. Keep `FIELDNOTES_PROD_BETTER_AUTH_SECRET` separately in the approved secret manager used for recovery because the database does not contain that key.
+
+The operator must transfer snapshots to the organization's approved encrypted, access-controlled off-host backup store; a second file in `learning-data` is only staging. The Fieldnotes service owner owns retention and restore checks. Record the actual destination, retention period, and recovery contact in the deployment record before a public release; this repository does not configure off-host storage or retention.
+
+For a live snapshot, choose a unique name, create it through SQLite, copy it to a protected host staging directory, and verify the copied file before transferring it off-host. The following PowerShell example keeps snapshot content and credentials out of output:
+
+```powershell
+$snapshotName = "fieldnotes-$((Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')).sqlite"
+$snapshotScript = @'
+const Database = require("better-sqlite3");
+const name = process.argv[1];
+if (!/^[A-Za-z0-9.-]+\.sqlite$/.test(name)) throw new Error("Invalid snapshot name.");
+(async () => {
+  const db = new Database("/data/lms.sqlite", { readonly: true, fileMustExist: true });
+  try { await db.backup(`/data/${name}`); } finally { db.close(); }
+})().catch((error) => {
+  console.error(`Snapshot failed (${error.name})`);
+  process.exitCode = 1;
+});
+'@
+$compose = @('-f', 'compose.yaml', '-f', 'compose.cloudflare.yaml')
+docker compose @compose exec -T app node -e $snapshotScript $snapshotName
+if ($LASTEXITCODE -ne 0) { throw 'SQLite snapshot failed.' }
+
+if (-not $env:FIELDNOTES_BACKUP_DIR) { throw 'Set FIELDNOTES_BACKUP_DIR to a protected host staging directory.' }
+$appContainer = docker compose @compose ps -q app
+$snapshotPath = Join-Path $env:FIELDNOTES_BACKUP_DIR $snapshotName
+docker cp "$($appContainer):/data/$snapshotName" $snapshotPath
+if ($LASTEXITCODE -ne 0) { throw 'Copy the snapshot to the protected staging directory before removing it from the volume.' }
+
+$verifyScript = @'
+const Database = require("better-sqlite3");
+const db = new Database(process.argv[1], { readonly: true, fileMustExist: true });
+try {
+  const integrity = db.pragma("integrity_check");
+  if (integrity.length !== 1 || integrity[0].integrity_check !== "ok") throw new Error("integrity_check failed");
+  if (db.pragma("foreign_key_check").length !== 0) throw new Error("foreign_key_check failed");
+  if (db.prepare("SELECT count(*) AS count FROM schema_migrations").get().count === 0) throw new Error("migration ledger is empty");
+  console.log("PASS snapshot integrity, foreign keys, and migration ledger");
+} finally { db.close(); }
+'@
+node -e $verifyScript $snapshotPath
+if ($LASTEXITCODE -ne 0) { throw 'Keep the source and snapshot; do not use an unverified backup.' }
+Get-FileHash $snapshotPath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+```
+
+Transfer the verified file and checksum to the protected off-host store. After confirming the off-host copy, remove only this timestamped staging file from `/data`:
+
+```powershell
+$cleanupScript = @'
+const name = process.argv[1];
+if (!/^fieldnotes-\d{8}T\d{6}Z\.sqlite$/.test(name)) throw new Error("Refusing to remove a non-snapshot path.");
+require("node:fs").rmSync(`/data/${name}`);
+'@
+docker compose @compose exec -T app node -e $cleanupScript $snapshotName
+if ($LASTEXITCODE -ne 0) { throw 'Remove only the verified timestamped staging snapshot.' }
+```
+
+Keep the original volume and backup until the recovery owner accepts the restore. If a production restore is necessary, use the backup and the matching secret from the same recovery point.
+
+Restore a verified copy into a new, empty host file before any cutover. This uses SQLite's backup API again and refuses to overwrite a target. It prints only check results, not database contents:
+
+```powershell
+$restorePath = Join-Path $env:TEMP "fieldnotes-restore-$snapshotName"
+$restoreScript = @'
+const Database = require("better-sqlite3");
+const fs = require("node:fs");
+const [sourcePath, targetPath] = process.argv.slice(1);
+(async () => {
+  if (fs.existsSync(targetPath)) throw new Error("Restore target already exists.");
+  const source = new Database(sourcePath, { readonly: true, fileMustExist: true });
+  try { await source.backup(targetPath); } finally { source.close(); }
+  const restored = new Database(targetPath, { readonly: true, fileMustExist: true });
+  try {
+    const integrity = restored.pragma("integrity_check");
+    if (integrity.length !== 1 || integrity[0].integrity_check !== "ok") throw new Error("integrity_check failed");
+    if (restored.pragma("foreign_key_check").length !== 0) throw new Error("foreign_key_check failed");
+    if (restored.prepare("SELECT count(*) AS count FROM schema_migrations").get().count === 0) throw new Error("migration ledger is empty");
+    console.log("PASS restored file integrity, foreign keys, and migration ledger");
+  } finally { restored.close(); }
+})().catch((error) => {
+  console.error(`Restore verification failed (${error.name})`);
+  process.exitCode = 1;
+});
+'@
+node -e $restoreScript $snapshotPath $restorePath
+if ($LASTEXITCODE -ne 0) { throw 'Keep the source and backup; do not use an unverified restore.' }
+```
+
+For the repeatable account-isolation rehearsal in a test checkout, first run `npm ci` and `npm run build`, then execute `node_modules/.bin/tsx.cmd scripts/rehearse-sqlite-restore.ts` on Windows or `node_modules/.bin/tsx scripts/rehearse-sqlite-restore.ts` on Linux. It creates a random synthetic account and progress record under ignored `tmp/`, holds a live WAL connection while snapshotting, restores to a separate file, checks integrity, foreign keys, and migrations, boots the standalone build with only synthetic auth/provider configuration, checks `/api/ready`, and verifies the restored record through the account-scoped storage API. It removes only its own generated directory and never opens `.data/lms.sqlite` or the Compose volume.
+
+The local rehearsal verifies only its synthetic copy. For a production recovery, keep the source and backup until a separate restored instance is accepted with the matching image and secret; do not create provider exchanges or test with real learner progress.
+
+`integrity_check` does not check foreign-key violations, so run both PRAGMAs. SQLite's [Online Backup API](https://sqlite.org/backup.html) creates a snapshot of a live database; the [WAL file](https://sqlite.org/wal.html#the_wal_file) is part of persistent state during ordinary file-level copies. See the [better-sqlite3 backup API](https://github.com/WiseLibs/better-sqlite3/blob/v13.1.1/docs/api.md#backupdestination-options---promise) and SQLite's [`integrity_check` and `foreign_key_check` PRAGMAs](https://sqlite.org/pragma.html#pragma_integrity_check).
 
 ### Authentication and account-scoped progress
 

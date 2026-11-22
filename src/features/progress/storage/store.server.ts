@@ -26,9 +26,7 @@ function getDatabase(): ProgressDatabase {
 
 export const listProgress = (userId: string) => getDatabase().list(userId);
 export const findProgress = (userId: string, itemType: ProgressInput["itemType"], itemId: string) => getDatabase().find(userId, itemType, itemId);
-export const saveProgress = (userId: string, input: ProgressInput) => getDatabase().save(userId, input);
 export const saveProgressIfCurrent = (userId: string, input: ProgressInput, expectedRevision: number | null) => getDatabase().saveIfCurrent(userId, input, expectedRevision);
-export const saveProgressMany = (userId: string, inputs: ProgressInput[]) => getDatabase().saveMany(userId, inputs);
 export const mergeProgressMany = (userId: string, inputs: Array<ProgressInput & { updatedAt: number }>) => getDatabase().mergeMany(userId, inputs);
 export const getAuthDatabase = () => getDatabase().orm;
 export const prepareOwnerProgress = (userId: string) => getDatabase().claimLegacyProgress(userId);

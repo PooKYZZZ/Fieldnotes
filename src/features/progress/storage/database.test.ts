@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -10,6 +10,7 @@ import type { ProgressInput } from "@/features/progress/model";
 import { modules } from "@/content";
 import { progressImportSchema } from "@/features/progress/validation";
 import { maxBackupBytes } from "@/features/progress/backup-limits";
+import { maxPersistedProgressFutureHeadroomMs, maxProgressClockSkewMs } from "@/features/progress/timestamp";
 
 const migrationDirectory = path.join(process.cwd(), "migrations");
 const temporaryDirectories: string[] = [];
@@ -61,6 +62,7 @@ function createDatabase(databasePath = makePath()) {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
 
@@ -188,14 +190,115 @@ describe("account-scoped progress database", () => {
   });
 
   it("keeps a local edit newer than a reimport from a clock-ahead installation", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-21T00:00:00.000Z"));
     const database = createDatabase();
     const backup = { ...record, notes: "Imported note", updatedAt: Date.now() + 120_000 };
     const [restored] = database.mergeMany(ownerId, [backup]).records;
     const edited = database.saveIfCurrent(ownerId, { ...record, notes: "Later local edit" }, restored.revision);
 
-    expect(edited).toMatchObject({ record: { updatedAt: backup.updatedAt, notes: "Later local edit" } });
+    if (!("record" in edited)) throw new Error("The current revision should have been saved.");
+    expect(edited).toMatchObject({ record: { updatedAt: backup.updatedAt + 1, notes: "Later local edit" } });
+    const revisionAfterEdit = edited.record.revision;
     expect(database.mergeMany(ownerId, [backup])).toEqual({ records: [], preservedCount: 1 });
-    expect(database.find(ownerId, record.itemType, record.itemId)?.notes).toBe("Later local edit");
+    expect(database.find(ownerId, record.itemType, record.itemId)).toMatchObject({ notes: "Later local edit", revision: revisionAfterEdit });
+    database.close();
+  });
+
+  it("advances a save at the exact future cutoff and accepts it on the next clock tick", () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-11-21T00:00:00.000Z").getTime();
+    vi.setSystemTime(now);
+    const database = createDatabase();
+    const cutoffRecord = { ...record, notes: "At the future cutoff", updatedAt: now + maxProgressClockSkewMs };
+    const [restored] = database.mergeMany(ownerId, [cutoffRecord]).records;
+    const edited = database.saveIfCurrent(ownerId, { ...record, notes: "Edited at the future cutoff" }, restored.revision);
+    if (!("record" in edited)) throw new Error("The current revision should have been saved.");
+    expect(edited.record.updatedAt).toBe(cutoffRecord.updatedAt + 1);
+
+    const secondEdit = database.saveIfCurrent(ownerId, { ...record, notes: "Second edit in the same clock millisecond" }, edited.record.revision);
+    if (!("record" in secondEdit)) throw new Error("The second current revision should have been saved.");
+    expect(secondEdit.record.updatedAt).toBe(cutoffRecord.updatedAt + 2);
+
+    vi.setSystemTime(now + 2);
+    const exportPayload = {
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      records: [{ ...record, notes: secondEdit.record.notes, updatedAt: secondEdit.record.updatedAt }],
+    };
+    expect(progressImportSchema.safeParse(exportPayload).success).toBe(true);
+    const receiver = createDatabase();
+    expect(receiver.mergeMany(ownerId, progressImportSchema.parse(exportPayload).records)).toMatchObject({ preservedCount: 0 });
+    expect(receiver.find(ownerId, record.itemType, record.itemId)?.notes).toBe("Second edit in the same clock millisecond");
+    receiver.close();
+    database.close();
+  });
+
+  it("keeps saved timestamps within the fixed persisted headroom", () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-11-21T00:00:00.000Z").getTime();
+    vi.setSystemTime(now);
+    const database = createDatabase();
+    const farFutureRecord = { ...record, updatedAt: now + maxProgressClockSkewMs + maxPersistedProgressFutureHeadroomMs - 1 };
+    const [saved] = database.mergeMany(ownerId, [farFutureRecord]).records;
+    const edited = database.saveIfCurrent(ownerId, { ...record, notes: "Keep the existing future ordering." }, saved.revision);
+    if (!("record" in edited)) throw new Error("The current revision should have been saved.");
+    expect(edited.record.updatedAt).toBe(now + maxProgressClockSkewMs + maxPersistedProgressFutureHeadroomMs);
+    expect(progressImportSchema.safeParse({
+      version: 3,
+      exportedAt: new Date(now).toISOString(),
+      records: [{ ...record, updatedAt: farFutureRecord.updatedAt }],
+    }).success).toBe(false);
+    database.close();
+  });
+
+  it("repairs a legacy timestamp beyond the persisted headroom so its export can be restored", () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-11-21T00:00:00.000Z").getTime();
+    vi.setSystemTime(now);
+    const databasePath = makePath();
+    const database = createDatabase(databasePath);
+    const saved = database.save(ownerId, record);
+    const legacyTimestamp = new Date("2035-11-21T00:00:00.000Z").getTime();
+    const inspector = new Database(databasePath);
+    inspector.prepare("UPDATE learning_progress SET updated_at = ? WHERE user_id = ? AND item_type = ? AND item_id = ?")
+      .run(legacyTimestamp, ownerId, record.itemType, record.itemId);
+    inspector.close();
+
+    const repaired = database.saveIfCurrent(ownerId, { ...record, notes: "Repair the far-future legacy date." }, saved.revision);
+    expect(repaired).toMatchObject({ record: { updatedAt: now, notes: "Repair the far-future legacy date." } });
+    if (!("record" in repaired)) throw new Error("The current revision should have been saved.");
+    const backup = {
+      version: 3,
+      exportedAt: new Date(now).toISOString(),
+      records: [{ ...record, notes: repaired.record.notes, updatedAt: repaired.record.updatedAt }],
+    };
+    expect(progressImportSchema.safeParse(backup).success).toBe(true);
+    const receiver = createDatabase();
+    expect(receiver.mergeMany(ownerId, progressImportSchema.parse(backup).records).records).toHaveLength(1);
+    expect(receiver.find(ownerId, record.itemType, record.itemId)?.notes).toBe("Repair the far-future legacy date.");
+    receiver.close();
+    database.close();
+  });
+
+  it("recovers a saved row with an invalid timestamp on its next revision-checked edit", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-21T00:00:00.000Z"));
+    const databasePath = makePath();
+    const database = createDatabase(databasePath);
+    const saved = database.save(ownerId, record);
+    const inspector = new Database(databasePath);
+    inspector.prepare("UPDATE learning_progress SET updated_at = ? WHERE user_id = ? AND item_type = ? AND item_id = ?")
+      .run(8.64e15 + 1, ownerId, record.itemType, record.itemId);
+    inspector.close();
+
+    const recovered = database.saveIfCurrent(ownerId, { ...record, notes: "Recovered without losing the earlier record." }, saved.revision);
+    expect(recovered).toMatchObject({ record: {
+      notes: "Recovered without losing the earlier record.",
+      updatedAt: Date.now(),
+      revision: saved.revision + 1,
+    } });
+    expect(database.find(ownerId, record.itemType, record.itemId)?.notes).toBe("Recovered without losing the earlier record.");
     database.close();
   });
 
@@ -342,6 +445,9 @@ describe("account-scoped progress database", () => {
       repositoryUrl: oldA02.repositoryUrl,
       taskObservations: { "a02-predict-the-inventory": "The empty file should report zero bytes." },
     });
+    expect(database.save(ownerId, oldA02)).toMatchObject({
+      taskObservations: { "a02-predict-the-inventory": "The empty file should report zero bytes." },
+    });
     database.close();
   });
 
@@ -363,6 +469,9 @@ describe("account-scoped progress database", () => {
     expect(updated).toMatchObject({
       notes: project.notes,
       evidence: project.evidence,
+      taskObservations: { C1: "Defined the release contract and measurable acceptance check." },
+    });
+    expect(database.save(ownerId, project)).toMatchObject({
       taskObservations: { C1: "Defined the release contract and measurable acceptance check." },
     });
     expect(database.list(ownerId)).toHaveLength(1);

@@ -3,6 +3,7 @@ import { activities, majorProjects, modules, projectMilestones, smallProjects, t
 import { a01TaskIds } from "@/content/a01-task-ids";
 import { comfortLevels, progressItemTypes, progressStatuses, type ProgressInput, type ProgressItemType } from "@/features/progress/model";
 import { maxBackupRecords } from "@/features/progress/backup-limits";
+import { isValidProgressTimestamp } from "@/features/progress/timestamp";
 
 const itemIdSchema = z.string().trim().min(2).max(16).regex(/^[A-Za-z0-9.-]+$/);
 
@@ -68,7 +69,9 @@ export const progressSchema = z.object({
 
 const progressBackupSchema = z.object({
   exportedAt: z.string().datetime(),
-  records: z.array(progressSchema.extend({ updatedAt: z.number().int().nonnegative() })).max(maxBackupRecords),
+  records: z.array(progressSchema.extend({
+    updatedAt: z.number().refine(isValidProgressTimestamp, "Must be a valid date no more than 24 hours in the future."),
+  })).max(maxBackupRecords),
 }).superRefine((backup, context) => {
   const seen = new Set<string>();
   backup.records.forEach((record, index) => {

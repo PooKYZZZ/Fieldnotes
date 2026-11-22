@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        SOURCE_REVISION: ${FIELDNOTES_SOURCE_REVISION:-uncommitted}
     image: devops-fieldnotes:local
     environment:
       NODE_ENV: production

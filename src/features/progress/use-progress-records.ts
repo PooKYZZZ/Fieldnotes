@@ -13,12 +13,14 @@ type ProgressRecordsSnapshot = {
   loaded: boolean;
   loadError: boolean;
   requiresSignIn: boolean;
+  accountChanged: boolean;
 };
 
 export function useProgressRecords(lookup?: ProgressLookup) {
-  const { userId, pending: sessionPending } = useAuthSession();
+  const session = useAuthSession();
+  const userId = session.status === "signed-in" ? session.userId : undefined;
   const [attempt, setAttempt] = useState(0);
-  const identity = JSON.stringify([userId ?? null, lookup?.itemType ?? null, lookup?.itemId ?? null]);
+  const identity = JSON.stringify([session.status, userId ?? null, lookup?.itemType ?? null, lookup?.itemId ?? null]);
   const itemType = lookup?.itemType;
   const itemId = lookup?.itemId;
   const params = itemType && itemId ? new URLSearchParams({ itemType, itemId }) : undefined;
@@ -26,15 +28,16 @@ export function useProgressRecords(lookup?: ProgressLookup) {
   const [snapshot, setSnapshot] = useState<ProgressRecordsSnapshot>();
 
   useEffect(() => {
-    if (sessionPending) return;
+    if (session.status !== "signed-in") return;
     const controller = new AbortController();
     fetch(url, { cache: "no-store", headers: progressAccountHeaders(userId), signal: controller.signal })
       .then(async (response) => {
-        if (response.status === 401) return { records: [] as ProgressRecord[], requiresSignIn: true };
+        if (response.status === 401) return { records: [] as ProgressRecord[], requiresSignIn: true, accountChanged: false };
+        if (response.status === 409) return { records: [] as ProgressRecord[], requiresSignIn: false, accountChanged: true };
         if (!response.ok) throw new Error("Could not load saved progress.");
         const records = await response.json() as ProgressRecord[];
         if (!Array.isArray(records)) throw new Error("The saved progress response was unexpected.");
-        return { records, requiresSignIn: false };
+        return { records, requiresSignIn: false, accountChanged: false };
       })
       .then((result) => {
         if (!controller.signal.aborted) {
@@ -43,11 +46,11 @@ export function useProgressRecords(lookup?: ProgressLookup) {
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          setSnapshot({ identity, attempt, records: [], loaded: true, loadError: true, requiresSignIn: false });
+          setSnapshot({ identity, attempt, records: [], loaded: true, loadError: true, requiresSignIn: false, accountChanged: false });
         }
       });
     return () => controller.abort();
-  }, [attempt, identity, sessionPending, url, userId]);
+  }, [attempt, identity, session.status, url, userId]);
 
   useEffect(() => {
     const refresh = () => setAttempt((current) => current + 1);
@@ -55,13 +58,20 @@ export function useProgressRecords(lookup?: ProgressLookup) {
     return () => window.removeEventListener("progress-updated", refresh);
   }, []);
 
-  const retry = useCallback(() => setAttempt((current) => current + 1), []);
-  const current = !sessionPending && snapshot?.identity === identity && snapshot.attempt === attempt ? snapshot : undefined;
+  const retry = useCallback(() => {
+    if (session.status === "unavailable") void session.retry();
+    else if (session.status === "signed-in") setAttempt((current) => current + 1);
+  }, [session]);
+  const current = session.status === "signed-in" && snapshot?.identity === identity && snapshot.attempt === attempt ? snapshot : undefined;
+  const signedOut = session.status === "signed-out";
+  const sessionUnavailable = session.status === "unavailable";
   return {
     records: current?.records ?? [],
-    loaded: current?.loaded ?? false,
-    loadError: current?.loadError ?? false,
-    requiresSignIn: current?.requiresSignIn ?? false,
+    loaded: signedOut || sessionUnavailable || (current?.loaded ?? false),
+    loadError: sessionUnavailable || (current?.loadError ?? false),
+    requiresSignIn: signedOut || (current?.requiresSignIn ?? false),
+    accountChanged: current?.accountChanged ?? false,
+    sessionUnavailable,
     retry,
   };
 }

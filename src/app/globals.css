@@ -1106,15 +1106,6 @@ body { font-size: 15px; }
 .activity-evidence-guidance { max-width: 90ch; border-left: 2px solid #bdd3ca; padding-left: 13px; }
 .activity-evidence-guidance .article-copy { max-width: none; color: #465b5e; font-size: 14px; line-height: 1.55; }
 .activity-evidence-guidance .article-copy > :last-child { margin-bottom: 0; }
-.activity-record .editor-card--bare { max-width: none; margin: 18px 0 0; border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: none; scroll-margin-top: 18px; }
-.activity-record .editor-card--bare h3 { margin: 0 0 5px; color: #29494a; font-size: 16px; }
-.activity-record .editor-card--bare .editor-intro { margin-bottom: 12px; color: #627573; font-size: 12px; }
-.activity-record .editor-card--bare form { gap: 0 18px; }
-.activity-record .editor-card--bare .progress-long-fields { gap: 0 18px; }
-.activity-record .editor-card--bare .form-textarea { min-height: 112px; }
-.activity-record .editor-card--bare .field-hint { color: #596d6d; font-size: 11px; line-height: 1.45; }
-.activity-record .editor-card--bare .progress-form-footer { margin-top: 3px; }
-.activity-record .editor-card--bare .progress-form-footer .button { min-width: 168px; }
 .activity-cleanup { max-width: 90ch; margin-top: 16px; border-top: 1px solid #e2e9e6; padding-top: 11px; }
 .activity-cleanup > summary { color: #526b68; cursor: pointer; font-size: 12px; font-weight: 700; }
 .activity-cleanup > .article-copy { max-width: 88ch; margin-top: 10px; color: #526366; font-size: 13px; line-height: 1.55; }
@@ -1753,26 +1744,26 @@ body { font-size: 15px; }
 .project-notebook-context .eyebrow { display: flex; align-items: center; gap: 5px; margin: 0 0 3px; color: #52746d; font-size: 10px; letter-spacing: .04em; }
 .project-notebook-context strong { display: block; margin-bottom: 3px; color: #365653; font-size: 12px; line-height: 1.4; }
 .project-notebook-context > span { display: block; color: #647573; font-size: 11px; line-height: 1.45; }
-.project-notebook-content .editor-card--project-workbench { margin: 0; border-color: #d5e2dc; background: #f5f8f6; padding: clamp(16px, 1.6vw, 22px); box-shadow: 0 5px 16px rgb(30 52 53 / 6%); }
-.project-notebook-content .editor-card--project-workbench h3 { margin: 0 0 4px; color: #29494a; font-size: 19px; }
-.project-notebook-content .editor-card--project-workbench .editor-intro { margin-bottom: 12px; color: #596d6b; font-size: 12px; line-height: 1.45; }
-.project-notebook-content .editor-card--project-workbench form { display: block; }
-.project-notebook-content .editor-card--project-workbench .form-field { margin-bottom: 11px; }
-.project-notebook-content .editor-card--project-workbench .form-field label { color: #344f50; font-size: 12px; }
-.project-notebook-content .editor-card--project-workbench .field-hint { color: #596d6b; font-size: 11px; line-height: 1.42; }
-.project-notebook-content .editor-card--project-workbench .form-select,
-.project-notebook-content .editor-card--project-workbench .form-input,
-.project-notebook-content .editor-card--project-workbench .form-textarea { border-color: #cfdcd6; background: #fff; font-size: 13px; }
-.project-notebook-content .editor-card--project-workbench .form-textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
-.project-notebook-content .editor-card--project-workbench .progress-long-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.project-notebook-content .progress-editor--project-workbench { margin: 0; border-color: #d5e2dc; background: #f5f8f6; padding: clamp(16px, 1.6vw, 22px); box-shadow: 0 5px 16px rgb(30 52 53 / 6%); }
+.project-notebook-content .progress-editor--project-workbench h3 { margin: 0 0 4px; color: #29494a; font-size: 19px; }
+.project-notebook-content .progress-editor--project-workbench .editor-intro { margin-bottom: 12px; color: #596d6b; font-size: 12px; line-height: 1.45; }
+.project-notebook-content .progress-editor--project-workbench form { display: block; }
+.project-notebook-content .progress-editor--project-workbench .form-field { margin-bottom: 11px; }
+.project-notebook-content .progress-editor--project-workbench .form-field label { color: #344f50; font-size: 12px; }
+.project-notebook-content .progress-editor--project-workbench .field-hint { color: #596d6b; font-size: 11px; line-height: 1.42; }
+.project-notebook-content .progress-editor--project-workbench .form-select,
+.project-notebook-content .progress-editor--project-workbench .form-input,
+.project-notebook-content .progress-editor--project-workbench .form-textarea { border-color: #cfdcd6; background: #fff; font-size: 13px; }
+.project-notebook-content .progress-editor--project-workbench .form-textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+.project-notebook-content .progress-editor--project-workbench .progress-long-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 .project-notebook-content .project-checkpoint-observation-field .form-textarea { min-height: 126px; }
 .project-notebook-content .project-checkpoint-observation-field label span { color: #52746d; font-size: 10px; font-weight: 700; }
 .project-checkpoint-observation-count { display: block; text-align: right; }
 .progress-project-wide-details { margin: 3px 0 13px; border-top: 1px solid #dce5e1; border-bottom: 1px solid #dce5e1; padding: 9px 0 2px; }
 .progress-project-wide-details > summary { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 8px; color: #3e625d; cursor: pointer; font-size: 11px; font-weight: 750; list-style-position: inside; }
 .progress-project-wide-details > summary span { margin-left: auto; color: #71817e; font-size: 10px; font-weight: 550; }
-.project-notebook-content .editor-card--project-workbench .form-footer { align-items: flex-start; flex-direction: column; margin-top: 8px; }
-.project-notebook-content .editor-card--project-workbench .form-footer .button { width: 100%; min-height: 42px; justify-content: center; }
+.project-notebook-content .progress-editor--project-workbench .form-footer { align-items: flex-start; flex-direction: column; margin-top: 8px; }
+.project-notebook-content .progress-editor--project-workbench .form-footer .button { width: 100%; min-height: 42px; justify-content: center; }
 .project-notebook-backdrop { display: none; }
 .project-review-stage { padding-bottom: 12px; }
 .project-supporting-details { margin-top: 20px; border-top: 1px solid #e1e8e5; border-bottom: 1px solid #e1e8e5; }
@@ -1819,7 +1810,7 @@ body { font-size: 15px; }
   .project-notebook-mobile-head strong { color: #29494a; font-size: 14px; }
   .project-notebook-close { display: inline-flex; min-height: 38px; align-items: center; gap: 5px; border: 0; border-radius: 7px; background: transparent; padding: 7px 9px; color: #456965; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
   .project-notebook--open .project-notebook-content { display: block; min-height: 0; height: 100%; overflow-y: auto; }
-  .project-notebook--open .editor-card--project-workbench { border: 0; border-radius: 9px; background: #f5f8f6; padding: 13px; box-shadow: none; }
+  .project-notebook--open .progress-editor--project-workbench { border: 0; border-radius: 9px; background: #f5f8f6; padding: 13px; box-shadow: none; }
   .project-notebook--open .form-footer { position: sticky; bottom: 0; border-top: 1px solid #d9e3de; background: #f5f8f6; padding: 10px 0 0; }
   .project-notebook-backdrop { position: fixed; z-index: 59; inset: 0; display: block; border: 0; background: rgb(21 44 44 / 45%); }
   .project-build-stage { padding-bottom: 78px; }

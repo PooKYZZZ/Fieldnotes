@@ -41,6 +41,21 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Set up Python 3.12 for Status API lab checks
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Check Status API archive and Python tests
+        shell: bash
+        run: |
+          python scripts/verify-status-api-archive.py
+          lab_dir="$(mktemp -d)"
+          trap 'rm -rf "$lab_dir"' EXIT
+          python -m zipfile -e public/labs/status-api.zip "$lab_dir"
+          python -m pip install --disable-pip-version-check --no-input -r "$lab_dir/status-api/requirements-dev.txt"
+          (cd "$lab_dir/status-api" && python -m pytest -q -p no:cacheprovider)
+
   browser-and-container:
     name: Production build, browser tests, and Docker build
     runs-on: ubuntu-latest
@@ -67,5 +82,25 @@ jobs:
       - name: Run authenticated browser tests
         run: npm run test:e2e
 
-      - name: Build Docker image
-        run: docker build --tag fieldnotes-ci:${{ github.sha }} .
+      - name: Validate canonical Tunnel Compose configuration
+        env:
+          FIELDNOTES_TUNNEL_NETWORK: fieldnotes-ci-tunnel
+          FIELDNOTES_PROD_BETTER_AUTH_SECRET: synthetic-ci-secret-never-used-for-sign-in
+          FIELDNOTES_OWNER_EMAIL: ci-owner@example.test
+          FIELDNOTES_SOURCE_REVISION: ${{ github.sha }}
+        run: docker compose -f compose.yaml -f compose.cloudflare.yaml config --quiet
+
+      - name: Build and identify the exact Docker image
+        env:
+          IMAGE: fieldnotes-ci:${{ github.sha }}
+        shell: bash
+        run: |
+          docker build --build-arg SOURCE_REVISION="$GITHUB_SHA" --tag "$IMAGE" .
+          image_id="$(docker image inspect "$IMAGE" --format '{{.Id}}')"
+          image_revision="$(docker image inspect "$IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          test "$image_revision" = "$GITHUB_SHA"
+          printf 'Built image %s with source revision %s\n' "$image_id" "$image_revision"
+          printf 'FIELDNOTES_SMOKE_IMAGE=%s\n' "$image_id" >> "$GITHUB_ENV"
+
+      - name: Smoke-test the built Docker image
+        run: node scripts/smoke-image.mjs "$FIELDNOTES_SMOKE_IMAGE"

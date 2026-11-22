@@ -8,6 +8,8 @@ import { formatStatus, type ProgressSummary, type ProgressStatus } from "@/featu
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
 import { useProgressList } from "@/features/progress/progress-list-context";
+import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
+import { ProgressAccountChangedNotice } from "@/features/progress/progress-account-changed-notice";
 
 type ActivityModule = Pick<ModuleRecord, "id" | "title" | "phase">;
 type Phase = ModuleRecord["phase"];
@@ -86,7 +88,7 @@ export function ActivityDirectory({
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState<(typeof phaseFilters)[number]["value"]>("all");
   const [status, setStatus] = useState<(typeof statusFilters)[number]["value"]>("all");
-  const { records, loaded, loadError, requiresSignIn } = useProgressList();
+  const { records, loaded, loadError, requiresSignIn, accountChanged, sessionUnavailable, retry } = useProgressList();
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const moduleById = useMemo(() => new Map(modules.map((module) => [module.id, module])), [modules]);
@@ -129,6 +131,8 @@ export function ActivityDirectory({
 
   return (
     <>
+      {sessionUnavailable && <AuthUnavailableNotice message="Your account could not be checked. Saved activity states stay hidden until the account service responds." onRetry={retry} />}
+      {accountChanged && <ProgressAccountChangedNotice />}
       <div className="activity-catalog-search">
         <div className="activity-search search-wrap">
           <Search size={17} aria-hidden="true" />

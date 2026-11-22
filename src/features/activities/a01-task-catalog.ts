@@ -27,5 +27,3 @@ export const a01Tasks = [
     prompt: "Use your earlier observations to write a concise conclusion for the teammate: what the evidence supports, one thing it cannot prove, and a useful next check.",
   },
 ] as const satisfies readonly { id: A01TaskId; title: string; prompt: string }[];
-
-export type A01TaskSelection = A01TaskId | "legacy";

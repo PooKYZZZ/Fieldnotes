@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, Clock3, RefreshCw } from "lucide-react";
 import { formatStatus, type ProgressStatus } from "@/features/progress/model";
+import { formatSavedDate } from "@/features/progress/date-format";
 import type { DashboardActivity, DashboardModel, DashboardModule, DashboardNextItem, DashboardRecentItem, DashboardResumeProject, ModuleStatus } from "@/features/dashboard/model";
 
 type ContinueLearningPanelProps = {
@@ -171,15 +172,18 @@ function NextItem({ item }: { item: DashboardNextItem }) {
 function RecentWork({ items }: { items: DashboardRecentItem[] }) {
   return (
     <ul className="recent-list">
-      {items.map((item) => <li key={item.id}>
-        <Link className="recent-item" href={item.href}>
-          <span className="recent-icon" aria-hidden="true">
-            {item.detail.includes("complete") ? <CheckCircle2 size={16} /> : item.detail.includes("review") ? <Clock3 size={16} /> : <BookOpen size={16} />}
-          </span>
-          <span className="recent-copy"><strong>{item.title}</strong><span>{item.detail}</span></span>
-          <time dateTime={new Date(item.date).toISOString()}>{new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(item.date)}</time>
-        </Link>
-      </li>)}
+      {items.map((item) => {
+        const savedDate = formatSavedDate(item.date, { month: "short", day: "numeric" });
+        return <li key={item.id}>
+          <Link className="recent-item" href={item.href}>
+            <span className="recent-icon" aria-hidden="true">
+              {item.detail.includes("complete") ? <CheckCircle2 size={16} /> : item.detail.includes("review") ? <Clock3 size={16} /> : <BookOpen size={16} />}
+            </span>
+            <span className="recent-copy"><strong>{item.title}</strong><span>{item.detail}</span></span>
+            {savedDate.dateTime ? <time dateTime={savedDate.dateTime}>{savedDate.text}</time> : <span>{savedDate.text}</span>}
+          </Link>
+        </li>;
+      })}
     </ul>
   );
 }

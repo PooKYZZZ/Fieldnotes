@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { subscribeToProjectLocation, updateProjectHash } from "@/features/projects/project-location";
 
 export type ProjectFlowStage = {
   id: string;
@@ -25,9 +26,7 @@ export function ProjectFlowNav({ stages }: { stages: ProjectFlowStage[] }) {
   const revealStage = useCallback((id: string, updateHistory = false, moveFocus = false) => {
     setActiveStage(id);
     setVisitedStages((current) => current.has(id) ? current : new Set([...current, id]));
-    if (updateHistory && window.location.hash !== `#${id}`) {
-      window.history.pushState(null, "", `#${id}`);
-    }
+    if (updateHistory) updateProjectHash(`#${id}`, "push");
     if (!moveFocus) return;
     window.requestAnimationFrame(() => {
       const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
@@ -42,17 +41,12 @@ export function ProjectFlowNav({ stages }: { stages: ProjectFlowStage[] }) {
       if (!id) return;
       setActiveStage(id);
       setVisitedStages((current) => current.has(id) ? current : new Set([...current, id]));
-      if (window.location.hash) {
+      if (window.location.hash && !window.location.hash.startsWith("#milestone-")) {
         window.requestAnimationFrame(() => document.querySelector(".project-detail-header")?.scrollIntoView({ block: "start" }));
       }
     };
     syncStageFromLocation();
-    window.addEventListener("hashchange", syncStageFromLocation);
-    window.addEventListener("popstate", syncStageFromLocation);
-    return () => {
-      window.removeEventListener("hashchange", syncStageFromLocation);
-      window.removeEventListener("popstate", syncStageFromLocation);
-    };
+    return subscribeToProjectLocation(syncStageFromLocation);
   }, [stages]);
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {

@@ -164,7 +164,7 @@ export type FieldnotesSession = ReturnType<typeof createAuth>["$Infer"]["Session
 export async function getCurrentSession(): Promise<FieldnotesSession | null> {
   assertAuthRuntimeConfiguration();
   const requestHeaders = await headers();
-  return getAuth().api.getSession({ headers: requestHeaders });
+  return getAuth().api.getSession({ headers: requestHeaders, query: { disableRefresh: true } });
 }
 
 export function assertAuthReadiness(): void {

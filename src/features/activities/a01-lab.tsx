@@ -1,6 +1,6 @@
 import type { ActivityRecord } from "@/content";
 import { MarkdownContent } from "@/components/ui/markdown-content";
-import { A01InvestigationWorkbench } from "@/features/activities/a01-investigation-workbench";
+import { ActivityInvestigationWorkbench } from "@/features/activities/activity-investigation-workbench";
 
 export function A01Lab({ activity }: { activity: ActivityRecord }) {
   return (
@@ -21,7 +21,7 @@ export function A01Lab({ activity }: { activity: ActivityRecord }) {
         {activity.environment && <aside className="activity-a01-safety-note" aria-label="Environment note"><MarkdownContent>{activity.environment}</MarkdownContent></aside>}
       </section>
 
-      <A01InvestigationWorkbench activity={activity} />
+      <ActivityInvestigationWorkbench activity={activity} processInvestigation />
     </div>
   );
 }

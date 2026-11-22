@@ -1,9 +1,8 @@
-import { Children, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
+import { Children, isValidElement, type ComponentProps, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import { ArrowRight } from "lucide-react";
 import { CopyCodeButton } from "@/components/ui/copy-code-button";
 
 function nodeText(node: ReactNode): string {
@@ -28,102 +27,68 @@ function CurriculumDiagram({ src, alt, title }: Pick<ComponentProps<"img">, "src
   );
 }
 
+function MarkdownHeading3({ children, id }: ComponentProps<"h3">) {
+  return <h3 id={id}>{children}</h3>;
+}
+
+function MarkdownPre({ children: content, "data-copyable": copyable }: ComponentProps<"pre"> & { "data-copyable"?: boolean; node?: unknown }) {
+  const code = Array.isArray(content) ? content[0] : content;
+  const isDiagram = isValidElement<{ className?: string }>(code)
+    && code.props.className?.split(/\s+/).includes("language-diagram");
+  if (isDiagram) return <figure className="lesson-diagram" aria-label="Text diagram"><pre>{content}</pre></figure>;
+  if (copyable && isValidElement<{ children?: ReactNode }>(code)) {
+    const value = nodeText(code.props.children);
+    if (value.trim()) return <div className="copyable-code-block"><CopyCodeButton value={value} /><pre>{content}</pre></div>;
+  }
+  return <pre>{content}</pre>;
+}
+
+function MarkdownParagraph({ children: paragraph, ...props }: ComponentProps<"p"> & { node?: unknown }) {
+  const nodes = Children.toArray(paragraph);
+  if (nodes.length === 1 && isValidElement(nodes[0]) && nodes[0].type === CurriculumDiagram) return nodes[0];
+  return <p {...props}>{paragraph}</p>;
+}
+
+export const markdownComponents: Components = {
+  h3: MarkdownHeading3,
+  pre: MarkdownPre,
+  img: CurriculumDiagram,
+  p: MarkdownParagraph,
+};
+
+type MarkdownTreeNode = {
+  type?: string;
+  tagName?: string;
+  value?: string;
+  children?: MarkdownTreeNode[];
+  properties?: Record<string, unknown>;
+};
+
+export function rehypeMarkdownOptions(options: { headingIdPrefix?: string; copyable: boolean }) {
+  return (tree: MarkdownTreeNode) => {
+    const visit = (node: MarkdownTreeNode): string => {
+      const text = node.value ?? node.children?.map(visit).join("") ?? "";
+      if (node.type === "element" && node.tagName === "h3" && options.headingIdPrefix) {
+        node.properties = { ...node.properties, id: `${options.headingIdPrefix}-${slugifyHeading(text)}` };
+      }
+      if (node.type === "element" && node.tagName === "pre" && options.copyable) {
+        node.properties = { ...node.properties, "data-copyable": true };
+      }
+      return text;
+    };
+    visit(tree);
+  };
+}
+
 export function MarkdownContent({
   children,
   headingIdPrefix,
   copyable = false,
-  taskIds,
-  taskHints,
-  taskDetails,
-  onRecordTask,
-  recordTaskDisabled = false,
 }: {
   children: string;
   headingIdPrefix?: string;
   copyable?: boolean;
-  taskIds?: readonly string[];
-  taskHints?: Partial<Record<string, string>>;
-  taskDetails?: Partial<Record<string, string>>;
-  onRecordTask?: (taskId: string) => void;
-  recordTaskDisabled?: boolean;
 }) {
-  const components: Components = {
-    ...(headingIdPrefix
-      ? {
-          h3: ({ children: heading }: { children?: ReactNode }) => (
-            <h3 id={`${headingIdPrefix}-${slugifyHeading(nodeText(heading))}`}>{heading}</h3>
-          ),
-        }
-      : {}),
-    ...(taskIds ? {
-      ol: ({ children: listChildren, node, ...props }) => {
-        const items = Children.toArray(listChildren).filter(
-          (child) => typeof child !== "string" || child.trim().length > 0,
-        );
-        const isTaskList = node?.position?.start.column === 1
-          && items.length === taskIds.length
-          && items.every((child) => isValidElement(child) && child.type === "li");
-        if (!isTaskList) return <ol {...props}>{listChildren}</ol>;
-        return <ol {...props}>
-          {items.map((child, taskPosition) => {
-            if (!isValidElement<{ children?: ReactNode }>(child) || child.type !== "li") return child;
-            const taskId = taskIds[taskPosition];
-            if (!taskId) return child;
-            const item = child as ReactElement<{ children?: ReactNode }>;
-            const taskHint = taskHints?.[taskId];
-            const taskDetail = taskDetails?.[taskId];
-            const guidanceLabel = taskDetail && taskHint
-              ? "Command notes and troubleshooting"
-              : taskDetail ? "Explain these commands" : "Need help with this task?";
-            return (
-              <li key={item.key ?? taskId} id={`activity-task-${taskId}`} data-task-id={taskId}>
-                {item.props.children}
-                {onRecordTask && <button
-                  type="button"
-                  className="activity-task-record"
-                  aria-label={`Record Task ${taskPosition + 1} in the investigation notebook`}
-                  disabled={recordTaskDisabled}
-                  onClick={() => onRecordTask(taskId)}
-                >
-                  Record Task {taskPosition + 1}<ArrowRight size={14} aria-hidden="true" />
-                </button>}
-                {(taskDetail || taskHint) && <details className="activity-task-help">
-                  <summary>{guidanceLabel}</summary>
-                  <div className="activity-task-help-content">
-                    {taskDetail && <div className="activity-task-detail-copy"><MarkdownContent>{taskDetail}</MarkdownContent></div>}
-                    {taskHint && <div className="activity-task-hint-copy">{taskDetail && <strong>If your result differs</strong>}<MarkdownContent>{taskHint}</MarkdownContent></div>}
-                  </div>
-                </details>}
-              </li>
-            );
-          })}
-        </ol>;
-      },
-    } : {}),
-    pre: ({ children: content }) => {
-      const code = Array.isArray(content) ? content[0] : content;
-      const isDiagram = isValidElement<{ className?: string }>(code)
-        && code.props.className?.split(/\s+/).includes("language-diagram");
-
-      if (isDiagram) return <figure className="lesson-diagram" aria-label="Text diagram"><pre>{content}</pre></figure>;
-      if (copyable && isValidElement<{ children?: ReactNode }>(code)) {
-        const value = nodeText(code.props.children);
-        if (value.trim()) {
-          return <div className="copyable-code-block"><CopyCodeButton value={value} /><pre>{content}</pre></div>;
-        }
-      }
-      return <pre>{content}</pre>;
-    },
-    img: CurriculumDiagram,
-    p: ({ children: paragraph, ...props }) => {
-      const nodes = Children.toArray(paragraph);
-      if (nodes.length === 1 && isValidElement(nodes[0]) && nodes[0].type === CurriculumDiagram) {
-        return nodes[0];
-      }
-      return <p {...props}>{paragraph}</p>;
-    },
-  };
-
-  return <div className="article-copy"><ReactMarkdown components={components} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>{children}</ReactMarkdown></div>;
+  return <div className="article-copy"><ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight, () => rehypeMarkdownOptions({ headingIdPrefix, copyable })]}>{children}</ReactMarkdown></div>;
 }
 

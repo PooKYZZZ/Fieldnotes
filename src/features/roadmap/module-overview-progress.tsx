@@ -8,6 +8,8 @@ import { ProgressEditor } from "@/features/progress/progress-editor";
 import { formatStatus, type ProgressStatus } from "@/features/progress/model";
 import { lessonRoute, moduleRoute } from "@/features/learning/routes";
 import { useProgressList } from "@/features/progress/progress-list-context";
+import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
+import { ProgressAccountChangedNotice } from "@/features/progress/progress-account-changed-notice";
 
 type Lesson = ModuleRecord["lessons"][number];
 
@@ -18,7 +20,7 @@ export function ModuleOverviewProgress({
   learningModule: ModuleRecord;
   activity?: ActivityRecord;
 }) {
-  const { records, loaded, loadError, requiresSignIn, retry } = useProgressList();
+  const { records, loaded, loadError, requiresSignIn, accountChanged, sessionUnavailable, retry } = useProgressList();
   const moduleId = `M${String(learningModule.id).padStart(2, "0")}`;
 
   const lessonIds = useMemo(() => new Set(learningModule.lessons.map((lesson) => lesson.id)), [learningModule.lessons]);
@@ -28,13 +30,18 @@ export function ModuleOverviewProgress({
   const activityStatus = activity
     ? records.find((record) => record.itemType === "activity" && record.itemId === activity.id)?.status as ProgressStatus | undefined
     : undefined;
-  const progressText = requiresSignIn
+  const progressText = accountChanged
+    ? "The signed-in account changed; reopen the page."
+    : sessionUnavailable ? "Account service unavailable."
+      : requiresSignIn
     ? "Sign in to view your saved progress."
     : loadError ? "Saved progress could not be loaded."
       : loaded ? `${completedLessons} of ${learningModule.lessons.length} marked complete` : "Loading saved progress…";
 
   return (
     <section className="module-overview-progress" aria-label={`Progress for Module ${String(learningModule.id).padStart(2, "0")}`}>
+      {sessionUnavailable && <AuthUnavailableNotice message="Your account could not be checked. Saved lesson progress stays hidden until the account service responds." onRetry={retry} />}
+      {accountChanged && <ProgressAccountChangedNotice />}
       <div className="card module-lesson-progress-card">
         <div className="module-summary-heading">
           <div>
@@ -50,7 +57,7 @@ export function ModuleOverviewProgress({
           </div>
           <p className="module-progress-note">Lesson completion is self-reported; it does not measure mastery.</p>
         </>}
-        {loadError && <button type="button" className="button button-outline module-progress-retry" onClick={retry}>Retry progress loading</button>}
+        {loadError && !sessionUnavailable && !accountChanged && <button type="button" className="button button-outline module-progress-retry" onClick={retry}>Retry progress loading</button>}
         {activity && <div className="module-related-record">
           <div>
             <p className="eyebrow">Guided activity</p>

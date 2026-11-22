@@ -1,5 +1,4 @@
-import { milestonesForProjects } from "@/content/project-milestones";
-import type { ModuleRecord, ModuleSummary, SmallProjectRecord } from "@/content/catalog";
+import type { ModuleRecord, ModuleSummary } from "@/content/catalog";
 import type { ProgressSummary, ProgressStatus } from "@/features/progress/model";
 
 export type ModuleStatus = ProgressStatus | "not_started";
@@ -40,10 +39,10 @@ export type DashboardModel = {
 
 export type DashboardModule = ModuleSummary & Pick<ModuleRecord, "activityId">;
 export type DashboardActivity = { id: string; moduleId: number; title: string };
-export type DashboardProject = { id: string; title: string; details: Record<string, string> };
+export type DashboardProject = { id: string; title: string; milestones: { id: string; label: string }[] };
 export type DashboardMajorProject = DashboardProject;
-export type DashboardSmallProject = Pick<SmallProjectRecord, "id" | "title" | "details">;
-export type DashboardResumeProject = DashboardProject & {
+export type DashboardSmallProject = DashboardProject;
+export type DashboardResumeProject = Pick<DashboardProject, "id" | "title"> & {
   itemType: "project" | "small_project";
   status?: ProgressStatus;
   checkpoint?: { id: string; label: string };
@@ -51,6 +50,26 @@ export type DashboardResumeProject = DashboardProject & {
   totalCheckpointCount: number;
   hasSavedDraft: boolean;
 };
+
+type ProjectMilestoneIndexes = {
+  byId: Map<string, { id: string; projectId: string; label: string }>;
+  byProject: Map<string, { id: string; projectId: string; label: string }[]>;
+};
+
+function indexProjectMilestones(projects: DashboardProject[]): ProjectMilestoneIndexes {
+  const byId = new Map<string, { id: string; projectId: string; label: string }>();
+  const byProject = new Map<string, { id: string; projectId: string; label: string }[]>();
+  for (const project of projects) {
+    const milestones = project.milestones.map((milestone) => ({ ...milestone, projectId: project.id }));
+    byProject.set(project.id, milestones);
+    for (const milestone of milestones) byId.set(milestone.id, milestone);
+  }
+  return { byId, byProject };
+}
+
+function isProjectEligibleForSuggestions(status?: ProgressStatus): boolean {
+  return status !== "completed";
+}
 
 const moduleKey = (id: number) => `M${String(id).padStart(2, "0")}`;
 const moduleHref = (id: number) => `/modules/${String(id).padStart(2, "0")}`;
@@ -61,6 +80,7 @@ function makeNextItems(
   majorProjects: DashboardMajorProject[],
   smallProjects: DashboardSmallProject[],
   records: ProgressSummary[],
+  milestoneIndexes: ProjectMilestoneIndexes,
   currentModule: DashboardModule | undefined,
   currentActivity: DashboardActivity | undefined,
   currentLesson: (DashboardModule["lessons"][number] & { moduleId: number }) | undefined,
@@ -116,7 +136,9 @@ function makeNextItems(
 
   const allProjects = [...majorProjects, ...smallProjects];
   const projectById = new Map(allProjects.map((project) => [project.id, project]));
-  const milestones = new Map(milestonesForProjects(allProjects).map((milestone) => [milestone.id, milestone]));
+  const projectRecords = new Map(records
+    .filter((record) => record.itemType === "project" || record.itemType === "small_project")
+    .map((record) => [record.itemId, record]));
   const milestoneRecords = new Map(records.filter((record) => record.itemType === "milestone" && record.status === "completed").map((record) => [record.itemId, record]));
   const startedProjects = new Set(records
     .filter((record) => (record.itemType === "project" || record.itemType === "small_project")
@@ -125,26 +147,26 @@ function makeNextItems(
     .map((record) => record.itemId));
   for (const record of records) {
     if (record.itemType === "milestone" && record.status === "completed") {
-      const project = milestones.get(record.itemId);
+      const project = milestoneIndexes.byId.get(record.itemId);
       if (project) startedProjects.add(project.projectId);
     }
   }
-  const projectIds = new Set([...majorProjects.map((project) => project.id), ...smallProjects.map((project) => project.id)]);
+  for (const [projectId, record] of projectRecords) {
+    if (!isProjectEligibleForSuggestions(record.status)) startedProjects.delete(projectId);
+  }
   const projectTasks: DashboardNextItem[] = [];
   for (const projectId of startedProjects) {
     if (projectId === currentProjectId) continue;
-    if (!projectIds.has(projectId)) continue;
-    const nextMilestone = [...milestones.entries()].find(([id, milestone]) => milestone.projectId === projectId && !milestoneRecords.has(id));
+    const nextMilestone = milestoneIndexes.byProject.get(projectId)?.find(({ id }) => !milestoneRecords.has(id));
     if (!nextMilestone) continue;
-    const [id, milestone] = nextMilestone;
     const project = projectById.get(projectId);
     if (!project) continue;
     projectTasks.push({
-      id,
+      id: nextMilestone.id,
       type: `Project milestone · ${projectId}`,
-      title: milestone.label,
+      title: nextMilestone.label,
       detail: project.title,
-      href: `/projects/${projectId}#milestone-${id}`,
+      href: `/projects/${projectId}#milestone-${nextMilestone.id}`,
     });
   }
   const primaryHref = currentLesson
@@ -155,8 +177,7 @@ function makeNextItems(
     .slice(0, 3);
 }
 
-function makeRecentItems(records: ProgressSummary[], modules: DashboardModule[], activities: DashboardActivity[], projects: DashboardMajorProject[], smallProjects: DashboardSmallProject[], excludedRecord?: string): DashboardRecentItem[] {
-  const milestones = new Map(milestonesForProjects([...projects, ...smallProjects]).map((milestone) => [milestone.id, milestone]));
+function makeRecentItems(records: ProgressSummary[], modules: DashboardModule[], activities: DashboardActivity[], projects: DashboardMajorProject[], smallProjects: DashboardSmallProject[], milestones: Map<string, { id: string; projectId: string; label: string }>, excludedRecord?: string): DashboardRecentItem[] {
   const labels = new Map<string, { title: string; href: string; type: string }>();
   for (const learningModule of modules) labels.set(`module:${moduleKey(learningModule.id)}`, { title: learningModule.title, href: moduleHref(learningModule.id), type: "Module" });
   for (const learningModule of modules) for (const lesson of learningModule.lessons) labels.set(`lesson:${lesson.id}`, {
@@ -259,7 +280,7 @@ export function buildDashboardModel(
   const currentModuleStatus = currentModule ? statusByModule.get(moduleKey(currentModule.id)) : undefined;
 
   const allProjects: DashboardProject[] = [...majorProjects, ...smallProjects];
-  const projectMilestones = milestonesForProjects(allProjects);
+  const milestoneIndexes = indexProjectMilestones(allProjects);
   const projectTypes = new Map([
     ...majorProjects.map((project) => [project.id, "project"] as const),
     ...smallProjects.map((project) => [project.id, "small_project"] as const),
@@ -270,8 +291,8 @@ export function buildDashboardModel(
     const itemType = projectTypes.get(project.id);
     if (!itemType) return [];
     const record = records.find((candidate) => candidate.itemType === itemType && candidate.itemId === project.id);
-    if (record?.status === "completed") return [];
-    const milestones = projectMilestones.filter((milestone) => milestone.projectId === project.id);
+    if (!isProjectEligibleForSuggestions(record?.status)) return [];
+    const milestones = milestoneIndexes.byProject.get(project.id) ?? [];
     const projectMilestoneIds = new Set(milestones.map((milestone) => milestone.id));
     const projectCompletionRecords = completedMilestoneRecords.filter((milestone) => projectMilestoneIds.has(milestone.itemId));
     const hasSavedDraft = Boolean(record?.hasContent);
@@ -279,7 +300,8 @@ export function buildDashboardModel(
     if (!explicitlyActive && !hasSavedDraft && projectCompletionRecords.length === 0) return [];
     const updatedAt = Math.max(record?.updatedAt ?? 0, ...projectCompletionRecords.map((milestone) => milestone.updatedAt));
     return [{
-      ...project,
+      id: project.id,
+      title: project.title,
       itemType,
       status: record?.status,
       checkpoint: milestones.find((milestone) => !completedMilestoneIds.has(milestone.id)),
@@ -315,8 +337,8 @@ export function buildDashboardModel(
     currentActivity,
     currentActivityStatus,
     currentProject,
-    nextItems: makeNextItems(modules, activities, majorProjects, smallProjects, records, currentModule, currentActivity, currentLesson, currentProject?.id),
-    recentItems: makeRecentItems(records, modules, activities, majorProjects, smallProjects, excludedRecentRecord),
+    nextItems: makeNextItems(modules, activities, majorProjects, smallProjects, records, milestoneIndexes, currentModule, currentActivity, currentLesson, currentProject?.id),
+    recentItems: makeRecentItems(records, modules, activities, majorProjects, smallProjects, milestoneIndexes.byId, excludedRecentRecord),
   };
 }
 

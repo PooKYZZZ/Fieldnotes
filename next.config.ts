@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["./src/content/curriculum/**/*.md", "./src/content/curriculum/**/*.mdx"],
   },
+  outputFileTracingExcludes: {
+    "/*": ["./.data/**", "./.data/**/*", "./.env*"],
+  },
   async headers() {
     return [
       {

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { progressSchema } from "@/features/progress/validation";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { progressImportSchema, progressSchema } from "@/features/progress/validation";
+import { maxDateTimestampMs, maxProgressClockSkewMs } from "@/features/progress/timestamp";
 
 const projectRecord = {
   itemType: "project" as const,
@@ -31,5 +32,53 @@ describe("project checkpoint observations", () => {
       ...projectRecord,
       taskObservations: { C1: "x".repeat(1201) },
     }).success).toBe(false);
+  });
+});
+
+describe("progress backup timestamps", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("accepts historical and current values through each supported backup version", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-21T00:00:00.000Z"));
+    const now = Date.now();
+    for (const version of [1, 2, 3] as const) {
+      for (const updatedAt of [0, now]) {
+        expect(progressImportSchema.safeParse({
+          version,
+          exportedAt: new Date(now).toISOString(),
+          records: [{ ...projectRecord, updatedAt }],
+        }).success).toBe(true);
+      }
+    }
+  });
+
+  it("accepts the exact 24-hour cutoff and rejects the next millisecond", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-21T00:00:00.000Z"));
+    const backup = (updatedAt: number) => ({
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      records: [{ ...projectRecord, updatedAt }],
+    });
+
+    expect(progressImportSchema.safeParse(backup(Date.now() + maxProgressClockSkewMs)).success).toBe(true);
+    expect(progressImportSchema.safeParse(backup(Date.now() + maxProgressClockSkewMs + 1)).success).toBe(false);
+  });
+
+  it("rejects out-of-Date-range, fractional, and negative timestamps for versions 1 through 3", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-21T00:00:00.000Z"));
+    for (const version of [1, 2, 3] as const) {
+      for (const updatedAt of [maxDateTimestampMs + 1, Date.now() + 0.5, -1]) {
+        const result = progressImportSchema.safeParse({
+          version,
+          exportedAt: new Date().toISOString(),
+          records: [{ ...projectRecord, updatedAt }],
+        });
+        expect(result.success, `version ${version} should reject ${updatedAt}`).toBe(false);
+        if (!result.success) expect(result.error.issues[0]?.path).toEqual(["records", 0, "updatedAt"]);
+      }
+    }
   });
 });

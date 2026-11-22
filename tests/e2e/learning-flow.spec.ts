@@ -1,12 +1,35 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import Database from "better-sqlite3";
 import type { ProgressInput } from "@/features/progress/model";
 
 const testPort = process.env.PLAYWRIGHT_PORT ?? "3000";
 const testOrigin = `http://127.0.0.1:${testPort}`;
 const screenshotDirectory = process.env.FIELDNOTES_SCREENSHOT_DIR ?? path.join(process.cwd(), "test-results", "fieldnotes-ui-review");
 mkdirSync(screenshotDirectory, { recursive: true });
+
+test.afterEach(({}, testInfo) => {
+  if (!testInfo.title.startsWith("restore preview is an estimate")
+    && !testInfo.title.startsWith("a saved row with an invalid date")) return;
+  const databasePath = process.env.FIELDNOTES_E2E_DATABASE_PATH;
+  if (!databasePath) return;
+  const sqlite = new Database(databasePath);
+  try {
+    sqlite.prepare(`DELETE FROM learning_progress
+      WHERE user_id = (SELECT id FROM "user" WHERE email = ?)
+        AND item_type = 'module' AND (
+          (item_id = 'M23' AND notes IN (?, ?, ?))
+          OR (item_id = 'M24' AND notes IN (?, ?))
+        )`).run(
+      "owner@fieldnotes.test",
+      "Older saved value.", "Backup value.", "Newer edit from a second client.",
+      "Synthetic legacy row with an invalid date.", "Recovered the synthetic legacy row; its original note remains.",
+    );
+  } finally {
+    sqlite.close();
+  }
+});
 
 function progressRecord(itemType: ProgressInput["itemType"], itemId: string, status: ProgressInput["status"], notes = ""): ProgressInput {
   return { itemType, itemId, status, comfort: null, notes, evidence: "", repositoryUrl: "" };
@@ -310,6 +333,93 @@ test("backup import merges records and export downloads the saved data", async (
   await expect(page.locator(".next-item").first()).toHaveAttribute("href", "/modules/03/lessons/m03-l02");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-desktop-in-progress.png") });
+});
+
+test("restore preview is an estimate and apply keeps a newer edit from another client", async ({ page, request }) => {
+  const itemType = "module" as const;
+  const itemId = "M23";
+  const existing = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: await progressSaveBody(request, progressRecord(itemType, itemId, "in_progress", "Older saved value.")),
+  });
+  expect(existing.ok()).toBeTruthy();
+
+  const sqlite = new Database(process.env.FIELDNOTES_E2E_DATABASE_PATH!);
+  try {
+    sqlite.prepare("UPDATE learning_progress SET updated_at = ? WHERE user_id = (SELECT id FROM \"user\" WHERE email = ?) AND item_type = ? AND item_id = ?")
+      .run(Date.now() - 2_000, "owner@fieldnotes.test", itemType, itemId);
+  } finally {
+    sqlite.close();
+  }
+
+  await page.goto("/progress");
+  const backup = {
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    records: [{ ...progressRecord(itemType, itemId, "needs_review", "Backup value."), updatedAt: Date.now() - 1_000 }],
+  };
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "fieldnotes-progress-preview.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(backup)),
+  });
+  await expect(page.getByRole("heading", { name: "Restore preview" })).toBeVisible();
+  await expect(page.getByText(/Estimates at preview time: 1 records in the backup/)).toBeVisible();
+  await expect(page.getByText("replace with the newer backup record")).toBeVisible();
+
+  const secondClientSave = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: await progressSaveBody(request, progressRecord(itemType, itemId, "in_progress", "Newer edit from a second client.")),
+  });
+  expect(secondClientSave.ok()).toBeTruthy();
+
+  await page.getByRole("button", { name: "Apply merge" }).click();
+  await expect(page.getByText("0 records were restored; 1 equal or newer saved record was kept.")).toBeVisible();
+  const saved = await request.get(`${testOrigin}/api/progress?itemType=${itemType}&itemId=${itemId}`);
+  expect(await saved.json()).toMatchObject([{ notes: "Newer edit from a second client." }]);
+});
+
+test("a saved row with an invalid date stays visible and can be recovered through its revision", async ({ page, request }) => {
+  const record = progressRecord("module", "M24", "completed", "Synthetic legacy row with an invalid date.");
+  const save = await request.put(`${testOrigin}/api/progress`, {
+    headers: { "Content-Type": "application/json", Origin: testOrigin },
+    data: await progressSaveBody(request, record),
+  });
+  expect(save.ok()).toBeTruthy();
+  const initial = await save.json() as { revision: number };
+
+  const sqlite = new Database(process.env.FIELDNOTES_E2E_DATABASE_PATH!);
+  try {
+    sqlite.prepare("UPDATE learning_progress SET updated_at = ? WHERE user_id = (SELECT id FROM \"user\" WHERE email = ?) AND item_type = ? AND item_id = ?")
+      .run(8.64e15 + 1, "owner@fieldnotes.test", record.itemType, record.itemId);
+  } finally {
+    sqlite.close();
+  }
+
+  await page.goto("/");
+  await expect(page.getByText("Saved date unavailable")).toBeVisible();
+  await page.goto("/progress");
+  const savedRow = page.locator(".progress-record").filter({ hasText: "Synthetic legacy row with an invalid date." });
+  await expect(savedRow.getByText("Saved date unavailable")).toBeVisible();
+  await expect(savedRow.getByText("Synthetic legacy row with an invalid date.")).toBeVisible();
+  await expect(savedRow.getByRole("link", { name: "Edit learning record" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export JSON" })).toBeVisible();
+
+  await page.goto("/modules/24#progress-editor-M24");
+  const editor = page.locator("#progress-editor-M24");
+  const note = editor.getByRole("textbox", { name: "Reflection (optional)" });
+  await expect(editor.getByText("Saved date unavailable")).toBeVisible();
+  await expect(note).toHaveValue(record.notes);
+  await note.fill("Recovered the synthetic legacy row; its original note remains.");
+  await editor.getByRole("button", { name: "Save module progress" }).click();
+  await expect(editor.getByText("Saved to your account.", { exact: true })).toBeVisible();
+
+  const recovered = await request.get(`${testOrigin}/api/progress?itemType=module&itemId=M24`);
+  expect(await recovered.json()).toMatchObject([{
+    notes: "Recovered the synthetic legacy row; its original note remains.",
+    updatedAt: expect.any(Number),
+    revision: initial.revision + 1,
+  }]);
 });
 
 test("activity directory filters by real phase, search text, and saved status", async ({ page, request }) => {
@@ -667,6 +777,7 @@ test("edits made during an outstanding project save remain visibly unsaved", asy
   const note = notebook.getByLabel("Checkpoint note · S02.1");
   await expect(note).toBeEnabled();
   await note.fill("First revision submitted to the server.");
+  const firstSave = page.waitForResponse((response) => response.request().method() === "PUT" && response.url().endsWith("/api/progress"));
   await notebook.getByRole("button", { name: "Save project notebook" }).click();
   await saveStarted;
   try {
@@ -679,6 +790,15 @@ test("edits made during an outstanding project save remain visibly unsaved", asy
   await expect(note).toHaveValue("Newer revision typed while the first save is pending.");
   await expect(notebook.locator(".form-footer .field-hint")).toContainText("Unsaved changes");
   await expect(notebook.locator(".form-message")).toContainText("Newer edits still need saving");
+  const firstSaved = await (await firstSave).json() as { revision: number };
+  await notebook.getByRole("button", { name: "Save project notebook" }).click();
+  await expect(notebook.locator(".form-message")).toContainText("Saved to your account.");
+  expect(submittedBody?.expectedRevision).toBe(firstSaved.revision);
+  const saved = await page.request.get("/api/progress?itemType=small_project&itemId=S02");
+  expect(await saved.json()).toMatchObject([{
+    revision: firstSaved.revision + 1,
+    taskObservations: { "S02.1": "Newer revision typed while the first save is pending." },
+  }]);
 });
 
 test("saved progress fields stay unavailable until the existing record finishes loading", async ({ page, request }) => {
@@ -1750,6 +1870,24 @@ test("progress API validates IDs, same-origin writes, and payload sizes", async 
     data: await progressSaveBody(request, { ...progressRecord("module", "M01", "completed"), repositoryUrl: "javascript:alert(1)" }),
   });
   expect(invalidRecord.status()).toBe(400);
+
+  const invalidTimestampBackup = {
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    records: [
+      { ...progressRecord("module", "M22", "completed", "Must not be partially restored."), updatedAt: Date.now() },
+      { ...progressRecord("module", "M21", "completed", "Impossible timestamp."), updatedAt: 8.64e15 + 1 },
+    ],
+  };
+  for (const url of ["/api/progress?preview=true", "/api/progress"]) {
+    const invalidImport = await request.post(url, {
+      headers: { "Content-Type": "application/json", Origin: testOrigin },
+      data: invalidTimestampBackup,
+    });
+    expect(invalidImport.status()).toBe(400);
+  }
+  const partialRestore = await request.get("/api/progress?itemType=module&itemId=M22");
+  expect((await partialRestore.json() as Array<{ notes: string }>).some(({ notes }) => notes === "Must not be partially restored.")).toBe(false);
 
   const crossOriginImport = await request.post("/api/progress", {
     headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
