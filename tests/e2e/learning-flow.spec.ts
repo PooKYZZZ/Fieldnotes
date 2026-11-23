@@ -1726,7 +1726,6 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-start-1920x1080.png") });
   await page.locator(".activity-workflow-nav a").nth(2).click();
-  await page.locator(".activity-a01-workspace").scrollIntoViewIfNeeded();
   await expect(page.locator(".activity-a01-workspace")).toBeInViewport();
   await expect(page.getByRole("button", { name: /Earlier unassigned note/ })).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1920.png") });
