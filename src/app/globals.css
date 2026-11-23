@@ -764,7 +764,6 @@ body { font-size: 15px; }
 .resource-empty h2 { margin: 0; color: #2c454a; font-size: 18px; }
 .resource-empty p { margin: 0 0 6px; color: #627176; font-size: 13px; }
 .resource-category { margin-bottom: 20px; }
-.resource-file-tag { margin-top: 7px; }
 .resource-source-tag { align-self: flex-start; }
 .resource-directory .section-heading { margin-top: 4px; }
 .resource-directory .section-heading h2 { display: flex; align-items: center; gap: 7px; }
@@ -1170,7 +1169,6 @@ body { font-size: 15px; }
 .activity-a01-understand .activity-scenario-text { max-width: 95ch; margin-bottom: 11px; font-size: 16px; line-height: 1.6; }
 .activity-a01-goal { max-width: 92ch; margin: 0; color: #40575a; font-size: 14px; line-height: 1.55; }
 .activity-a01-goal { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
-.activity-a01-goal > strong { flex: 0 0 auto; color: #315e58; }
 .activity-a01-goal .article-copy { max-width: none; margin: 0; color: inherit; font-size: inherit; line-height: inherit; }
 .activity-a01-goal .article-copy > :last-child { margin-bottom: 0; }
 .activity-a01-objectives { margin-top: 11px; }
@@ -1398,8 +1396,8 @@ body { font-size: 15px; }
   .activity-a01-notebook--open .activity-a01-notebook-heading { display: none; }
   .activity-a01-notebook--open .activity-a01-current-task { margin-bottom: 8px; }
   .activity-a01-notebook--open .activity-a01-notebook-form .form-textarea { min-height: 100px; }
-  .activity-a01-notebook--open .activity-a01-current-task:not(.activity-a01-current-task--legacy) > span,
-  .activity-a01-notebook--open .activity-a01-current-task:not(.activity-a01-current-task--legacy) > strong { display: none; }
+  .activity-a01-notebook--open .activity-a01-current-task:not(.activity-a01-current-task--legacy, .activity-a01-current-task--guest) > span,
+  .activity-a01-notebook--open .activity-a01-current-task:not(.activity-a01-current-task--legacy, .activity-a01-current-task--guest) > strong { display: none; }
 }
 
 /* Lesson layouts place each explanation beside its topic-specific diagram. */
@@ -1699,8 +1697,6 @@ body { font-size: 15px; }
 .project-build-workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(340px, .95fr); align-items: start; gap: clamp(24px, 2.6vw, 38px); margin-top: 16px; }
 .project-build-main, .project-notebook { min-width: 0; }
 .project-build-selector { display: grid; gap: 10px; border-bottom: 1px solid #e1e8e5; padding-bottom: 15px; }
-.project-build-progress-copy { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; margin-bottom: 2px; color: #526866; font-size: 11px; line-height: 1.45; }
-.project-build-progress-copy strong { color: #365653; font-size: 12px; }
 .project-checkpoint-map { display: grid; grid-template-columns: repeat(8, minmax(0, 36px)); align-items: center; gap: 7px; }
 .project-checkpoint-map-item { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #dce5e1; border-radius: 50%; background: #fff; color: #526b68; cursor: pointer; font: inherit; transition: border-color .15s ease, background .15s ease; }
 .project-checkpoint-map-item:hover { border-color: #a9c5ba; background: #f7faf8; }

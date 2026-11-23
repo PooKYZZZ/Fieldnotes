@@ -1,40 +1,99 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BookOpenCheck, Compass, GraduationCap, LayoutDashboard, LibraryBig, Map, Menu, Rocket, X } from "lucide-react";
+import { Activity, BookOpenCheck, BookOpenText, GraduationCap, House, LibraryBig, Map, PanelLeftClose, PanelLeftOpen, Rocket, X } from "lucide-react";
 import { AccountNavigation } from "@/features/auth/account-navigation";
 import { AuthSessionProvider } from "@/features/auth/auth-session-context";
 import { ProgressListProvider } from "@/features/progress/progress-list-context";
 
 const navigation = [
-  { label: "Dashboard", shortLabel: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Home", shortLabel: "Home", href: "/", icon: House },
   { label: "Learning roadmap", shortLabel: "Roadmap", href: "/roadmap", icon: Map },
   { label: "Activities", shortLabel: "Activities", href: "/activities", icon: Activity },
   { label: "Projects", shortLabel: "Projects", href: "/projects", icon: Rocket },
-  { label: "Progress notebook", shortLabel: "Progress", href: "/progress", icon: BookOpenCheck },
+  { label: "Progress notebook", shortLabel: "Notebook", href: "/progress", icon: BookOpenCheck },
 ];
 const resourcesNavigation = [
   { label: "Resource library", shortLabel: "Library", href: "/resources", icon: LibraryBig },
   { label: "Career & AI guide", shortLabel: "Guide", href: "/guide", icon: GraduationCap },
 ];
+const sidebarPreference = "fieldnotes.desktopNavigation";
+
+function visibleReadingPosition() {
+  if (window.scrollY === 0) return null;
+  const candidates = document.querySelectorAll<HTMLElement>(
+    "#main-content :is(h1, h2, h3, p, li, pre, figure, textarea, select, summary)",
+  );
+  const line = Math.min(100, window.innerHeight / 4);
+  let current: { element: HTMLElement; rect: DOMRect } | undefined;
+  let next: { element: HTMLElement; rect: DOMRect } | undefined;
+  for (const element of candidates) {
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || rect.bottom <= line || rect.top >= window.innerHeight) continue;
+    if (rect.top <= line) {
+      if (!current || current.rect.height > rect.height) current = { element, rect };
+    } else if (!next || next.rect.top > rect.top) {
+      next = { element, rect };
+    }
+  }
+  const position = current ?? next;
+  return position ? { element: position.element, top: position.rect.top } : null;
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [compactViewport, setCompactViewport] = useState(false);
+  const [desktopHidden, setDesktopHidden] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const desktopCloseRef = useRef<HTMLButtonElement>(null);
+  const desktopChange = useRef<{ position: ReturnType<typeof visibleReadingPosition> } | null>(null);
   const wasMenuOpen = useRef(false);
 
   useEffect(() => {
+    const restorePreference = requestAnimationFrame(() => {
+      try {
+        setDesktopHidden(localStorage.getItem(sidebarPreference) === "hidden");
+      } catch {
+        // The navigation still works when browser storage is restricted.
+      }
+    });
     const media = window.matchMedia("(max-width: 860px)");
-    const update = () => setCompactViewport(media.matches);
+    const update = () => {
+      setCompactViewport(media.matches);
+      if (!media.matches) setMenuOpen(false);
+    };
     update();
     media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
+    return () => {
+      cancelAnimationFrame(restorePreference);
+      media.removeEventListener("change", update);
+    };
   }, []);
+
+  function setDesktopNavigation(hidden: boolean) {
+    desktopChange.current = { position: visibleReadingPosition() };
+    setDesktopHidden(hidden);
+    try {
+      localStorage.setItem(sidebarPreference, hidden ? "hidden" : "visible");
+    } catch {
+      // Keep the choice for the current visit.
+    }
+  }
+
+  useLayoutEffect(() => {
+    const change = desktopChange.current;
+    if (!change) return;
+    desktopChange.current = null;
+    (desktopHidden ? menuButtonRef : desktopCloseRef).current?.focus({ preventScroll: true });
+    const position = change.position;
+    if (position?.element.isConnected) {
+      window.scrollBy({ top: position.element.getBoundingClientRect().top - position.top, behavior: "instant" });
+    }
+  }, [desktopHidden]);
 
   useEffect(() => {
     if (menuOpen && compactViewport) {
@@ -93,53 +152,63 @@ export function AppShell({ children }: { children: ReactNode }) {
   });
 
   return (
-    <AuthSessionProvider><ProgressListProvider><div className="app-shell">
+    <AuthSessionProvider><ProgressListProvider><div className="app-shell" data-desktop-nav-hidden={desktopHidden || undefined}>
       <aside
+        id="main-navigation"
         ref={sidebarRef}
         className={`sidebar${menuOpen ? " open" : ""}`}
         aria-label="Main navigation"
-        inert={compactViewport && !menuOpen}
+        inert={compactViewport ? !menuOpen : desktopHidden}
         onKeyDown={keepFocusInMobileNavigation}
       >
         <button className="mobile-nav-close" type="button" aria-label="Close navigation drawer" onClick={() => setMenuOpen(false)}>
-          <span>Close menu</span><X size={17} aria-hidden="true" />
+          <span>Close navigation drawer</span><X size={17} aria-hidden="true" />
         </button>
-        <Link className="brand" href="/" onClick={() => setMenuOpen(false)} aria-label="DevOps Fieldnotes home">
-          <span className="brand-mark"><Compass size={22} aria-hidden="true" /></span>
-          <span className="brand-name">Fieldnotes</span>
-        </Link>
-        <p className="nav-group-title">Learn</p>
-        <nav id="main-navigation" className="side-nav" aria-label="Learning pages">{renderLinks(navigation)}</nav>
+        <div className="sidebar-heading">
+          <Link className="brand" href="/" onClick={() => setMenuOpen(false)}>
+            <span className="brand-mark"><BookOpenText size={19} strokeWidth={1.7} aria-hidden="true" /></span>
+            <span className="brand-name">Fieldnotes <span className="brand-subtitle">DevOps curriculum</span></span>
+            <span className="sr-only">home</span>
+          </Link>
+          <button ref={desktopCloseRef} className="desktop-nav-close" type="button" aria-label="Close navigation" title="Close navigation" onClick={() => setDesktopNavigation(true)}>
+            <PanelLeftClose size={19} aria-hidden="true" />
+          </button>
+        </div>
+        <p className="nav-group-title">Workspace</p>
+        <nav className="side-nav" aria-label="Learning pages">{renderLinks(navigation)}</nav>
         <p className="nav-group-title reference-nav-title">Reference</p>
         <nav className="side-nav" aria-label="Reference pages">{renderLinks(resourcesNavigation)}</nav>
-        <p className="nav-group-title account-nav-title">Account</p>
-        <nav className="side-nav" aria-label="Account pages"><AccountNavigation onNavigate={() => setMenuOpen(false)} /></nav>
+        <nav className="side-nav account-nav" aria-label="Account pages"><AccountNavigation onNavigate={() => setMenuOpen(false)} /></nav>
       </aside>
 
       <button
         type="button"
         className={`backdrop${menuOpen ? " show" : ""}`}
         aria-label="Close navigation"
-        tabIndex={menuOpen ? 0 : -1}
+        tabIndex={-1}
         onClick={() => setMenuOpen(false)}
       />
 
       <div className="workspace">
-        <header className="topbar" aria-label="Mobile navigation">
+        <header className="topbar" aria-label="Navigation controls" inert={compactViewport && menuOpen}>
           <button
             ref={menuButtonRef}
             type="button"
             className="mobile-menu-button"
-            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label="Open navigation"
+            title="Open navigation"
             aria-controls="main-navigation"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={compactViewport ? menuOpen : !desktopHidden}
+            onClick={() => compactViewport ? setMenuOpen(true) : setDesktopNavigation(false)}
           >
-            {menuOpen ? <X size={19} /> : <Menu size={19} />}
+            <PanelLeftOpen size={19} aria-hidden="true" />
           </button>
+          <Link className="mobile-brand" href="/" onClick={() => setMenuOpen(false)}>
+            <BookOpenText size={18} strokeWidth={1.7} aria-hidden="true" /> Fieldnotes
+          </Link>
         </header>
-        <main className="main-content" id="main-content" tabIndex={-1}>{children}</main>
-        <footer className="site-legal-footer">
+        <main className="main-content" id="main-content" tabIndex={-1} inert={compactViewport && menuOpen}>{children}</main>
+        <footer className="site-legal-footer" inert={compactViewport && menuOpen}>
           <span>Public learning materials · private progress records</span>
           <nav aria-label="Legal information">
             <Link href="/privacy">Privacy</Link>

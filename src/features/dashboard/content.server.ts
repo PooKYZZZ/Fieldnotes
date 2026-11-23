@@ -1,6 +1,7 @@
 import "server-only";
 
 import { activities, majorProjects, modules, projectMilestones, smallProjects } from "@/content/catalog";
+import { a01Tasks } from "@/features/activities/a01-task-catalog";
 import type { DashboardActivity, DashboardMajorProject, DashboardModule, DashboardSmallProject } from "@/features/dashboard/model";
 
 function preview(text: string, maxLength = 180): string {
@@ -33,7 +34,10 @@ export function getDashboardContent(): {
       activityId,
       lessons: lessons.map(({ id: lessonId, title: lessonTitle }) => ({ id: lessonId, title: lessonTitle })),
     })),
-    activities: activities.map(({ id, moduleId, title }) => ({ id, moduleId, title })),
+    activities: activities.map(({ id, moduleId, title, investigationTasks }) => ({
+      id, moduleId, title,
+      resumeTasks: (id === "A01" ? a01Tasks : investigationTasks)?.map(({ id, title }) => ({ id, title })),
+    })),
     majorProjects: majorProjects.map(({ id, title }) => ({
       id,
       title,

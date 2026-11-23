@@ -22,6 +22,10 @@ test("A01 keeps task guidance mounted while the learner edits", async ({ page, c
 
   await observation.fill("The same help disclosure should remain open while I type.");
   await expect(observation).toBeFocused();
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+  await expect(observation).toHaveValue("The same help disclosure should remain open while I type.");
+  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+  await expect(observation).toHaveValue("The same help disclosure should remain open while I type.");
   await expect(help).toHaveAttribute("open", "");
   await expect(help).toHaveAttribute("data-regression-identity", "original");
   await expect(page.locator("#activity-steps [data-task-id]")).toHaveCount(5);

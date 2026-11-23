@@ -31,16 +31,16 @@ function MarkdownHeading3({ children, id }: ComponentProps<"h3">) {
   return <h3 id={id}>{children}</h3>;
 }
 
-function MarkdownPre({ children: content, "data-copyable": copyable }: ComponentProps<"pre"> & { "data-copyable"?: boolean; node?: unknown }) {
+export function MarkdownPre({ children: content, "data-copyable": copyable }: ComponentProps<"pre"> & { "data-copyable"?: boolean; node?: unknown }) {
   const code = Array.isArray(content) ? content[0] : content;
   const isDiagram = isValidElement<{ className?: string }>(code)
     && code.props.className?.split(/\s+/).includes("language-diagram");
-  if (isDiagram) return <figure className="lesson-diagram" aria-label="Text diagram"><pre>{content}</pre></figure>;
+  if (isDiagram) return <figure className="lesson-diagram" aria-label="Text diagram"><pre tabIndex={0}>{content}</pre></figure>;
   if (copyable && isValidElement<{ children?: ReactNode }>(code)) {
     const value = nodeText(code.props.children);
-    if (value.trim()) return <div className="copyable-code-block"><CopyCodeButton value={value} /><pre>{content}</pre></div>;
+    if (value.trim()) return <div className="copyable-code-block"><CopyCodeButton value={value} /><pre tabIndex={0}>{content}</pre></div>;
   }
-  return <pre>{content}</pre>;
+  return <pre tabIndex={0}>{content}</pre>;
 }
 
 function MarkdownParagraph({ children: paragraph, ...props }: ComponentProps<"p"> & { node?: unknown }) {

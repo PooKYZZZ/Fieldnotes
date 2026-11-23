@@ -6,6 +6,7 @@ type TechnicalFigureSource = {
 };
 
 export function TechnicalFigure({
+  id,
   src,
   alt,
   caption,
@@ -13,6 +14,7 @@ export function TechnicalFigure({
   width = 960,
   height = 360,
 }: {
+  id?: string;
   src: string;
   alt: string;
   caption: string;
@@ -28,7 +30,7 @@ export function TechnicalFigure({
   }
 
   return (
-    <figure className="learning-figure">
+    <figure id={id} tabIndex={id ? -1 : undefined} className="learning-figure">
       {/* Reviewed local assets keep working without a network connection. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={alt} width={width} height={height} loading="lazy" decoding="async" />

@@ -3,8 +3,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, BookOpen, ChevronDown, Cloud, Search, SearchX, Shield } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowRight, ChevronDown, Search, SearchX } from "lucide-react";
 import type { ModuleSummary } from "@/content/catalog";
 import type { CurriculumPhase } from "@/content/taxonomy";
 import { ModuleCard } from "@/features/roadmap/module-card";
@@ -92,12 +91,6 @@ function readRoadmapFilters(search: string, phases: RoadmapPhase[], progressAvai
       : "all",
   };
 }
-
-const phaseIcons: Record<CurriculumPhase, LucideIcon> = {
-  Foundations: BookOpen,
-  "Infrastructure & Cloud": Cloud,
-  "Operations & Security": Shield,
-};
 
 export function RoadmapExplorer({
   modules,
@@ -227,6 +220,21 @@ export function RoadmapExplorer({
         </div>
       </section>
 
+      {!anyFilter && <nav className="study-phase-index" aria-label="Curriculum phases">
+        <ol>
+          {phases.map((phase, index) => <li key={phase.name}>
+            <a href={`#${phaseKey(phase.name)}`} onClick={() => {
+              const key = phaseKey(phase.name);
+              if (!openPhases.has(key)) togglePhase(key);
+            }}>
+              <span className="study-index-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+              <span><strong>{phase.name}</strong><small>{phase.range}</small></span>
+              <ArrowDown aria-hidden="true" size={15} />
+            </a>
+          </li>)}
+        </ol>
+      </nav>}
+
       <div className="roadmap-disclosure-controls" role="group" aria-label="Roadmap phase controls">
         <button className="roadmap-global-phase-button" type="button" onClick={() => setAllPhasesOpen(true)} disabled={allExpanded}>
           Expand all phases
@@ -236,18 +244,17 @@ export function RoadmapExplorer({
         </button>
       </div>
 
-      {filteredModules.length ? phases.map((phase) => {
+      {filteredModules.length ? phases.map((phase, index) => {
         const phaseModules = filteredModules.filter(({ module }) => module.phase === phase.name);
         if (!phaseModules.length) return null;
-        const Icon = phaseIcons[phase.name];
         const phaseId = phaseKey(phase.name);
         const modulesId = `${phaseId}-modules`;
         const expanded = anyFilter || openPhases.has(phaseId);
         return (
           <section className="roadmap-phase" key={phase.name} aria-labelledby={phaseId}>
-            <div className="section-heading">
+            <header className="study-phase-heading">
               <div className="phase-banner">
-                <span className="phase-number"><Icon size={18} aria-hidden="true" /></span>
+                <span className="study-index-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <div className="phase-banner-copy">
                   <h2 id={phaseId}>{phase.name}<span>{phase.range}</span></h2>
                 </div>
@@ -264,11 +271,10 @@ export function RoadmapExplorer({
                   <span>{expanded ? "Collapse" : "Expand"}</span><ChevronDown className={expanded ? "roadmap-phase-toggle-icon is-expanded" : "roadmap-phase-toggle-icon"} size={16} aria-hidden="true" />
                 </button>
               </div>
-            </div>
-            <div id={modulesId} className="module-grid roadmap-phase-modules" aria-labelledby={phaseId} hidden={!expanded}>
-              {phaseModules.map(({ module, status, activityCount, activityStatus, completedLessonCount }) => (
+            </header>
+            <ul id={modulesId} className="module-grid roadmap-phase-modules" aria-labelledby={phaseId} hidden={!expanded}>
+              {phaseModules.map(({ module, status, activityCount, activityStatus, completedLessonCount }) => <li key={module.id}>
                 <ModuleCard
-                  key={module.id}
                   module={module}
                   status={status}
                   activityCount={activityCount}
@@ -276,8 +282,8 @@ export function RoadmapExplorer({
                   activityStatus={activityStatus}
                   completedLessonCount={completedLessonCount}
                 />
-              ))}
-            </div>
+              </li>)}
+            </ul>
           </section>
         );
       }) : (

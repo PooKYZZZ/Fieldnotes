@@ -82,19 +82,20 @@ export function ProgressNotebook({ items, initialTypeFilter = "all" }: { items: 
   if (!loaded) return <div className="progress-loading" role="status"><RefreshCw size={17} aria-hidden="true" />Loading your saved learning records…</div>;
   if (sessionUnavailable) return <AuthUnavailableNotice message="Your account could not be checked. Your public learning material remains available; saved records are hidden until the account service responds." onRetry={retry} />;
   if (accountChanged) return <ProgressAccountChangedNotice />;
-  if (requiresSignIn) return <ProgressSignInNotice>Your learning records are private to your account. Sign in to open your notebook; lessons remain public.</ProgressSignInNotice>;
+  if (requiresSignIn) return <section className="progress-journal" aria-label="Open your notebook">
+    <ProgressSignInNotice reloadAfterSignIn={false}>Sign in to keep your lesson progress, lab observations, and project notes together. You can export or restore your saved records from here.</ProgressSignInNotice>
+    <Link className="button button-outline" href="/roadmap">Return to the roadmap</Link>
+  </section>;
   if (loadError) return <div className="progress-load-error" role="alert"><h2>Saved progress is unavailable</h2><p>Your records were not cleared. Check the app or local database, then retry.</p><button className="button button-outline" type="button" onClick={retry}><RefreshCw size={14} aria-hidden="true" /> Try again</button></div>;
 
   return <section className="progress-journal" aria-labelledby="saved-work-title">
-    <div className="progress-overview-heading"><div><p className="eyebrow">Journey snapshot</p><h2>Learning overview</h2><p>Module states come from your saved records. They describe what you chose to track, not verified mastery.</p></div></div>
-    <div className="progress-stats" aria-label="Roadmap module progress summary">
-      <div className="progress-stat"><span>Roadmap modules</span><strong>{counts.modules}</strong></div>
-      <div className="progress-stat"><span>Modules marked complete</span><strong>{counts.completedModules}</strong></div>
-      <div className="progress-stat"><span>Modules in progress</span><strong>{counts.activeModules}</strong></div>
-      <div className="progress-stat"><span>Modules needing review</span><strong>{counts.modulesToReview}</strong></div>
-    </div>
-
-    <div className="progress-journal-heading"><div><p className="eyebrow">Notes, practice, and evidence</p><h2 id="saved-work-title">Saved learning record</h2><p>Records are ordered by their last saved time. A completion label reflects your saved choice; it is not an external skills assessment.</p></div><span className="progress-record-count">{filteredItems.length} of {savedItems.length} records shown</span></div>
+    <div className="progress-journal-heading"><div><h2 id="saved-work-title">Saved learning record</h2><p>Most recently saved first.</p></div><span className="progress-record-count">{filteredItems.length} of {savedItems.length} records shown</span></div>
+    <dl className="progress-stats" aria-label="Roadmap module progress summary, self-reported">
+      <div className="progress-stat"><dt>Roadmap modules</dt><dd>{counts.modules}</dd></div>
+      <div className="progress-stat"><dt>Marked complete</dt><dd>{counts.completedModules}</dd></div>
+      <div className="progress-stat"><dt>In progress</dt><dd>{counts.activeModules}</dd></div>
+      <div className="progress-stat"><dt>Needs review</dt><dd>{counts.modulesToReview}</dd></div>
+    </dl>
 
     <div className="progress-filter-panel">
       <label className="progress-search search-wrap"><Search size={17} aria-hidden="true" /><span className="sr-only">Search saved learning records</span><input className="form-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search notes, evidence, or items" /></label>
@@ -102,27 +103,30 @@ export function ProgressNotebook({ items, initialTypeFilter = "all" }: { items: 
         <div className="progress-type-filters" role="group" aria-label="Filter by learning item type">
           {itemFilters.map(({ value, label }) => <button className="progress-type-filter" type="button" key={value} aria-pressed={itemFilter === value} onClick={() => setItemFilter(value)}>{label}</button>)}
         </div>
-        <label className="progress-status-filter">Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>{statusFilters.map((filter) => <option key={filter.value} value={filter.value}>{filter.label}</option>)}</select></label>
+        <label className="progress-status-filter">Status<select value={statusFilter} onChange={(event) => {
+          const value = event.currentTarget.value;
+          setStatusFilter(statusFilters.find((filter) => filter.value === value)?.value ?? "all");
+        }}>{statusFilters.map((filter) => <option key={filter.value} value={filter.value}>{filter.label}</option>)}</select></label>
       </div>
     </div>
 
     {filteredItems.length ? <div className="progress-record-list">{filteredItems.map(({ record, item }) => {
       const savedDate = formatSavedDate(record.updatedAt, { dateStyle: "medium" });
       return <article className="progress-record" key={`${record.itemType}-${record.itemId}`}>
-        <div className="progress-record-marker" aria-hidden="true"><NotebookPen size={17} /></div>
+        <div className="progress-record-marker" aria-hidden="true">{record.itemId}</div>
         <div className="progress-record-body">
           <div className="progress-record-heading"><div><p className="progress-record-meta">{item.kind} <span aria-hidden="true">·</span> {savedDate.dateTime ? <time dateTime={savedDate.dateTime}>Saved {savedDate.text}</time> : <span>{savedDate.text}</span>}</p><h3><Link href={item.href}>{item.label}<ArrowUpRight size={14} aria-hidden="true" /></Link></h3></div><StatusPill status={record.status} /></div>
           {record.comfort && <p className="progress-record-detail"><strong>Confidence:</strong> {record.comfort[0].toUpperCase() + record.comfort.slice(1)}</p>}
           {record.itemType === "activity" && item.investigationTasks && record.taskObservations && <div className="progress-record-task-observations" aria-label={`Saved ${record.itemId} task observations`}>
             {item.investigationTasks.map((task) => {
               const observation = record.taskObservations?.[task.id]?.trim();
-              return observation ? <p className="progress-record-detail" key={task.id}><strong>{task.title}:</strong> {observation}</p> : null;
+              return observation ? <div className="progress-record-detail" key={task.id}><Link href={`${item.href}#activity-task-${task.id}`}>{task.title}</Link><p>{observation}</p></div> : null;
             })}
           </div>}
           {(record.itemType === "project" || record.itemType === "small_project") && item.checkpointTasks && record.taskObservations && <div className="progress-record-task-observations" aria-label={`Saved ${record.itemId} checkpoint notes`}>
             {item.checkpointTasks.map((checkpoint) => {
               const observation = record.taskObservations?.[checkpoint.id]?.trim();
-              return observation ? <p className="progress-record-detail" key={checkpoint.id}><strong>{checkpoint.id} · {checkpoint.title}:</strong> {observation}</p> : null;
+              return observation ? <div className="progress-record-detail" key={checkpoint.id}><Link href={`${item.href}#milestone-${checkpoint.id}`}>{checkpoint.id} · {checkpoint.title}</Link><p>{observation}</p></div> : null;
             })}
           </div>}
           {record.notes && <p className="progress-record-note">{record.notes}</p>}
@@ -132,6 +136,6 @@ export function ProgressNotebook({ items, initialTypeFilter = "all" }: { items: 
           {item.editHref && <Link className="progress-record-action" href={item.editHref}><PencilLine size={14} aria-hidden="true" />{item.editLabel ?? "Edit learning record"}</Link>}
         </div>
       </article>;
-    })}</div> : records.length ? <div className="progress-empty-filter" role="status"><Search size={23} aria-hidden="true" /><h3>No saved records match these filters.</h3><p>Try another type or status, or search for a different term.</p>{hasFilters && <button className="button button-outline" type="button" onClick={clearFilters}>Clear filters</button>}</div> : <div className="progress-first-entry"><div className="progress-first-icon"><NotebookPen size={24} aria-hidden="true" /></div><div><p className="eyebrow">A clean start</p><h3>Your learning notes will collect here</h3><p>Open a module, lesson, activity, troubleshooting scenario, or project to record what you practiced and how you verified it. A concise entry might include a goal, command or artifact, observation, troubleshooting, and takeaway.</p><Link className="button button-primary" href="/roadmap">Choose your next module <ArrowUpRight size={15} aria-hidden="true" /></Link></div></div>}
+    })}</div> : records.length ? <div className="progress-empty-filter" role="status"><Search size={23} aria-hidden="true" /><h3>No saved records match these filters.</h3><p>Try another type or status, or search for a different term.</p>{hasFilters && <button className="button button-outline" type="button" onClick={clearFilters}>Clear filters</button>}</div> : <div className="progress-first-entry"><div className="progress-first-icon"><NotebookPen size={24} aria-hidden="true" /></div><div><h3>Your learning notes will collect here</h3><p>Open a lesson, lab, or project to record what you tried, what you observed, and how you verified the result.</p><Link className="button button-primary" href="/roadmap">Choose your next module <ArrowUpRight size={15} aria-hidden="true" /></Link></div></div>}
   </section>;
 }

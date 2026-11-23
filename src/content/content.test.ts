@@ -252,7 +252,7 @@ describe("learning content integrity", () => {
     expect(new Set(projectMilestones.map((item) => item.id)).size).toBe(projectMilestones.length);
     expect(projectMilestones.every((item) => projects.some((project) => project.id === item.projectId))).toBe(true);
     expect(projects.every((project) => projectMilestones.filter((item) => item.projectId === project.id).length >= 4)).toBe(true);
-    expect(projectMilestones.every((item) => item.guidance.includes("**Purpose:**") && item.guidance.includes("**Checkpoint:**") && item.guidance.includes("**Evidence:**"))).toBe(true);
+    expect(projectMilestones.every((item) => item.guidance.includes("**Purpose:**") && item.acceptance && item.guidance.includes("**Evidence:**"))).toBe(true);
     expect(projectMilestones.filter((item) => item.projectId === "P1").map((item) => item.id)).toEqual(["P1.1", "P1.2", "P1.3", "P1.4", "P1.5", "P1.6", "P1.7", "P1.8"]);
     expect(projectMilestones.filter((item) => item.projectId === "P2").map((item) => item.id)).toEqual(["P2.1", "P2.2", "P2.3", "P2.4", "P2.5", "P2.6", "P2.7"]);
     expect(projectMilestones.filter((item) => item.projectId === "P3").map((item) => item.id)).toEqual(["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"]);

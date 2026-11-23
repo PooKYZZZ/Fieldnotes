@@ -38,7 +38,7 @@ export type DashboardModel = {
 };
 
 export type DashboardModule = ModuleSummary & Pick<ModuleRecord, "activityId">;
-export type DashboardActivity = { id: string; moduleId: number; title: string };
+export type DashboardActivity = { id: string; moduleId: number; title: string; resumeTasks?: readonly { id: string; title: string }[] };
 export type DashboardProject = { id: string; title: string; milestones: { id: string; label: string }[] };
 export type DashboardMajorProject = DashboardProject;
 export type DashboardSmallProject = DashboardProject;

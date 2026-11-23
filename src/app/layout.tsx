@@ -4,6 +4,10 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
+import "./redesign-system.css";
+import "./redesign-study.css";
+import "./redesign-practice.css";
+import "./redesign-records.css";
 import { AppShell } from "@/components/app-shell";
 
 export const metadata: Metadata = {

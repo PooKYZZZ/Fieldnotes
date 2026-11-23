@@ -4,18 +4,16 @@ import { TechnicalFigure } from "@/features/learning/components/technical-figure
 export const lessonId = "M01-L01";
 export const lessonTitle = "From program to process";
 
-<ConceptSection layout="split">
-  <div className="learning-concept-copy">
 **What is different between an application on disk and one that is running?** A program is a file containing instructions and data. When you launch it, the operating system creates a process: a running instance with an identity, an address space, resources such as open files, and at least one thread of execution.
 
-On Linux, a shell commonly asks the kernel to create a child process and then execute a program in it. The `execve` system call replaces the calling process's program image with the new program; it does not itself create a new process. The kernel maps the program and its required data, prepares the initial state, and begins execution. The process has a process ID (PID); its parent process has a parent PID (PPID). Starting another copy of the same program normally creates another process with a different PID. As Figure 1 shows, a process can move between ready, running, and blocked states; being present does not mean it is using a CPU at that instant.
+On Linux, a shell commonly asks the kernel to create a child process and then execute a program in it. The `execve` system call replaces the calling process's program image with the new program; it does not itself create a new process. The kernel maps the program and its required data, prepares the initial state, and begins execution.
 
-If this is your first Linux terminal, [prepare the disposable VM and try a pipe](/guide#lab-readiness). Then try `ps -eo pid,ppid,comm,state --sort=pid | head` in a Linux terminal. Pick a command you recognize and trace its PPID to its parent.
-
-
-**Check:** If two terminal windows launch the same command, what would you inspect to tell whether they are two running instances?
+<ConceptSection layout="paired">
+  <div className="learning-concept-copy">
+A process can move between ready, running, and blocked states, as [Figure 1](#process-lifecycle) shows. A process that is ready is waiting for CPU time. A blocked process is waiting for an event such as I/O. Finding the process in a listing tells you it exists at that moment.
   </div>
   <TechnicalFigure
+    id="process-lifecycle"
     src="/diagrams/module01/process-lifecycle-openstax.webp"
     alt="A simplified process lifecycle: creation leads to ready, then dispatch leads to running; interrupts return it to ready, while I/O or exceptions can block it."
     width={903}
@@ -24,3 +22,25 @@ If this is your first Linux terminal, [prepare the disposable VM and try a pipe]
     source={{ label: "OpenStax, Figure 6.20", url: "https://openstax.org/books/introduction-computer-science/pages/6-3-processes-and-concurrency", license: "CC BY-NC-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/" }}
   />
 </ConceptSection>
+
+### Trace a parent process in your VM
+
+The **PID** identifies a process. The **PPID** in that process’s row is the PID of its parent. Each concurrently running copy of a program has its own PID.
+
+If you’re new to the terminal, [prepare the disposable VM and try a pipe](/guide#lab-readiness). In your Linux terminal, list the processes.
+
+```bash
+ps -eo pid,ppid,comm,state --sort=pid | head
+```
+
+Example output with illustrative IDs.
+
+```text
+  PID  PPID COMMAND   S
+ 2831  2802 bash      S
+ 2914  2831 sleep     S
+```
+
+The `sleep` process has PID `2914`. Its PPID is `2831`, which matches the `bash` row. The `S` state means interruptible sleep at the moment of the snapshot. Your IDs will differ. Pick a process you recognize and find the row whose PID matches its PPID. If the parent is outside the first ten rows, run `ps -p PARENT_PID -o pid,ppid,comm,state`, replacing `PARENT_PID` with the number you found.
+
+**Check:** Two terminal windows launch the same command. Which field distinguishes the two instances, which field would you use to look up each parent, and what would you still need to check before calling either instance healthy?

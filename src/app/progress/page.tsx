@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { NotebookPen, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { ProgressBackup } from "@/features/progress/progress-backup";
 import { ProgressNotebook, type NotebookItem } from "@/features/progress/progress-notebook";
 import { activities, majorProjects, modules, projectMilestones, smallProjects, troubleshooting } from "@/content";
@@ -46,12 +46,12 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
 
   return <>
     <header className="page-header progress-page-header">
-      <div><p className="eyebrow">Your learning record</p><h1><NotebookPen size={27} aria-hidden="true" /> Progress notebook</h1><p className="page-description">Keep concise notes about what you practiced and the evidence you can reproduce. Records stay in this app’s local SQLite database.</p></div>
+      <div><h1>Progress notebook</h1><p className="page-description">Find the notes, observations, and project checkpoints saved to your account.</p></div>
     </header>
-    <div className="progress-privacy-note"><ShieldCheck size={18} aria-hidden="true" /><p>Save sanitized evidence, not secrets. Keep passwords, access tokens, private addresses, work data, and personal information out of notes and screenshots.</p></div>
+    <div className="progress-privacy-note"><ShieldCheck size={16} aria-hidden="true" /><p>Save only sanitized evidence. Omit credentials, private addresses, work data, and personal information.</p></div>
     <div className="progress-workspace">
       <ProgressNotebook items={items} initialTypeFilter={params.type === "project" ? "project" : "all"} />
-      <aside className="progress-backup-rail" aria-label="Progress data tools"><ProgressBackup /></aside>
+      <ProgressBackup />
     </div>
   </>;
 }

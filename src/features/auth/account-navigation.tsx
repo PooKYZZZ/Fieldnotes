@@ -14,6 +14,9 @@ export function AccountNavigation({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   if (session.status === "unavailable") {
+    if (/^\/(?:activities|projects)\/[^/]+$/.test(pathname)) {
+      return <Link className="nav-link" href="/account" onClick={onNavigate}><CircleUserRound size={17} aria-hidden="true" /><span>Account</span></Link>;
+    }
     return <button className="nav-link" type="button" onClick={() => void session.retry()}><RefreshCw size={17} aria-hidden="true" /><span>Account unavailable · retry</span></button>;
   }
 

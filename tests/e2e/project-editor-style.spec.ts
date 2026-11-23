@@ -7,8 +7,7 @@ test("project editor modifier selects its desktop and compact notebook rules", a
   await page.goto("/projects/S02#project-build");
   const editor = page.locator("#progress-editor-S02");
   await expect(editor).toHaveClass(/progress-editor--project-workbench/);
-  await expect(editor).toHaveCSS("border-top-color", "rgb(213, 226, 220)");
-  await expect(editor).toHaveCSS("background-color", "rgb(245, 248, 246)");
+  await expect(editor).toHaveCSS("border-top-width", "1px");
 
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
@@ -16,7 +15,7 @@ test("project editor modifier selects its desktop and compact notebook rules", a
     const dialogEditor = page.getByRole("dialog", { name: "Project notebook" }).locator("#progress-editor-S02");
     await expect(dialogEditor).toHaveClass(/progress-editor--project-workbench/);
     await expect(dialogEditor).toHaveCSS("border-top-width", "0px");
-    await expect(dialogEditor).toHaveCSS("padding-top", "13px");
+    await expect(dialogEditor.getByLabel("Engineering log")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
     await page.keyboard.press("Escape");
   }

@@ -19,6 +19,7 @@ import { ProgressAccountChangedNotice } from "@/features/progress/progress-accou
 import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
 
 type InvestigationTask = { id: string; title: string; prompt?: string };
+const noTasks: readonly InvestigationTask[] = [];
 type WorkbenchProps = { activity: ActivityRecord; processInvestigation?: boolean };
 
 export function ActivityInvestigationWorkbench(props: WorkbenchProps) {
@@ -27,7 +28,7 @@ export function ActivityInvestigationWorkbench(props: WorkbenchProps) {
 }
 
 function ActivityInvestigationWorkbenchContent({ activity, processInvestigation = false }: WorkbenchProps) {
-  const tasks: readonly InvestigationTask[] = processInvestigation ? a01Tasks : activity.investigationTasks ?? [];
+  const tasks: readonly InvestigationTask[] = processInvestigation ? a01Tasks : activity.investigationTasks ?? noTasks;
   const firstTaskId = tasks[0]?.id ?? "";
   const { record, savedRecord, updatedAt, isDirty, loading, loadFailed, requiresSignIn, sessionUnavailable, accountChanged, saving, error, message, messageLocation, conflict, resolveConflict, save, update, retryLoad, setError, setMessage } = useActivityRecord(activity.id);
   const [taskSelection, setSelectedTaskId] = useState<string>(firstTaskId);
@@ -53,12 +54,26 @@ function ActivityInvestigationWorkbenchContent({ activity, processInvestigation 
   const disabled = accountChanged || requiresSignIn || loading || loadFailed || saving || Boolean(conflict);
   const currentTask = selectedTaskId === "legacy" ? undefined : tasks.find(({ id }) => id === selectedTaskId);
   const currentObservation = currentTask ? record.taskObservations?.[currentTask.id] ?? "" : "";
+  const taskPrompt = currentTask?.prompt ?? `For “${currentTask?.title ?? "this task"}”, record what you expected, what you observed, and what the result supports.`;
+  const observationExample = processInvestigation && currentTask?.id === "confirm-account"
+    ? "Example: I expected a regular account and observed UID 1000. I’ll use that UID to limit the process search to my account."
+    : undefined;
   const recordedCount = tasks.filter(({ id }) => Boolean(record.taskObservations?.[id]?.trim())).length;
   const savedDate = updatedAt === undefined ? undefined : formatSavedDate(updatedAt, { dateStyle: "medium", timeStyle: "short" });
   const savedText = savedDate?.dateTime ? `Last saved ${savedDate.text}` : savedDate?.text ?? "Not saved yet";
   const notebookState = loading ? "Loading saved notes" : loadFailed ? "Saved notes unavailable" : isDirty ? "Unsaved changes" : formatStatus(record.status);
   const legacyDirty = record.notes !== (savedRecord?.notes ?? "") || record.evidence !== (savedRecord?.evidence ?? "") || record.repositoryUrl !== (savedRecord?.repositoryUrl ?? "");
   const legacySelectionExists = selectedTaskId === "legacy" && legacyExists;
+
+  useEffect(() => {
+    const syncLinkedTask = () => {
+      const id = tasks.find((task) => window.location.hash === `#activity-task-${task.id}`)?.id;
+      if (id) setSelectedTaskId(id);
+    };
+    syncLinkedTask();
+    window.addEventListener("hashchange", syncLinkedTask);
+    return () => window.removeEventListener("hashchange", syncLinkedTask);
+  }, [tasks]);
 
   useEffect(() => {
     const updateVisibleTask = () => {
@@ -153,7 +168,7 @@ function ActivityInvestigationWorkbenchContent({ activity, processInvestigation 
     const inputId = selectedTaskId === "legacy" ? `notes-${activity.id}` : taskObservationId;
     const editor = document.getElementById(inputId);
     if (!(editor instanceof HTMLElement)) return;
-    editor.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    editor.scrollIntoView({ block: "nearest", inline: "nearest" });
     editor.focus({ preventScroll: true });
     focusTargetRef.current = null;
   }, [activity.id, focusRequest, mobileNotebookOpen, selectedTaskId, taskObservationId]);
@@ -182,7 +197,7 @@ function ActivityInvestigationWorkbenchContent({ activity, processInvestigation 
 
   function editTask(taskId: string, trigger?: HTMLElement) {
     const target = taskId === "legacy" ? document.getElementById("activity-perform") : document.getElementById(`activity-task-${taskId}`);
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    target?.scrollIntoView({ block: "start" });
     selectTask(taskId, trigger);
   }
 
@@ -215,15 +230,18 @@ function ActivityInvestigationWorkbenchContent({ activity, processInvestigation 
 
   return (
     <>
-      <section className="activity-stage activity-a01-investigate" id="activity-perform" aria-labelledby="activity-perform-title">
+      <section className="activity-stage activity-a01-investigate" id="activity-perform" tabIndex={-1} aria-labelledby="activity-perform-title">
         <div className="activity-a01-section-heading">
-          <p className="eyebrow">{processInvestigation ? "Investigate and record" : "Practice and record"}</p>
           <h2 id="activity-perform-title">{processInvestigation ? "Follow one process across Linux views" : "Work through the lab steps"}</h2>
           <p>{processInvestigation ? "Run each read-only check in your VM. Use its Record button to open the matching notebook entry." : "Use each step’s Record button to open its note. Your notebook stays with you as you work."}</p>
+          {!processInvestigation && tasks.length > 1 && <details className="activity-task-index">
+            <summary>Jump to a task</summary>
+            <ol>{tasks.map((task) => <li key={task.id}><a href={`#activity-task-${task.id}`}>{task.title}</a></li>)}</ol>
+          </details>}
         </div>
 
         <div className="activity-a01-workspace">
-          <div className="activity-a01-instructions" id="activity-steps">
+          <div className="activity-a01-instructions" id="activity-steps" tabIndex={-1}>
             {activity.steps && <ActivityTaskMarkdownContent copyable taskIds={tasks.map(({ id }) => id)} taskHints={processInvestigation ? activity.taskHints : undefined} taskDetails={processInvestigation ? activity.taskDetails : undefined} onRecordTask={recordTask} recordTaskDisabled={loading}>{activity.steps}</ActivityTaskMarkdownContent>}
             {!processInvestigation && <div className="activity-a01-inline-checks">
               <details>
@@ -248,14 +266,14 @@ function ActivityInvestigationWorkbenchContent({ activity, processInvestigation 
           </div>
 
           {mobileNotebookOpen && <button className="activity-a01-notebook-backdrop" data-modal-dismiss type="button" tabIndex={-1} aria-label="Close investigation notebook" onClick={closeMobileNotebook} />}
-          <aside ref={notebookRef} id={notebookId} className={`activity-a01-notebook${mobileNotebookOpen ? " activity-a01-notebook--open" : " activity-a01-notebook--closed"}`} aria-label={`${activity.id} investigation notebook`} role={mobileNotebookOpen ? "dialog" : undefined} aria-modal={mobileNotebookOpen || undefined}>
+          <aside ref={notebookRef} id={notebookId} className={`activity-a01-notebook${mobileNotebookOpen ? " activity-a01-notebook--open" : " activity-a01-notebook--closed"}`} data-requires-sign-in={requiresSignIn || undefined} aria-label={`${activity.id} investigation notebook`} role={mobileNotebookOpen ? "dialog" : undefined} aria-modal={mobileNotebookOpen || undefined}>
             <div className="activity-a01-mobile-notebook-controls">
               <Button
                 ref={notebookToggleRef}
                 id={notebookToggleId}
                 className="button button-outline activity-a01-mobile-notebook-toggle"
                 type="button"
-                aria-label={mobileNotebookOpen ? "Close notebook" : "Open investigation notebook"}
+                aria-label={mobileNotebookOpen ? "Close notebook" : `Open investigation notebook · ${notebookState}`}
                 aria-expanded={mobileNotebookOpen}
                 aria-controls={`progress-editor-${activity.id}`}
                 disabled={loading && !mobileNotebookOpen}
@@ -269,7 +287,7 @@ function ActivityInvestigationWorkbenchContent({ activity, processInvestigation 
                 }}
               >
                 {mobileNotebookOpen ? <X size={16} aria-hidden="true" /> : <BookOpen size={16} aria-hidden="true" />}
-                {mobileNotebookOpen ? "Close notebook" : "Open notebook"}
+                {mobileNotebookOpen ? "Close notebook" : "Open investigation notebook"}
                 {!mobileNotebookOpen && <span className="activity-a01-notebook-state">{notebookState}</span>}
               </Button>
             </div>
@@ -278,140 +296,148 @@ function ActivityInvestigationWorkbenchContent({ activity, processInvestigation 
               {conflict && <ProgressConflictNotice draft={record} current={conflict.current} onUseSaved={() => resolveConflict(false)} onKeepDraft={() => resolveConflict(true)} />}
               <div className="activity-a01-notebook-body">
                 <div className="activity-a01-notebook-heading">
-                  <p className="eyebrow"><BookOpen size={14} aria-hidden="true" /> One shared record</p>
-                  <h2>Investigation notebook</h2>
-                  <p>{processInvestigation ? "Choose a task to edit. Your notes stay in this A01 record until you save them." : "Choose a lab step to edit its note. Final review uses this same saved activity record."}</p>
+                  <h2><BookOpen size={18} aria-hidden="true" /> Investigation notebook</h2>
+                  {!requiresSignIn && <p>Choose a task, record your observation, and save your draft.</p>}
                 </div>
 
-                {requiresSignIn && <ProgressSignInNotice>{isDirty
-                  ? "Your session expired. Sign in to the same account and reopen this activity to recover your draft."
-                  : `Sign in to open and edit your private ${processInvestigation ? "investigation" : "activity"} notebook. Your learning content remains public.`}</ProgressSignInNotice>}
-                {accountChanged && <ProgressAccountChangedNotice />}
-                {sessionUnavailable && <AuthUnavailableNotice message="Your account could not be checked. Private notes stay hidden until the account service responds." onRetry={retryLoad} />}
+                {requiresSignIn ? <>
+                  {currentTask && <div className="activity-a01-current-task activity-a01-current-task--guest" aria-live="polite">
+                    <span>Task {selectedTaskIndex + 1} of {tasks.length}</span>
+                    <strong>{currentTask.title}</strong>
+                    <p>{taskPrompt}</p>
+                    {observationExample && <p>{observationExample}</p>}
+                  </div>}
+                  <ProgressSignInNotice reloadAfterSignIn={isDirty} actionLabel="Sign in to save (opens in a new tab)">{isDirty
+                    ? "Your session expired. Sign in to the same account and reopen this activity to recover your draft."
+                    : "Sign in to save an observation for this task."}</ProgressSignInNotice>
+                </> : <>
+                  {accountChanged && <ProgressAccountChangedNotice />}
+                  {sessionUnavailable && <AuthUnavailableNotice message="Your account could not be checked. Private notes stay hidden until the account service responds." onRetry={retryLoad} />}
 
-                {viewingDifferentTask && <div className="activity-a01-visible-task" role="status">
-                  <span>
-                    {visibleTaskIndex >= 0 && <strong>Reading Task {visibleTaskIndex + 1} · {tasks[visibleTaskIndex]?.title}</strong>}
-                    <span>Editing {currentTask ? `Task ${selectedTaskIndex + 1} · ${currentTask.title}` : `your ${legacyLabel.toLowerCase()}`}</span>
-                  </span>
-                  {visibleTaskIndex >= 0 && <button type="button" onClick={(event) => selectTask(visibleTaskId, event.currentTarget)}>Edit Task {visibleTaskIndex + 1}</button>}
-                </div>}
+                  {viewingDifferentTask && <div className="activity-a01-visible-task" role="status">
+                    <span>
+                      {visibleTaskIndex >= 0 && <strong>Reading Task {visibleTaskIndex + 1} · {tasks[visibleTaskIndex]?.title}</strong>}
+                      <span>Editing {currentTask ? `Task ${selectedTaskIndex + 1} · ${currentTask.title}` : `your ${legacyLabel.toLowerCase()}`}</span>
+                    </span>
+                    {visibleTaskIndex >= 0 && <button type="button" onClick={(event) => selectTask(visibleTaskId, event.currentTarget)}>Edit Task {visibleTaskIndex + 1}</button>}
+                  </div>}
 
-                <div className="activity-a01-task-picker" role="group" aria-label="Task notes and saved states">
-                  {tasks.map((task, index) => {
-                    const value = record.taskObservations?.[task.id] ?? "";
-                    const savedValue = savedRecord?.taskObservations?.[task.id] ?? "";
-                    const selected = selectedTaskId === task.id;
-                    const statusLabel = value.trim()
-                      ? value !== savedValue ? processInvestigation ? "unsaved" : "unsaved changes" : "note saved"
-                      : processInvestigation ? "not recorded" : "no note yet";
-                    const taskState = selected
-                      ? `${processInvestigation ? "Editing" : "Selected"} · ${statusLabel}`
-                      : statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
-                    return <button
-                      key={task.id}
-                      type="button"
-                      className="activity-a01-task-choice"
-                      aria-pressed={selectedTaskId === task.id}
-                      disabled={disabled}
-                      onClick={(event) => selectTask(task.id, event.currentTarget)}
-                    >
-                      <span className="activity-a01-task-choice-number">{String(index + 1).padStart(2, "0")}</span>
-                      <span className="activity-a01-task-choice-copy"><strong>{task.title}</strong><small>{taskState}</small></span>
-                    </button>;
-                  })}
-                  {legacyExists && <button
-                    type="button"
-                    className="activity-a01-task-choice activity-a01-task-choice--legacy"
-                    aria-pressed={selectedTaskId === "legacy"}
-                    disabled={disabled}
-                    onClick={(event) => selectTask("legacy", event.currentTarget)}
-                  >
-                    <span className="activity-a01-task-choice-number">Old</span>
-                    <span className="activity-a01-task-choice-copy"><strong>{legacyLabel}</strong><small>{legacyDirty ? "Unsaved changes" : "Preserved"}</small></span>
-                  </button>}
-                </div>
-                <label className="activity-a01-task-picker-mobile">
-                  <span id={taskPickerLabelId}>
-                    Choose a task · {currentTask
-                      ? `Editing Task ${selectedTaskIndex + 1} of ${tasks.length} · ${currentTask.title}`
-                      : `Editing your ${legacyLabel.toLowerCase()}`}
-                  </span>
-                  <select
-                    className="form-select"
-                    aria-labelledby={taskPickerLabelId}
-                    value={selectedTaskId}
-                    disabled={disabled}
-                    onChange={(event) => selectTask(event.target.value)}
-                  >
+                  <div className="activity-a01-task-picker" role="group" aria-label="Task notes and saved states">
                     {tasks.map((task, index) => {
                       const value = record.taskObservations?.[task.id] ?? "";
                       const savedValue = savedRecord?.taskObservations?.[task.id] ?? "";
-                      const taskState = value.trim() ? value !== savedValue ? "unsaved changes" : "note saved" : "no note yet";
-                      return <option key={task.id} value={task.id}>Task {index + 1} · {task.title} · {taskState}</option>;
+                      const selected = selectedTaskId === task.id;
+                      const statusLabel = value.trim()
+                        ? value !== savedValue ? processInvestigation ? "unsaved" : "unsaved changes" : "note saved"
+                        : processInvestigation ? "not recorded" : "no note yet";
+                      const taskState = selected
+                        ? `${processInvestigation ? "Editing" : "Selected"} · ${statusLabel}`
+                        : statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
+                      return <button
+                        key={task.id}
+                        type="button"
+                        className="activity-a01-task-choice"
+                        aria-pressed={selectedTaskId === task.id}
+                        disabled={disabled}
+                        onClick={(event) => selectTask(task.id, event.currentTarget)}
+                      >
+                        <span className="activity-a01-task-choice-number">{String(index + 1).padStart(2, "0")}</span>
+                        <span className="activity-a01-task-choice-copy"><strong>{task.title}</strong><small>{taskState}</small></span>
+                      </button>;
                     })}
-                    {legacyExists && <option value="legacy">{legacyLabel} · {legacyDirty ? "unsaved changes" : "preserved"}</option>}
-                  </select>
-                </label>
-
-                {currentTask ? <div className="activity-a01-current-task" aria-live="polite">
-                  <span>Editing Task {selectedTaskIndex + 1} of {tasks.length}</span>
-                  <strong>{currentTask.title}</strong>
-                  <p id={taskPromptId}>{currentTask.prompt ?? "Capture what you predicted or did, the result you observed, and what it supports."}</p>
-                </div> : legacySelectionExists ? <div className="activity-a01-current-task activity-a01-current-task--legacy">
-                  <span>{processInvestigation ? "Earlier A01 record" : "Earlier saved record"}</span>
-                  <strong>Not linked to a specific task</strong>
-                  <p>{processInvestigation ? "This note came from the earlier A01 notebook. It remains editable here and has not been assigned to a task." : "This work was saved before task-linked notes were introduced. It remains editable and is not assigned to a lab step."}</p>
-                </div> : <div className="activity-a01-current-task activity-a01-current-task--legacy">
-                  <span>Choose a lab step</span>
-                  <strong>No task selected</strong>
-                  <p>Select a step above to edit its note.</p>
-                </div>}
-
-                <div className="activity-a01-notebook-form">
-                  {currentTask ? <div className="form-field">
-                    <label htmlFor={taskObservationId}>Task observation</label>
-                    <Textarea
-                      id={taskObservationId}
-                      className="form-textarea"
-                      maxLength={1200}
-                      value={currentObservation}
+                    {legacyExists && <button
+                      type="button"
+                      className="activity-a01-task-choice activity-a01-task-choice--legacy"
+                      aria-pressed={selectedTaskId === "legacy"}
                       disabled={disabled}
-                      aria-describedby={`${taskPromptId} ${privacyId}`}
-                      placeholder={processInvestigation ? "Record a short, sanitized observation and what it supports." : "Record what happened in this step and what you concluded."}
-                      onChange={(event) => updateObservation(currentTask.id, event.target.value)}
-                    />
-                    <span className="activity-a01-character-count">{currentObservation.length} / 1,200 characters</span>
-                  </div> : legacySelectionExists && <>
-                    <div className="form-field">
-                      <label htmlFor={`notes-${activity.id}`}>Earlier notes</label>
-                      <span className="field-hint">Kept as part of this same activity record.</span>
-                      <Textarea id={`notes-${activity.id}`} className="form-textarea" maxLength={3000} value={record.notes} disabled={disabled} onChange={(event) => update("notes", event.target.value)} />
-                    </div>
-                    <div className="form-field">
-                      <label htmlFor={`evidence-${activity.id}`}>Earlier evidence</label>
-                      <Textarea id={`evidence-${activity.id}`} className="form-textarea" maxLength={3000} value={record.evidence} disabled={disabled} onChange={(event) => update("evidence", event.target.value)} />
-                    </div>
-                    <div className="form-field">
-                      <label htmlFor={`repository-url-${activity.id}`}>Earlier reference link</label>
-                      <input id={`repository-url-${activity.id}`} className="form-input" type="url" maxLength={512} value={record.repositoryUrl} disabled={disabled} onChange={(event) => update("repositoryUrl", event.target.value)} />
-                    </div>
+                      onClick={(event) => selectTask("legacy", event.currentTarget)}
+                    >
+                      <span className="activity-a01-task-choice-number">Old</span>
+                      <span className="activity-a01-task-choice-copy"><strong>{legacyLabel}</strong><small>{legacyDirty ? "Unsaved changes" : "Preserved"}</small></span>
+                    </button>}
+                  </div>
+                  <label className="activity-a01-task-picker-mobile">
+                    <span id={taskPickerLabelId}>
+                      Choose a task · {currentTask
+                        ? `Editing Task ${selectedTaskIndex + 1} of ${tasks.length} · ${currentTask.title}`
+                        : `Editing your ${legacyLabel.toLowerCase()}`}
+                    </span>
+                    <select
+                      className="form-select"
+                      aria-labelledby={taskPickerLabelId}
+                      value={selectedTaskId}
+                      disabled={disabled}
+                      onChange={(event) => selectTask(event.target.value)}
+                    >
+                      {tasks.map((task, index) => {
+                        const value = record.taskObservations?.[task.id] ?? "";
+                        const savedValue = savedRecord?.taskObservations?.[task.id] ?? "";
+                        const taskState = value.trim() ? value !== savedValue ? "unsaved changes" : "note saved" : "no note yet";
+                        return <option key={task.id} value={task.id}>Task {index + 1} · {task.title} · {taskState}</option>;
+                      })}
+                      {legacyExists && <option value="legacy">{legacyLabel} · {legacyDirty ? "unsaved changes" : "preserved"}</option>}
+                    </select>
+                  </label>
+
+                  {currentTask ? <div className="activity-a01-current-task" aria-live="polite">
+                    <span>Editing Task {selectedTaskIndex + 1} of {tasks.length}</span>
+                    <strong>{currentTask.title}</strong>
+                    <div id={taskPromptId}><p>{taskPrompt}</p>{observationExample && <p>{observationExample}</p>}</div>
+                  </div> : legacySelectionExists ? <div className="activity-a01-current-task activity-a01-current-task--legacy">
+                    <span>{processInvestigation ? "Earlier A01 record" : "Earlier saved record"}</span>
+                    <strong>Not linked to a specific task</strong>
+                    <p>{processInvestigation ? "This note came from the earlier A01 notebook. It remains editable here and has not been assigned to a task." : "This work was saved before task-linked notes were introduced. It remains editable and is not assigned to a lab step."}</p>
+                  </div> : <div className="activity-a01-current-task activity-a01-current-task--legacy">
+                    <span>Choose a lab step</span>
+                    <strong>No task selected</strong>
+                    <p>Select a step above to edit its note.</p>
+                  </div>}
+
+                  <div className="activity-a01-notebook-form">
+                    {currentTask ? <div className="form-field">
+                      <label htmlFor={taskObservationId}>Task observation</label>
+                      <Textarea
+                        id={taskObservationId}
+                        className="form-textarea"
+                        maxLength={1200}
+                        value={currentObservation}
+                        disabled={disabled}
+                        aria-describedby={`${taskPromptId} ${privacyId}`}
+                        placeholder={processInvestigation ? "Record a short, sanitized observation and what it supports." : "Record what happened in this step and what you concluded."}
+                        onChange={(event) => updateObservation(currentTask.id, event.target.value)}
+                      />
+                      <span className="activity-a01-character-count">{currentObservation.length} / 1,200 characters</span>
+                    </div> : legacySelectionExists && <>
+                      <div className="form-field">
+                        <label htmlFor={`notes-${activity.id}`}>Earlier notes</label>
+                        <span className="field-hint">Kept as part of this same activity record.</span>
+                        <Textarea id={`notes-${activity.id}`} className="form-textarea" maxLength={3000} value={record.notes} disabled={disabled} onChange={(event) => update("notes", event.target.value)} />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor={`evidence-${activity.id}`}>Earlier evidence</label>
+                        <Textarea id={`evidence-${activity.id}`} className="form-textarea" maxLength={3000} value={record.evidence} disabled={disabled} onChange={(event) => update("evidence", event.target.value)} />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor={`repository-url-${activity.id}`}>Earlier reference link</label>
+                        <input id={`repository-url-${activity.id}`} className="form-input" type="url" maxLength={512} value={record.repositoryUrl} disabled={disabled} onChange={(event) => update("repositoryUrl", event.target.value)} />
+                      </div>
                   </>}
                   <p className="activity-a01-privacy-note" id={privacyId}>{processInvestigation ? "Avoid saving private paths, full command arguments, tokens, or personal data." : "Keep private paths, credentials, personal data, and unrelated work out of saved notes."}</p>
                 </div>
+                </>}
               </div>
 
-              <div className="activity-a01-notebook-footer">
+              {!requiresSignIn && <div className="activity-a01-notebook-footer">
                 <div className="activity-a01-save-state" aria-live="polite">
                   <strong>{notebookState}</strong>
                   <span>{loading ? "" : loadFailed ? "Retry loading before editing." : savedText}</span>
                 </div>
                 <Button className="button button-primary" type="submit" disabled={disabled}>
-                  <Save size={15} aria-hidden="true" />{saving ? "Saving…" : "Save draft"}
+                  <Save size={15} aria-hidden="true" />{saving ? "Saving…" : "Save observations"}
                 </Button>
                 {loadFailed && !sessionUnavailable && <Button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} aria-hidden="true" /> Retry loading</Button>}
                 {messageLocation === "notebook" && <p className={`form-message${error ? " error" : ""}`} role="status" aria-live="polite">{message}</p>}
-              </div>
+              </div>}
             </form>
           </aside>
         </div>

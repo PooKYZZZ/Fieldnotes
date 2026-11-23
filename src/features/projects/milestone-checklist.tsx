@@ -6,7 +6,6 @@ import { MarkdownContent } from "@/components/ui/markdown-content";
 import type { ProjectMilestone } from "@/content";
 import { ProgressEditor } from "@/features/progress/progress-editor";
 import { useModalInertSiblings } from "@/features/ui/use-modal-inert-siblings";
-import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
 import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
 import { ProgressAccountChangedNotice } from "@/features/progress/progress-account-changed-notice";
 import type { ProgressInput } from "@/features/progress/model";
@@ -185,11 +184,20 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
     retry();
   }
 
-  function selectMilestone(id: string) {
+  function focusMilestone(id: string, focusHeading: boolean) {
+    document.getElementById(`milestone-${id}`)?.scrollIntoView({ block: "start", behavior: "instant" });
+    if (focusHeading) document.getElementById(`milestone-title-${id}`)?.focus({ preventScroll: true });
+  }
+
+  function selectMilestone(id: string, focusHeading = false) {
     setSelectedOverride(id);
     setMessage("");
     const hash = `#milestone-${id}`;
-    skipLocationFocusRef.current = window.location.hash !== hash;
+    if (window.location.hash === hash) {
+      focusMilestone(id, focusHeading);
+      return;
+    }
+    skipLocationFocusRef.current = !focusHeading;
     updateProjectHash(hash, "replace");
   }
 
@@ -201,22 +209,16 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
     if (!activeMilestone || window.location.hash !== `#milestone-${activeMilestone.id}`) return;
     const skipFocus = skipLocationFocusRef.current;
     skipLocationFocusRef.current = false;
-    requestAnimationFrame(() => {
-      const target = document.getElementById(`milestone-title-${activeMilestone.id}`);
-      document.getElementById(`milestone-${activeMilestone.id}`)?.scrollIntoView({ block: "start" });
-      if (!skipFocus) target?.focus({ preventScroll: true });
-    });
+    const frame = requestAnimationFrame(() => focusMilestone(activeMilestone.id, !skipFocus));
+    return () => cancelAnimationFrame(frame);
   }, [activeMilestone, locationHash]);
 
   return <div className="project-build-workspace">
     <div className="project-build-main">
-      <div className="project-build-selector">
-        <div className="project-build-progress-copy">
-          <strong>{milestones.length} build checkpoints</strong>
-          <span>{sessionUnavailable ? "Account unavailable" : accountChanged ? "Account changed · reload to continue" : requiresSignIn ? "Sign in to view saved progress" : `${completedCount} self-reported complete`}</span>
-        </div>
+      <details className="project-build-selector">
+        <summary>Checkpoint map <span>{milestones.length} checkpoints{!hideSavedProgress && loaded && !loadError ? ` · ${completedCount} complete` : ""}</span></summary>
         <nav className="project-checkpoint-map" aria-label="Build checkpoints">
-          {milestones.map((milestone, index) => {
+          {milestones.map((milestone) => {
             const current = milestone.id === activeMilestone?.id;
             const isComplete = completed.has(milestone.id);
             return <button
@@ -225,19 +227,19 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
               type="button"
               aria-current={current ? "step" : undefined}
               aria-pressed={current}
-              aria-label={`${milestone.id}: ${milestone.label}. ${current ? "Current checkpoint" : isComplete ? "Self-reported complete" : "Not started"}`}
-              title={`${milestone.id} · ${milestone.label}`}
               data-complete={isComplete || undefined}
               disabled={loading}
-              onClick={() => selectMilestone(milestone.id)}
+              onClick={() => selectMilestone(milestone.id, true)}
             >
-              <span className="project-checkpoint-map-number">{String(index + 1).padStart(2, "0")}</span>
+              <span className="project-checkpoint-map-number">{milestone.id}</span>{" "}
+              <span className="project-checkpoint-map-label">{milestone.label}</span>
+              <span className="sr-only">, {isComplete ? "Self-reported complete" : "Not started"}</span>
+              {isComplete && <Check size={13} aria-hidden="true" />}
             </button>;
           })}
         </nav>
-      </div>
+      </details>
 
-      {requiresSignIn && <ProgressSignInNotice>Your checkpoint states and notes are private to your account. Sign in to save or review them; the project guidance remains open.</ProgressSignInNotice>}
       {sessionUnavailable && <AuthUnavailableNotice message="Your account could not be checked. Checkpoint progress stays hidden and saving is paused; the project guidance remains open." onRetry={retry} />}
       {accountChanged && <ProgressAccountChangedNotice />}
 
@@ -258,6 +260,10 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
             <span>{pendingChanges.has(activeMilestone.id) ? "Saving" : completed.has(activeMilestone.id) ? "Self-reported complete" : "Mark checkpoint done"}</span>
           </label>
         </div>
+        {activeMilestone.acceptance && <section className="project-checkpoint-acceptance" aria-label="Acceptance check">
+          <h4>Acceptance check</h4>
+          <MarkdownContent>{activeMilestone.acceptance}</MarkdownContent>
+        </section>}
         <div className="project-active-milestone-guidance"><MarkdownContent>{activeMilestone.guidance}</MarkdownContent></div>
         <div className="project-milestone-navigation">
           <button className="button button-outline" type="button" disabled={selectedIndex === 0} onClick={() => selectMilestone(milestones[selectedIndex - 1].id)}>
@@ -268,6 +274,18 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
           </button>
         </div>
       </article> : <p>This project does not have any checkpoints yet.</p>}
+
+      <button
+        ref={notebookToggleRef}
+        className="project-notebook-mobile-toggle"
+        type="button"
+        aria-label="Open project notebook for this checkpoint"
+        aria-expanded={mobileNotebookOpen}
+        disabled={loading}
+        onClick={() => setMobileNotebookOpen(true)}
+      >
+        <BookOpen size={16} aria-hidden="true" /> Open project notebook
+      </button>
 
       {activeMilestone?.hints.length ? <details className="project-milestone-hints">
         <summary>Need a hint? Reveal one nudge at a time.</summary>
@@ -285,17 +303,6 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
       {!loading && loadError && !sessionUnavailable && !accountChanged && <button className="button button-outline" type="button" onClick={retryLoad}><RefreshCw size={14} aria-hidden="true" /> Try loading checkpoints again</button>}
       <p className="form-message project-checkpoint-message" role="status" aria-live="polite">{message}</p>
       {!loading && !loadError && <p className="project-milestone-footnote"><Check size={13} aria-hidden="true" /> Checkpoint states are self-reported. Save the evidence and explain what each check supports in your project notebook.</p>}
-      <button
-        ref={notebookToggleRef}
-        className="project-notebook-mobile-toggle"
-        type="button"
-        aria-label="Open project notebook for this checkpoint"
-        aria-expanded={mobileNotebookOpen}
-        disabled={loading}
-        onClick={() => setMobileNotebookOpen(true)}
-      >
-        <BookOpen size={16} aria-hidden="true" /> Record a note for this checkpoint
-      </button>
     </div>
 
     {mobileNotebookOpen && <button className="project-notebook-backdrop" data-modal-dismiss type="button" aria-label="Dismiss project notebook backdrop" onClick={() => setMobileNotebookOpen(false)} />}
@@ -310,12 +317,13 @@ function ProjectMilestoneContent({ projectId, projectType, milestones, userId }:
           <strong>{activeMilestone.id} · {activeMilestone.label}</strong>
           <span>The note below is saved to this checkpoint inside the same project record.</span>
         </div>}
-        <ProgressEditor
+            <ProgressEditor
           itemType={projectType}
           itemId={projectId}
           title="Project notebook"
           variant="project-workbench"
           checkpointContext={activeMilestone ? { id: activeMilestone.id, label: activeMilestone.label } : undefined}
+          workspaceHandlesSessionFailure
         />
       </div>
     </aside>

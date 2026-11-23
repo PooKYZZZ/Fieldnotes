@@ -44,7 +44,7 @@ test("public curriculum stays open while private progress requires a session", a
     expect(write.status()).toBe(401);
 
     await page.goto("/sign-in?returnTo=%2Froadmap");
-    await expect(page.getByRole("heading", { name: "Keep your engineering notes together." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to Fieldnotes" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue exploring without signing in" })).toBeVisible();
     await expect(page.getByText("No invitation is needed.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Privacy notice" })).toBeVisible();

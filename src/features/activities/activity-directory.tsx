@@ -59,17 +59,20 @@ function TroubleshootingCard({ item, record, progressLoaded, progressError, requ
         <ChevronDown size={17} aria-hidden="true" />
       </summary>
       <div className="troubleshooting-body">
-        <div className="troubleshooting-section"><p className="eyebrow">Scenario</p><p>{item.observation}</p></div>
-        <div className="troubleshooting-section"><p className="eyebrow">Investigate in order</p><MarkdownContent copyable>{item.investigation}</MarkdownContent></div>
-        <div className="troubleshooting-section troubleshooting-safety"><p className="eyebrow">Safety boundary</p><p>{item.constraint}</p></div>
-        <details className="troubleshooting-hint">
-          <summary>Optional hint</summary>
-          <MarkdownContent copyable>{item.hint}</MarkdownContent>
-        </details>
-        <div className="troubleshooting-section"><p className="eyebrow">Evidence that completes the investigation</p><MarkdownContent>{item.completion}</MarkdownContent></div>
+        <div className="troubleshooting-premise">
+          <section className="troubleshooting-section"><h3>Scenario</h3><p>{item.observation}</p></section>
+          <section className="troubleshooting-section troubleshooting-safety"><h3>Safety boundary</h3><p>{item.constraint}</p></section>
+        </div>
+        <section className="troubleshooting-section troubleshooting-evidence"><h3>Evidence that completes the investigation</h3><MarkdownContent>{item.completion}</MarkdownContent></section>
+        <div className="troubleshooting-procedure">
+          <section className="troubleshooting-section"><h3>Investigate in order</h3><MarkdownContent copyable>{item.investigation}</MarkdownContent></section>
+          <details className="troubleshooting-hint">
+            <summary>Optional hint</summary>
+            <MarkdownContent copyable>{item.hint}</MarkdownContent>
+          </details>
+        </div>
         {open && <div className="troubleshooting-record">
-          <p className="eyebrow">Save your attempt</p>
-          <ProgressEditor itemType="troubleshooting" itemId={item.id} title={`${item.id} learning record`} showComfort wide />
+            <ProgressEditor itemType="troubleshooting" itemId={item.id} title={`${item.id} learning record`} showComfort wide />
         </div>}
       </div>
     </details>
@@ -161,7 +164,7 @@ export function ActivityDirectory({
 
       <section id="activity-library" className="activity-library activity-library--catalog" aria-labelledby="activity-library-title">
         <div className="activity-library-heading">
-          <div><p className="eyebrow">Practice library</p><h2 id="activity-library-title">Module activities</h2><p>Choose a lab, build task, or verification challenge. Each one links back to its learning module.</p></div>
+          <h2 id="activity-library-title">Module activities</h2>
           <span className="activity-result-count">{filteredActivities.length} of {activities.length}</span>
         </div>
 
@@ -182,20 +185,28 @@ export function ActivityDirectory({
         {loadError && <p className="activity-load-message" role="status">Saved activity states could not be loaded. Search and phase filters still work.</p>}
         {!loadError && !loaded && <p className="activity-load-message" role="status">Loading your saved activity progress…</p>}
 
-        {filteredActivities.length ? <div className="practice-grid">
+        {filteredActivities.length ? <ul className="practice-grid" role="list">
           {filteredActivities.map((activity) => {
             const courseModule = moduleById.get(activity.moduleId);
             const saved = progressByActivity.get(activity.id);
             const savedStatus = saved?.status ?? "not_started";
             const label = requiresSignIn ? "Sign in to save" : loadError ? "Progress unavailable" : !loaded ? "Loading progress" : formatStatus(savedStatus);
-            return <Link className="practice-card" data-phase={courseModule?.phase ?? "Foundations"} href={`/activities/${activity.id}`} key={activity.id}>
-              <div className="practice-card-meta"><span>{activity.id} <i aria-hidden="true">·</i> Module {String(activity.moduleId).padStart(2, "0")}</span><span className={`practice-status${loaded && !loadError ? ` practice-status--${savedStatus}` : ""}`}>{label}</span></div>
-              <h3>{activity.title}</h3>
-              <p className="practice-card-challenge">{activity.challenge}</p>
-              <div className="practice-card-footer"><span>{courseModule?.phase ?? "Roadmap activity"}</span><span>Open activity <ArrowUpRight size={15} aria-hidden="true" /></span></div>
-            </Link>;
+            return <li key={activity.id}>
+              <Link className="practice-card" href={`/activities/${activity.id}`}>
+                <span className="practice-card-meta"><strong>{activity.id}</strong><span>Module {String(activity.moduleId).padStart(2, "0")}</span></span>
+                <div className="practice-card-copy">
+                  <h3>{activity.title}</h3>
+                  <p className="practice-card-challenge">{activity.challenge}</p>
+                </div>
+                <div className="practice-card-footer">
+                  <span>{courseModule?.phase ?? "Roadmap activity"}</span>
+                  {!requiresSignIn && <span className={`practice-status${loaded && !loadError ? ` practice-status--${savedStatus}` : ""}`}>{label}</span>}
+                </div>
+                <span className="practice-card-arrow">Open activity <ArrowUpRight size={16} aria-hidden="true" /></span>
+              </Link>
+            </li>;
           })}
-        </div> : (
+        </ul> : (
           <div className="practice-empty" role="status">
             <BookOpenCheck size={24} aria-hidden="true" />
             <h3>No activities match these filters.</h3>
@@ -207,7 +218,7 @@ export function ActivityDirectory({
 
       <section id="troubleshooting" className="cross-module-section" aria-labelledby="troubleshooting-title">
         <div className="activity-library-heading">
-          <div><p className="eyebrow">Practice across topics</p><h2 id="troubleshooting-title">Troubleshooting scenarios</h2><p>Use evidence to narrow a failure, test one change, and record how you know the fix worked.</p></div>
+          <div><h2 id="troubleshooting-title">Troubleshooting scenarios</h2><p>Use evidence to narrow a failure, test one change, and record how you know the fix worked.</p></div>
           <span className="activity-result-count">{filteredTroubleshooting.length} of {troubleshooting.length}</span>
         </div>
         {filteredTroubleshooting.length ? <div className="troubleshooting-grid">

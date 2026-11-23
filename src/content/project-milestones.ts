@@ -5,6 +5,7 @@ export type ProjectMilestone = {
   projectId: string;
   label: string;
   guidance: string;
+  acceptance?: string;
   hints: ProjectMilestoneHint[];
 };
 
@@ -30,9 +31,12 @@ export function milestonesForProjects(projects: Pick<ProjectRecordBase, "id" | "
         const content = hintSections[hintIndex + 1]?.trim();
         if (title && content) hints.push({ title, content });
       }
-      const guidance = hintSections[0]?.trim() ?? "";
-      if (!match || !guidance) continue;
-      milestones.push({ id: match[1], projectId: project.id, label: match[2].trim(), guidance, hints });
+      const instructions = hintSections[0]?.trim() ?? "";
+      if (!match || !instructions) continue;
+      const checkpoint = /^\*\*Checkpoint:\*\*[ \t]+(.+)$/m;
+      const acceptance = instructions.match(checkpoint)?.[1]?.trim();
+      const guidance = acceptance ? instructions.replace(checkpoint, "").replace(/\n{3,}/g, "\n\n").trim() : instructions;
+      milestones.push({ id: match[1], projectId: project.id, label: match[2].trim(), guidance, acceptance, hints });
     }
 
     return milestones;

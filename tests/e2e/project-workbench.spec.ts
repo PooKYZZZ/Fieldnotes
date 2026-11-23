@@ -10,13 +10,14 @@ test("review checkpoint links select the URL checkpoint without replacing its no
   await page.goto("/projects/S02");
   await page.waitForLoadState("networkidle");
   await page.getByRole("tab", { name: "Build" }).click();
+  await page.getByText(/^Checkpoint map/).click();
   await expect(page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button")).toHaveCount(4);
   const editor = await page.locator("#progress-editor-S02").elementHandle();
   expect(editor).not.toBeNull();
   await expect(page.locator("#status-S02")).toBeEnabled();
 
   for (const id of ["S02.2", "S02.3"]) {
-    await page.getByRole("button", { name: new RegExp(`^${id}:`) }).click();
+    await page.getByRole("button", { name: new RegExp(`^${id.replace(".", "\\.")} `) }).click();
     const checkpoint = page.locator(`[id="milestone-check-${id}"]`);
     if (!(await checkpoint.isChecked())) await checkpoint.check();
     await expect(page.locator(".project-checkpoint-message")).toHaveText("Checkpoint progress saved.");
@@ -32,7 +33,7 @@ test("review checkpoint links select the URL checkpoint without replacing its no
 
   await expect(page).toHaveURL(/#milestone-S02\.2$/);
   await expect(page.getByRole("tab", { name: "Build" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("button", { name: /^S02\.2:/ })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("button", { name: /^S02\.2\b/ })).toHaveAttribute("aria-current", "step");
   await expect(page.locator('[id="milestone-title-S02.2"]')).toBeFocused();
   await expect(page.locator(".project-notebook-context")).toContainText("S02.2 ·");
   await expect(page.locator("#progress-editor-S02")).toContainText("Checkpoint note · S02.2");
@@ -45,13 +46,13 @@ test("review checkpoint links select the URL checkpoint without replacing its no
   await expect(page.getByRole("tab", { name: "Review" })).toHaveAttribute("aria-selected", "true");
   await page.goForward();
   await expect(page).toHaveURL(/#milestone-S02\.2$/);
-  await expect(page.getByRole("button", { name: /^S02\.2:/ })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("button", { name: /^S02\.2\b/ })).toHaveAttribute("aria-current", "step");
 
   await page.goBack();
   await expect(page.getByRole("tab", { name: "Review" })).toHaveAttribute("aria-selected", "true");
   await page.locator('.project-checkpoint-review a[href$="#milestone-S02.3"]').click();
   await expect(page).toHaveURL(/#milestone-S02\.3$/);
-  await expect(page.getByRole("button", { name: /^S02\.3:/ })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("button", { name: /^S02\.3\b/ })).toHaveAttribute("aria-current", "step");
   await expect(page.locator('[id="checkpoint-observation-S02-S02.3"]')).toHaveValue(draft);
   await expect(page.locator('[id="milestone-check-S02.3"]')).toBeChecked();
   expect(await editor?.evaluate((element) => element.isConnected)).toBe(true);
@@ -62,11 +63,11 @@ test("direct project checkpoint links win and unknown checkpoints use the next u
   await page.goto("/projects/S02#milestone-S02.3");
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("tab", { name: "Build" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("button", { name: /^S02\.3:/ })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("button", { name: /^S02\.3\b/ })).toHaveAttribute("aria-current", "step");
 
   await page.evaluate(() => { window.location.hash = "#milestone-not-a-checkpoint"; });
   await expect(page.getByRole("tab", { name: "Build" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("button", { name: /^S02\.1:/ })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("button", { name: /^S02\.1\b/ })).toHaveAttribute("aria-current", "step");
 });
 
 test("the mobile project notebook traps focus on its visible native disclosure while loading", async ({ page }) => {

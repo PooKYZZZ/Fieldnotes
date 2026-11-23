@@ -21,7 +21,7 @@ export default async function AccountPage() {
     <div className={styles.authPage}>
       <header className="page-header">
         <div>
-          <p className="eyebrow">Account</p>
+          <p className="eyebrow">Sign-in and privacy</p>
           <h1>Your Fieldnotes account</h1>
           <p className="page-description">Manage the sign-in that keeps your learning records private.</p>
         </div>
@@ -38,9 +38,11 @@ export default async function AccountPage() {
               <p>{session.user.email}</p>
             </div>
           </div>
-          <p className={styles.accountPrivacy}>Your progress, notebook, activity evidence, and project checkpoints are saved to this account. Other learners using Fieldnotes have separate records. Lessons and references remain available if you sign out.</p>
+          <p className={styles.accountPrivacy}>Fieldnotes saves your marked lesson progress, lab and troubleshooting observations, and project checkpoint evidence to this account. <Link href="/progress">Open your progress notebook <ArrowRight size={13} aria-hidden="true" /></Link></p>
+          <h3 className={styles.sessionHeading}>Manage your sessions</h3>
+          <p className={styles.accountPrivacy}>Sessions can stay active for up to 30 days. Lessons and references remain available when you sign out.</p>
           <AccountActions />
-          <p className={styles.authStoryFootnote}>Sessions can stay active for up to 30 days. Deleting an account requires a sign-in within the last 10 minutes and an explicit confirmation. Read the <Link href="/privacy">Privacy notice</Link>.</p>
+          <p className={styles.authStoryFootnote}>Deleting an account requires a sign-in within the last 10 minutes and an explicit confirmation. Read the <Link href="/privacy">Privacy notice</Link>.</p>
         </section>
       ) : (
         <section className={`${styles.accountCard} ${styles.signedOutPanel}`} aria-labelledby="account-sign-in-title">

@@ -168,7 +168,7 @@ test("A01 can edit and clear a URL-only legacy record and locks editing during s
     await legacy.click();
     await expect(url).toHaveValue(firstUrl);
     await url.fill(nextUrl);
-    await editor.getByRole("button", { name: "Save draft" }).click();
+    await editor.getByRole("button", { name: "Save observations" }).click();
     await expect(page.getByRole("link", { name: "Open earlier reference link" })).toHaveAttribute("href", nextUrl);
 
     let reachedSave = false;
@@ -180,7 +180,7 @@ test("A01 can edit and clear a URL-only legacy record and locks editing during s
     });
     await url.fill("");
     await expect(url).toBeVisible();
-    await editor.getByRole("button", { name: "Save draft" }).click();
+    await editor.getByRole("button", { name: "Save observations" }).click();
     await expect.poll(() => reachedSave).toBe(true);
     await expect(url).toBeDisabled();
     releaseSave();

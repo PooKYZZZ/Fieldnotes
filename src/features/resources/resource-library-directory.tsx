@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUpRight, BookOpen, ExternalLink, FileDown, Search } from "lucide-react";
+import { useEffect, useState, type MouseEvent } from "react";
+import Link from "next/link";
+import { ArrowUpRight, FileDown, Search } from "lucide-react";
 
 type LibraryDocument = { file: string; title: string; detail: string };
 type OfficialResource = { category: string; label: string; url: string; note: string };
 type GlossaryEntry = readonly [string, string];
+
+function revealResourceCategory(hash: string) {
+  const target = document.getElementById(hash.slice(1));
+  const category = target?.closest("details.resource-group");
+  if (category instanceof HTMLDetailsElement) category.open = true;
+}
 
 export function ResourceLibraryDirectory({
   documents,
@@ -24,6 +31,18 @@ export function ResourceLibraryDirectory({
   const filteredGlossary = glossary.filter(([term, definition]) => matches(`${term} ${definition}`));
   const resultCount = filteredDocuments.length + filteredResources.length + filteredGlossary.length;
   const groupedResources = [...new Set(filteredResources.map((resource) => resource.category))];
+  const view = normalizedQuery ? "search" : "browse";
+
+  useEffect(() => {
+    const revealFromLocation = () => revealResourceCategory(window.location.hash);
+    revealFromLocation();
+    window.addEventListener("hashchange", revealFromLocation);
+    return () => window.removeEventListener("hashchange", revealFromLocation);
+  }, [view]);
+
+  function openCategory(event: MouseEvent<HTMLAnchorElement>) {
+    revealResourceCategory(event.currentTarget.hash);
+  }
 
   return <section className="resource-directory" aria-label="Search learning resources">
     <div className="resource-search-panel">
@@ -32,40 +51,40 @@ export function ResourceLibraryDirectory({
         <span className="sr-only">Search library, documentation, or glossary terms</span>
         <input className="form-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search library, documentation, or glossary terms" />
       </label>
-      <p className="resource-result-count" role="status" aria-live="polite">{normalizedQuery ? `${resultCount} matching resources` : `${documents.length} source PDFs · ${officialResources.length} official references · ${glossary.length} glossary terms`}</p>
+      <p className={normalizedQuery ? "resource-result-count" : "sr-only"} role="status">{normalizedQuery ? `${resultCount} matching ${resultCount === 1 ? "resource" : "resources"}` : ""}</p>
       {resultCount > 0 && <nav className="resource-section-links" aria-label="Resource categories">
-        {filteredDocuments.length > 0 && <a href="#source-pdfs">Source PDFs <span>{filteredDocuments.length}</span></a>}
-        {filteredResources.length > 0 && <a href="#official-references">Documentation <span>{filteredResources.length}</span></a>}
-        {filteredGlossary.length > 0 && <a href="#glossary-title">Glossary <span>{filteredGlossary.length}</span></a>}
+        {filteredDocuments.length > 0 && <a href="#source-pdfs" onClick={openCategory}>Source PDFs</a>}
+        {filteredResources.length > 0 && <a href="#official-references" onClick={openCategory}>Documentation</a>}
+        {filteredGlossary.length > 0 && <a href="#glossary-title" onClick={openCategory}>Glossary</a>}
       </nav>}
     </div>
 
-    {resultCount === 0 ? <div className="resource-empty" role="status">
+    {resultCount === 0 ? <div className="resource-empty">
       <Search size={21} aria-hidden="true" />
       <h2>No resources match “{query.trim()}”</h2>
       <p>Try a tool name, topic, document title, or glossary term.</p>
       <button className="button button-outline" type="button" onClick={() => setQuery("")}>Clear search</button>
     </div> : <>
-      {filteredDocuments.length > 0 && <section id="source-pdfs" aria-labelledby="source-library">
-        <div className="section-heading"><div><h2 id="source-library"><BookOpen size={19} aria-hidden="true" /> Your learning library</h2><p>Original reference editions, copied into this app without modification.</p></div></div>
-        <div className="resource-list card card-pad">{filteredDocuments.map((document) => <div className="resource-row" key={document.file}>
-          <div><p className="resource-name">{document.title}</p><p className="resource-note">{document.detail}</p><span className="tag resource-file-tag">{document.file}</span></div>
+      {filteredDocuments.length > 0 && <details key={`pdfs-${view}`} id="source-pdfs" className="resource-group" open>
+        <summary><h2 id="source-library">Source PDFs <span>{filteredDocuments.length}</span></h2></summary>
+        {!normalizedQuery && <p className="resource-note">Reference editions. For the current course sequence and lab instructions, use the <Link href="/roadmap">Learning roadmap</Link> or <Link href="/activities">Activities</Link>.</p>}
+        <ul className="resource-register">{filteredDocuments.map((document) => <li className="resource-row" key={document.file}>
+          <div><h3 className="resource-name">{document.title}</h3><p className="resource-note">{document.detail}</p></div>
           <a className="button button-outline" href={`/library/${document.file}`} target="_blank" rel="noreferrer" aria-label={`Open ${document.title} PDF in a new tab`}>Open <FileDown size={14} aria-hidden="true" /></a>
-        </div>)}</div>
-      </section>}
+        </li>)}</ul>
+      </details>}
 
-      {filteredResources.length > 0 && <section aria-labelledby="official-references">
-        <div className="section-heading"><div><h2 id="official-references"><ExternalLink size={18} aria-hidden="true" /> Official references</h2><p>Start with first-party docs and training material for the tool you are using.</p></div></div>
-        {groupedResources.map((category) => <div className="resource-category" key={category}><p className="eyebrow">{category}</p><div className="resource-card-grid">{filteredResources.filter((resource) => resource.category === category).map((resource) => <article className="card reference-card" key={resource.label}>
-          <span className="tag resource-source-tag">Official source</span><h3>{resource.label}</h3><p>{resource.note}</p><a href={resource.url} target="_blank" rel="noreferrer">Open source <ArrowUpRight size={13} aria-hidden="true" /></a>
-        </article>)}</div></div>)}
-      </section>}
+      {filteredResources.length > 0 && <details key={`docs-${view}`} id="official-references" className="resource-group" open={Boolean(normalizedQuery) || undefined}>
+        <summary><h2>Official references <span>{filteredResources.length}</span></h2></summary>
+        {groupedResources.map((category) => <section className="resource-category" key={category}><h3 className="eyebrow">{category}</h3><ul className="resource-register">{filteredResources.filter((resource) => resource.category === category).map((resource) => <li className="resource-row" key={resource.label}>
+          <div><h4 className="resource-name">{resource.label}</h4><p className="resource-note">{resource.note}</p></div><a className="reference-source-link" href={resource.url} target="_blank" rel="noreferrer" aria-label={`Open source for ${resource.label}`}>Open source <ArrowUpRight size={14} aria-hidden="true" /></a>
+        </li>)}</ul></section>)}
+      </details>}
 
-      {filteredGlossary.length > 0 && <section aria-labelledby="glossary-title">
-        <div className="section-heading"><div><h2 id="glossary-title">Glossary</h2><p>Terms worth explaining in your own words.</p></div><span className="tag">{filteredGlossary.length} {normalizedQuery ? "matches" : "terms"}</span></div>
+      {filteredGlossary.length > 0 && <details key={`glossary-${view}`} id="glossary-title" className="resource-group" open={Boolean(normalizedQuery) || undefined}>
+        <summary><h2>Glossary <span>{filteredGlossary.length}</span></h2></summary>
         <dl className="glossary-grid">{filteredGlossary.map(([term, definition]) => <div className="glossary-term" key={term}><dt>{term}</dt><dd>{definition}</dd></div>)}</dl>
-        {!normalizedQuery && <p className="footer-note">The supplied reference calls this a 36-term glossary but contains 37 listed terms. This app retains every listed entry.</p>}
-      </section>}
+      </details>}
     </>}
   </section>;
 }

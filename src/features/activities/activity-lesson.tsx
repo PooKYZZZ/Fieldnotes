@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, FlaskConical } from "lucide-react";
 import type { ActivityRecord } from "@/content";
 import { MarkdownContent } from "@/components/ui/markdown-content";
-import { A01Lab } from "@/features/activities/a01-lab";
 import { ActivityInvestigationWorkbench } from "@/features/activities/activity-investigation-workbench";
 
 export function ActivityLesson({ activity, previousActivity, nextActivity }: {
@@ -11,22 +10,24 @@ export function ActivityLesson({ activity, previousActivity, nextActivity }: {
   nextActivity?: Pick<ActivityRecord, "id" | "title">;
 }) {
   const isA01 = activity.id === "A01";
+  const moduleNumber = String(activity.moduleId).padStart(2, "0");
 
   return (
     <>
       <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/activities">Activities</Link><span aria-hidden="true">/</span><span>{activity.id}</span></nav>
-      <div className="activity-lesson-shell">
-        <header className="page-header activity-lesson-header">
+      <div className="activity-lesson-shell practice-workbench">
+        <header className="activity-lesson-header">
           <div>
-            <p className="eyebrow">Activity {activity.id} · Module {String(activity.moduleId).padStart(2, "0")}</p>
             <h1>{activity.title}</h1>
-            <Link className="activity-module-return" href={`/modules/${String(activity.moduleId).padStart(2, "0")}`}>
-              Review Module {String(activity.moduleId).padStart(2, "0")} overview <ArrowRight size={14} aria-hidden="true" />
+            <Link className="activity-module-return" href={`/modules/${moduleNumber}`}>
+              Review Module {moduleNumber} overview <ArrowRight size={14} aria-hidden="true" />
             </Link>
           </div>
+          <div className="activity-execution-boundary">
+            <FlaskConical size={17} aria-hidden="true" />
+            <p>Run commands in a disposable environment and verify the results yourself. Save only sanitized evidence.</p>
+          </div>
         </header>
-
-        <p className="activity-execution-boundary">Run practical steps in your own disposable environment. Fieldnotes saves your notes; it does not run commands or verify results. Record only sanitized evidence.</p>
 
         <nav className="activity-workflow-nav" aria-label="Activity steps">
           <a href="#activity-scenario"><span>01</span><strong>Understand</strong></a>
@@ -35,26 +36,30 @@ export function ActivityLesson({ activity, previousActivity, nextActivity }: {
           <a href="#activity-record"><span>04</span><strong>Review &amp; complete</strong></a>
         </nav>
 
-        {isA01 ? <A01Lab activity={activity} /> : <div className="activity-experience activity-a01-experience">
-          <section className="activity-stage activity-a01-understand" id="activity-scenario" aria-labelledby="activity-scenario-title">
-            <h2 id="activity-scenario-title">Scenario &amp; goals</h2>
-            <p className="activity-scenario-text">{activity.scenario}</p>
-            <div className="activity-a01-goal"><strong>Your task:</strong><MarkdownContent>{activity.challenge}</MarkdownContent></div>
-            <div className="activity-a01-goal"><strong>Your goal:</strong><MarkdownContent>{activity.build}</MarkdownContent></div>
-            <details className="activity-a01-objectives">
-              <summary>What you’ll practice</summary>
-              <MarkdownContent>{activity.objectives}</MarkdownContent>
-            </details>
-          </section>
+        <div className="activity-experience activity-a01-experience">
+          <div className="activity-brief">
+            <section className="activity-stage activity-a01-understand" id="activity-scenario" aria-labelledby="activity-scenario-title">
+              <h2 id="activity-scenario-title">{isA01 ? "Investigate before you restart" : "Scenario & goals"}</h2>
+              {isA01 && <div className="activity-scenario-text"><MarkdownContent>{activity.scenario}</MarkdownContent></div>}
+              <div className="activity-a01-goal"><MarkdownContent>{activity.build}</MarkdownContent></div>
+              <details className="activity-a01-objectives">
+                <summary>{isA01 ? "Learning objectives" : "Scenario and learning objectives"}</summary>
+                {!isA01 && <div className="activity-scenario-text"><MarkdownContent>{activity.scenario}</MarkdownContent></div>}
+                {!isA01 && <MarkdownContent>{activity.challenge}</MarkdownContent>}
+                <MarkdownContent>{activity.objectives}</MarkdownContent>
+              </details>
+            </section>
 
-          <section className="activity-stage activity-a01-prepare" id="activity-prepare" aria-labelledby="activity-prepare-title">
-            <h2 id="activity-prepare-title">Before you begin</h2>
-            <div className="activity-a01-prerequisite"><MarkdownContent>{activity.prerequisite}</MarkdownContent></div>
-            {activity.environment && <aside className="activity-a01-safety-note" aria-label="Environment note"><MarkdownContent>{activity.environment}</MarkdownContent></aside>}
-          </section>
+            <section className="activity-stage activity-a01-prepare" id="activity-prepare" aria-labelledby="activity-prepare-title">
+              <h2 id="activity-prepare-title">Before you begin</h2>
+              <div className="activity-a01-prerequisite"><MarkdownContent>{activity.prerequisite}</MarkdownContent></div>
+              {activity.environment && <aside className="activity-a01-safety-note" aria-label="Environment note"><MarkdownContent>{activity.environment}</MarkdownContent></aside>}
+              <a className="button button-primary activity-start-practice" href="#activity-steps">Start practice <ArrowRight size={15} aria-hidden="true" /></a>
+            </section>
+          </div>
 
-          <ActivityInvestigationWorkbench activity={activity} />
-        </div>}
+          <ActivityInvestigationWorkbench activity={activity} processInvestigation={isA01} />
+        </div>
 
         <nav className="activity-continuation" aria-label="Continue learning">
           {previousActivity ? <Link className="activity-continuation-link activity-continuation-link--previous" href={`/activities/${previousActivity.id}`}><span>Previous activity</span><strong><ArrowLeft size={14} /> {previousActivity.id} · {previousActivity.title}</strong></Link> : <span />}

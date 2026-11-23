@@ -86,8 +86,8 @@ export function ModuleLesson({ learningModule, activity }: { learningModule: Mod
 
       <header className="page-header module-page-header">
         <div>
-          <p className="eyebrow">{learningModule.phase} · {learningModule.level}</p>
-          <h1>Module {moduleId} — {learningModule.title}</h1>
+          <p className="eyebrow">Module {moduleId} · {learningModule.phase} · {learningModule.level}</p>
+          <h1><span className="sr-only">Module {moduleId} — </span>{learningModule.title}</h1>
           <p className="page-description">{learningModule.intro}</p>
         </div>
         <div className="module-header-actions" aria-label="Module actions">
@@ -96,59 +96,43 @@ export function ModuleLesson({ learningModule, activity }: { learningModule: Mod
         </div>
       </header>
 
-      <section className="card module-orientation" aria-labelledby="module-question-title">
-        <div className="module-question">
-          <p className="eyebrow"><CircleHelp size={14} /> Learning question</p>
-          <h2 id="module-question-title">{learningModule.learningQuestion}</h2>
-          <p className="course-detail module-prerequisite">
-            {learningModule.prerequisites === "None; curiosity and a PC are enough."
-              ? "Start here; no prior module is required."
-              : `Suggested background: ${learningModule.prerequisites} You can still open any lesson directly.`}
-          </p>
-        </div>
-        <div className="module-objectives">
-          <h3><BookOpen size={16} /> Key ideas</h3>
-          <ul className="concept-list">{learningModule.concepts.map((concept) => <li key={concept.label}>{concept.label}</li>)}</ul>
-        </div>
+      <section className="module-question study-module-question" aria-labelledby="module-question-title">
+        <p className="eyebrow">Learning question</p>
+        <h2 id="module-question-title">{learningModule.learningQuestion}</h2>
+        <p className="course-detail module-prerequisite">
+          {learningModule.prerequisites === "None; curiosity and a PC are enough."
+            ? "Start here; no prior module is required."
+            : `Suggested background: ${learningModule.prerequisites} You can still open any lesson directly.`}
+        </p>
       </section>
+      <div className="study-module-path">
+        <section className="module-outline-card" aria-labelledby="module-contents-title">
+          <div className="module-section-heading">
+            <div><p className="eyebrow">01 · Study</p><h2 id="module-contents-title">Module contents</h2></div>
+            <span className="module-outline-count">{learningModule.lessons.length} {learningModule.lessons.length === 1 ? "lesson" : "lessons"}</span>
+          </div>
+          <ol className="module-outline-list">
+            {learningModule.lessons.map((lesson, index) => {
+              const ordinal = Number(lesson.id.match(/-L(\d+)$/)?.[1] ?? index + 1);
+              return <li id={`lesson-${lesson.id.toLowerCase()}`} key={lesson.id}>
+                <Link href={lessonRoute(learningModule.id, lesson.id)}>
+                  <span className="module-outline-number">{moduleId}.{ordinal}</span>
+                  <span className="module-outline-title">{lesson.title}</span>
+                  <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+              </li>;
+            })}
+          </ol>
+        </section>
+        <section className="module-orientation" aria-labelledby="module-ideas-title">
+          <div className="module-objectives">
+            <h3 id="module-ideas-title"><BookOpen size={16} aria-hidden="true" /> Key ideas</h3>
+            <ul className="concept-list">{learningModule.concepts.map((concept) => <li key={concept.label}>{concept.label}</li>)}</ul>
+          </div>
+        </section>
+      </div>
 
-      {learningModule.overview && <section className="card module-overview-summary" aria-label="Module overview">
-        <div className="article-copy"><MarkdownContent>{learningModule.overview}</MarkdownContent></div>
-      </section>}
-
-      <section className="card module-outline-card" aria-labelledby="module-contents-title">
-        <div className="module-section-heading">
-          <div><p className="eyebrow">01 · Learn</p><h2 id="module-contents-title">Module contents</h2><p>Choose any lesson to start or revisit. Progress is optional and never blocks access.</p></div>
-          <span className="module-outline-count">{learningModule.lessons.length} {learningModule.lessons.length === 1 ? "lesson" : "lessons"}</span>
-        </div>
-        <ol className="module-outline-list">
-          {learningModule.lessons.map((lesson, index) => {
-            const ordinal = Number(lesson.id.match(/-L(\d+)$/)?.[1] ?? index + 1);
-            return <li id={`lesson-${lesson.id.toLowerCase()}`} key={lesson.id}>
-              <Link href={lessonRoute(learningModule.id, lesson.id)}>
-                <span className="module-outline-number">{moduleId}.{ordinal}</span>
-                <span className="module-outline-title">{lesson.title}</span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-            </li>;
-          })}
-        </ol>
-      </section>
-
-      {learningModule.moduleReview && Review && <section className="card module-knowledge-check" aria-labelledby="module-review-title">
-        <div className="module-extra-icon"><Brain size={18} aria-hidden="true" /></div>
-        <div className="module-knowledge-check-copy">
-          <p className="eyebrow">Optional review</p>
-          <h2 id="module-review-title">Module knowledge check</h2>
-          <p>A short check of the main concepts. Try it when useful, or return to any lesson.</p>
-          <details className="module-review-disclosure">
-            <summary>Open review · {learningModule.moduleReview.title}</summary>
-            <div className="module-review-content article-copy"><Review /></div>
-          </details>
-        </div>
-      </section>}
-
-      <section className="card module-activity-overview" aria-labelledby="module-activity-title">
+      <section className="module-activity-overview" aria-labelledby="module-activity-title">
         <div className="module-extra-icon"><FlaskConical size={18} aria-hidden="true" /></div>
         <div className="module-activity-overview-copy">
           <p className="eyebrow">02 · Apply</p>
@@ -167,7 +151,24 @@ export function ModuleLesson({ learningModule, activity }: { learningModule: Mod
         </div>
       </section>
 
-      <section className="card module-review-prompt" aria-labelledby="module-reflection-title">
+      {learningModule.overview && <section className="module-overview-summary" aria-label="Module overview">
+        <div className="article-copy"><MarkdownContent>{learningModule.overview}</MarkdownContent></div>
+      </section>}
+
+      {learningModule.moduleReview && Review && <section className="module-knowledge-check" aria-labelledby="module-review-title">
+        <div className="module-extra-icon"><Brain size={18} aria-hidden="true" /></div>
+        <div className="module-knowledge-check-copy">
+          <p className="eyebrow">Optional review</p>
+          <h2 id="module-review-title">Module knowledge check</h2>
+          <p>A short check of the main concepts. Try it when useful, or return to any lesson.</p>
+          <details className="module-review-disclosure">
+            <summary>Open review · {learningModule.moduleReview.title}</summary>
+            <div className="module-review-content article-copy"><Review /></div>
+          </details>
+        </div>
+      </section>}
+
+      <section className="module-review-prompt" aria-labelledby="module-reflection-title">
         <div className="module-extra-icon"><CircleHelp size={18} aria-hidden="true" /></div>
         <div>
           <p className="eyebrow">03 · Review</p>

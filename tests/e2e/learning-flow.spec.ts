@@ -58,6 +58,11 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
   await expect(page.locator(".progress-summary-stat").nth(2)).toContainText("0/24");
   await expect(page.locator(".module-card")).toHaveCount(0);
   await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-after-1440.png") });
+  await page.getByRole("link", { name: "Infrastructure & Cloud 8 modules" }).click();
+  await expect(page.getByLabel("Phase", { exact: true })).toHaveValue("Infrastructure & Cloud");
+  await expect(page.locator(".module-grid .module-card")).toHaveCount(8);
+  await page.goBack();
+  await expect(startLesson).toBeVisible();
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await expect(startLesson).toBeVisible();
@@ -81,22 +86,22 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
   expect(documentWidth).toBeLessThanOrEqual(viewportWidth);
   await expect(startLesson).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDirectory, "dashboard-after-390.png"), fullPage: true });
-  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  await page.getByRole("button", { name: "Open navigation" }).click();
   await expect(page.getByRole("navigation", { name: "Learning pages" })).toBeVisible();
   const closeNavigation = page.getByRole("button", { name: "Close navigation drawer" });
   await expect(closeNavigation).toBeFocused();
   await expect(closeNavigation).toBeVisible();
   await expect(page.getByRole("link", { name: /Account for/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close navigation menu" })).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator('button[aria-controls="main-navigation"]')).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("Shift+Tab");
   await expect(page.getByRole("link", { name: /Account for/ })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(closeNavigation).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "Open navigation menu" })).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: "Open navigation" })).toBeFocused();
   await page.setViewportSize({ width: 667, height: 375 });
-  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  await page.getByRole("button", { name: "Open navigation" }).click();
   const mobileDrawer = page.locator(".sidebar");
   const drawerSize = await mobileDrawer.evaluate((element) => ({
     clientHeight: element.clientHeight,
@@ -109,10 +114,10 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
   await expect(page.getByRole("link", { name: "Guide" })).toBeInViewport();
   await expect(page.getByRole("link", { name: /Account for/ })).toBeInViewport();
   await page.getByRole("button", { name: "Close navigation drawer" }).click();
-  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("navigation", { name: "Learning pages" }).getByRole("link", { name: "Activities" }).click();
   await expect(page.getByRole("heading", { name: "Activities & labs" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Open navigation menu" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/roadmap");
   await expect(page.locator(".module-grid .module-card")).toHaveCount(24);
@@ -159,6 +164,50 @@ test("dashboard gives a day-one learner one clear starting point and stays respo
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
   await page.screenshot({ path: path.join(screenshotDirectory, "roadmap-mobile.png"), fullPage: true });
+});
+
+test("the revised lesson and activity journey resumes a saved task on mobile", async ({ browser }) => {
+  const context = await browser.newContext({ storageState: process.env.FIELDNOTES_E2E_OTHER_STATE });
+  try {
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${testOrigin}/modules/01/lessons/m01-l01`);
+    const figure = page.locator("#process-lifecycle");
+    const reference = page.getByRole("link", { name: "Figure 1", exact: true });
+    await expect(figure).toBeVisible();
+    await expect(reference).toBeVisible();
+    expect((await figure.boundingBox())?.x ?? 0).toBeGreaterThan((await reference.boundingBox())?.x ?? Infinity);
+    await page.screenshot({ path: path.join(screenshotDirectory, "review-process-lesson-desktop.png"), caret: "initial" });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await reference.click();
+    await expect(page).toHaveURL(/#process-lifecycle$/);
+    await expect(figure).toBeInViewport();
+    await expect(page.getByRole("heading", { name: "Trace a parent process in your VM" })).toBeAttached();
+    await page.getByRole("link", { name: "Practice in A01" }).click();
+    await expect(page.getByText(/^A teammate reports/)).toBeVisible();
+    const task = page.getByRole("button", { name: "Record Task 1 in the investigation notebook" });
+    await task.click();
+    const notebook = page.getByRole("dialog", { name: "A01 investigation notebook" });
+    await expect(notebook.getByText(/^Example: I expected a regular account/)).toBeVisible();
+    await notebook.getByRole("textbox", { name: "Task observation" }).fill("The synthetic learner observed UID 1000 and will use it to scope the search.");
+    await notebook.getByRole("button", { name: "Save observations" }).click();
+    await expect(notebook.getByText(/Last saved/)).toBeVisible();
+
+    await page.goto(testOrigin);
+    const resume = page.getByRole("link", { name: "Resume activity" });
+    await expect(resume).toHaveAttribute("href", "/activities/A01#activity-task-choose-process");
+    const notebookLink = page.getByRole("link", { name: "Open progress notebook" });
+    await expect(notebookLink).toBeInViewport();
+    await page.screenshot({ path: path.join(screenshotDirectory, "review-resume-activity-mobile.png"), caret: "initial" });
+    await resume.click();
+    await expect(page).toHaveURL(/#activity-task-choose-process$/);
+    await expect(page.locator(".activity-a01-task-picker-mobile select")).toHaveValue("choose-process");
+    await page.goto(`${testOrigin}/progress`);
+    await expect(page.getByRole("link", { name: "Confirm your account", exact: true })).toHaveAttribute("href", "/activities/A01#activity-task-confirm-account");
+  } finally {
+    await context.close();
+  }
 });
 
 test("progress edits save to SQLite and survive a page reload", async ({ page }) => {
@@ -436,12 +485,13 @@ test("activity directory filters by real phase, search text, and saved status", 
   await expect(activitySearch).toBeVisible();
   await expect(page.locator(".continue-practice-card")).toContainText("Linux users, processes and service management");
   await expect(page.locator(".continue-practice-card").getByRole("link", { name: "Continue activity" })).toHaveAttribute("href", "/activities/A03");
-  await expect(page.getByRole("link", { name: /Troubleshooting scenarios 12/ })).toHaveAttribute("href", "#troubleshooting");
+  await expect(page.getByRole("link", { name: /Troubleshooting 12/ })).toHaveAttribute("href", "#troubleshooting");
   await page.getByRole("button", { name: /Foundations/ }).click();
   await page.getByLabel("Saved progress").selectOption("in_progress");
   await activitySearch.fill("systemd");
   await expect(page.locator(".practice-card")).toHaveCount(1);
   await expect(page.locator(".practice-card").first()).toContainText("A03");
+  await expect(page.locator(".practice-card").first()).toContainText("Open activity");
   await activitySearch.fill("permission denied");
   await expect(page.locator(".practice-card")).toHaveCount(0);
   await expect(page.locator("#troubleshooting .troubleshooting-card")).toHaveCount(1);
@@ -477,7 +527,7 @@ test("activity directory filters by real phase, search text, and saved status", 
   await expect(page.locator("#progress-editor-T03")).toBeVisible();
   await page.goto("/activities");
   await page.screenshot({ path: path.join(screenshotDirectory, "activities-desktop.png"), fullPage: true });
-  await page.getByRole("link", { name: /Troubleshooting scenarios/ }).click();
+  await page.getByRole("link", { name: /Troubleshooting 12/ }).click();
   await expect(page).toHaveURL(/#troubleshooting$/);
   await expect(page.locator("#troubleshooting")).toBeInViewport();
 
@@ -510,7 +560,9 @@ test("projects and progress notebook reflect saved milestone evidence", async ({
   await page.goto("/projects");
   await expect(page.locator(".major-build-card")).toHaveCount(3);
   await expect(page.locator(".small-tool-card")).toHaveCount(8);
-  await expect(page.locator(".major-build-card").first()).toContainText("0 / 8");
+  const firstProjectProgress = page.locator(".major-build-card").first().getByRole("progressbar");
+  await expect(firstProjectProgress).toHaveAttribute("aria-valuenow", "0");
+  await expect(firstProjectProgress).toHaveAttribute("aria-valuemax", "8");
   await page.screenshot({ path: path.join(screenshotDirectory, "projects-desktop.png"), fullPage: true });
 
   const milestone = await request.put(`${testOrigin}/api/progress`, {
@@ -524,18 +576,18 @@ test("projects and progress notebook reflect saved milestone evidence", async ({
   await expect(page.locator(".major-build-card").first()).toContainText("P2.2");
   await page.goto("/progress");
   await expect(page.getByRole("heading", { name: "Progress notebook" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Learning overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Saved learning record" })).toBeVisible();
   await expect(page.locator(".progress-stat").filter({ hasText: "Roadmap modules" })).toContainText("24");
-  await expect(page.locator(".progress-stat").filter({ hasText: "Modules marked complete" })).toContainText("1");
-  await expect(page.locator(".progress-stat").filter({ hasText: "Modules in progress" })).toContainText("1");
-  await expect(page.locator(".progress-stat").filter({ hasText: "Modules needing review" })).toContainText("1");
+  await expect(page.locator(".progress-stat").filter({ hasText: "Marked complete" })).toContainText("1");
+  await expect(page.locator(".progress-stat").filter({ hasText: "In progress" })).toContainText("1");
+  await expect(page.locator(".progress-stat").filter({ hasText: "Needs review" })).toContainText("1");
   await page.goto("/projects/P3#project-review");
   await page.locator(".project-record-review").getByRole("link", { name: "Progress notebook" }).click();
   await expect(page).toHaveURL(/\/progress\?type=project$/);
   await expect(page.getByRole("button", { name: "Projects" })).toHaveAttribute("aria-pressed", "true");
   await page.goto("/progress");
   await expect(page.getByText(/^P2\.1 ·/)).toBeVisible();
-  await expect(page.getByText("Records are ordered by their last saved time.")).toBeVisible();
+  await expect(page.locator(".progress-record").first()).toContainText(/^P2\.1/);
   await page.getByRole("searchbox", { name: "Search saved learning records" }).fill("P2.1");
   await expect(page.locator(".progress-record")).toHaveCount(1);
   await page.getByRole("button", { name: "Milestones" }).click();
@@ -574,7 +626,8 @@ test("focused project checkpoints survive refresh and remain in the progress not
   await expect(page.getByText("Checkpoint progress saved.")).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button").first()).toHaveAttribute("aria-label", /Self-reported complete/);
+  await page.getByText(/^Checkpoint map/).click();
+  await expect(page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button").first()).toHaveAccessibleName(/Self-reported complete/);
   await expect(page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button").nth(1)).toHaveAttribute("aria-current", "step");
   await page.goto("/projects");
   const projectCard = page.locator('[data-project-id="S01"]');
@@ -693,6 +746,7 @@ test("project build instructions and notebook share the workspace across desktop
 test("project notebook saves once, survives refresh, and appears in final review", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/projects/S02#project-build");
+  await page.getByText(/^Checkpoint map/).click();
   const checkpoints = page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button");
   await expect(checkpoints).toHaveCount(4);
   await checkpoints.nth(0).click();
@@ -741,6 +795,7 @@ test("project notebook saves once, survives refresh, and appears in final review
   await expect(review).toContainText("Unsaved checkpoint note stays in the shared record while I switch steps.");
   await expect(review).toContainText("The second checkpoint captured its own network test and result.");
   await review.getByRole("link", { name: "Review checkpoint" }).nth(1).click();
+  await page.getByText(/^Checkpoint map/).click();
   await expect(page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button").nth(1)).toHaveAttribute("aria-current", "step");
   await page.getByRole("tab", { name: "Review" }).click();
   await review.getByRole("link", { name: "Edit in the build notebook" }).click();
@@ -896,7 +951,7 @@ test("unsaved lesson status and investigation notes are protected across the lea
     lessonDialogType = dialog.type();
     await dialog.accept();
   });
-  await page.getByRole("link", { name: "DevOps Fieldnotes home" }).click();
+  await page.getByRole("link", { name: "Fieldnotes DevOps curriculum home" }).click();
   expect(lessonDialogType).toBe("confirm");
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
 
@@ -918,7 +973,7 @@ test("unsaved lesson status and investigation notes are protected across the lea
       activityDialogType = dialog.type();
       await dialog.accept();
     });
-    await page.getByRole("link", { name: "DevOps Fieldnotes home" }).click();
+    await page.getByRole("link", { name: "Fieldnotes DevOps curriculum home" }).click();
     expect(activityDialogType).toBe("confirm");
     await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
   }
@@ -977,6 +1032,7 @@ test("dashboard resumes a saved project draft at its next unfinished checkpoint"
   await resume.click();
   await expect(page).toHaveURL(/\/projects\/S01#milestone-S01\.2$/);
   await expect(page.locator(".project-active-milestone h3")).toHaveText("Implement parsing, filters, and summaries");
+  await page.getByText(/^Checkpoint map/).click();
   await expect(page.getByRole("navigation", { name: "Build checkpoints" }).getByRole("button").nth(1)).toHaveAttribute("aria-current", "step");
   await expect(page.getByLabel("Checkpoint note · S01.2")).toHaveValue("");
   await expect(page.getByLabel("Status")).toHaveValue("not_started");
@@ -1058,11 +1114,12 @@ test("resource library searches PDFs, official documentation, and glossary terms
   await page.goto("/resources");
   const search = page.getByRole("searchbox", { name: "Search library, documentation, or glossary terms" });
   await expect(search).toBeVisible();
-  await expect(page.getByRole("link", { name: /Source PDFs 8/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Source PDFs", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Source PDFs 8", exact: true })).toBeVisible();
   await search.fill("Docker");
   await expect(page.getByText(/matching resources/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Your learning library" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Official references" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Source PDFs/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Official references/ })).toBeVisible();
   await expect(page.locator(".glossary-term").filter({ hasText: "Docker Compose" })).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDirectory, "resources-search-docker-desktop.png"), fullPage: true });
 
@@ -1077,9 +1134,10 @@ test("resource library searches PDFs, official documentation, and glossary terms
   await page.screenshot({ path: path.join(screenshotDirectory, "resources-small-mobile.png"), fullPage: true });
 
   await search.fill("no resource has this name");
+  await expect(page.getByRole("status").filter({ hasText: "0 matching resources" })).toBeVisible();
   await expect(page.getByRole("heading", { name: /No resources match/ })).toBeVisible();
   await page.getByRole("button", { name: "Clear search" }).click();
-  await expect(page.getByRole("heading", { name: "Your learning library" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Source PDFs/ })).toBeVisible();
 });
 
 test("career priorities link to the related roadmap, practice, and project work", async ({ page }) => {
@@ -1099,6 +1157,7 @@ test("activity brief and source PDFs are available", async ({ page }) => {
 
   await page.goto("/activities/A08");
   await expect(page.getByRole("heading", { level: 1, name: "Container fundamentals with Docker" })).toBeVisible();
+  await page.getByText("Scenario and learning objectives", { exact: true }).click();
   await expect(page.getByText(/Build the A05 Status API image/)).toBeVisible();
   await expect(page.locator(".activity-resource-links")).toHaveCount(0);
   const response = await page.request.get("/library/04_Activities_and_Practice.pdf");
@@ -1335,7 +1394,7 @@ test("other activities link each practical step to one shared saved notebook", a
   await expect(page.getByLabel("Earlier reference link")).toHaveValue("https://example.test/a02-notes");
 
   await steps.nth(2).getByRole("button", { name: "Record Task 3 in the investigation notebook" }).click();
-  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await notebook.getByRole("button", { name: "Save observations" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   type ActivityRows = Array<{ status: string; notes: string; evidence: string; repositoryUrl: string; taskObservations: Record<string, string> }>;
   let rows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A02")).json() as ActivityRows;
@@ -1366,7 +1425,7 @@ test("other activities link each practical step to one shared saved notebook", a
   await expect(observation).toBeFocused();
   await expect(observation).toHaveValue("The sorted report listed three files with relative paths, file type, byte size, and owner.");
   await observation.fill("Refined: sorted rows show the expected paths and metadata; the empty fixture has zero bytes.");
-  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await notebook.getByRole("button", { name: "Save observations" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review).toContainText("Refined: sorted rows show the expected paths and metadata");
@@ -1538,12 +1597,12 @@ test("A01 keeps task observations in one notebook through save, review, and reop
     }
     await route.continue();
   });
-  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await notebook.getByRole("button", { name: "Save observations" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Simulated save failure.");
   await expect(taskObservation).toHaveValue("The numeric UID was 1000; I omitted the account name from my notes.");
   await page.unroute("**/api/progress");
 
-  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await notebook.getByRole("button", { name: "Save observations" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   const firstSave = await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01");
   const firstRows = await firstSave.json() as Array<{ status: string; notes: string; evidence: string; repositoryUrl: string; taskObservations: Record<string, string> }>;
@@ -1585,7 +1644,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await expect(taskObservation).toBeFocused();
 
   await taskObservation.fill("Refined: the PID and IDs agreed; the small RSS difference is consistent with a changing point-in-time estimate.");
-  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await notebook.getByRole("button", { name: "Save observations" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account.");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review.locator(".activity-a01-review-record")).toContainText("Refined: the PID and IDs agreed");
@@ -1613,7 +1672,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await review.getByRole("button", { name: "Edit Task 2" }).click();
   await expect(notebook.getByRole("button", { name: /Choose a process you own/ })).toHaveAttribute("aria-pressed", "true");
   await taskObservation.fill("Revised after review: RSS can change between snapshots; PID and parent remained stable.");
-  await notebook.getByRole("button", { name: "Save draft" }).click();
+  await notebook.getByRole("button", { name: "Save observations" }).click();
   await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account. The activity remains marked complete.");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
@@ -1676,7 +1735,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await page.locator(".activity-a01-workspace").scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBeFalsy();
   await expect(page.locator(".activity-a01-notebook-panel")).toBeInViewport();
-  await expect(notebook.getByRole("button", { name: "Save draft" })).toBeInViewport();
+  await expect(notebook.getByRole("button", { name: "Save observations" })).toBeInViewport();
   await page.screenshot({ path: path.join(screenshotDirectory, "activity-a01-1366x768.png") });
 
   // A 720px CSS viewport approximates the effective width of a 1440px desktop at 200% zoom.
@@ -1696,7 +1755,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
     await mobileTaskPicker.locator("select").selectOption("explain-boundary");
     await expect(taskObservation).toBeFocused();
     await expect(mobileTaskPicker).toContainText("Editing Task 5 of 5 · Explain what the evidence supports");
-    await expect(notebook.getByRole("button", { name: "Save draft" })).toBeVisible();
+    await expect(notebook.getByRole("button", { name: "Save observations" })).toBeVisible();
     await expect(mobileTaskPicker).toBeInViewport();
     await expect.poll(() => taskObservation.evaluate((element) => {
       const body = element.closest<HTMLElement>(".activity-a01-notebook-body")!;

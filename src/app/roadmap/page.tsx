@@ -70,28 +70,22 @@ export default async function RoadmapPage() {
   });
 
   return (
-    <>
-      <header className="page-header">
+    <div className="study-roadmap">
+      <header className="page-header study-roadmap-header">
         <div>
-          <p className="eyebrow">Your complete pathway</p>
           <h1>Learning roadmap</h1>
-          <p className="page-description">
-            Browse all {modules.length} modules across {phases.length} phases{session ? ", then use your saved progress to find your next topic." : ". Sign in whenever you want to save personal progress."}
-          </p>
+          <p className="page-description">Follow the {modules.length}-module path from operating systems to cloud operations, or find a topic to revisit.</p>
         </div>
         <a className="button button-outline header-action" href="/library/00_Learning_Roadmap.pdf" target="_blank" rel="noreferrer">
           Open roadmap PDF <ArrowRight size={14} />
         </a>
       </header>
-      <div className="callout-blue">
-        <strong>How to move forward:</strong> Choose a lesson, connect the idea to a practical task, and save the evidence that fits your goal. Mark learning complete when you are ready; the roadmap keeps lesson, activity, and module status separate.
-      </div>
       <RoadmapExplorer
         modules={roadmapModules}
         phases={phases}
         progressAvailable={progressAvailable}
         progressRequiresSignIn={!session && !authUnavailable}
       />
-    </>
+    </div>
   );
 }

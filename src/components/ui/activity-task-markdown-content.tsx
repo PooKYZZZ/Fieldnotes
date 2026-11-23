@@ -40,7 +40,7 @@ function TaskOrderedList({ children: listChildren, node, ...props }: ComponentPr
         ? "Command notes and troubleshooting"
         : taskDetail ? "Explain these commands" : "Need help with this task?";
       return (
-        <li key={item.key ?? taskId} id={`activity-task-${taskId}`} data-task-id={taskId}>
+        <li key={item.key ?? taskId} id={`activity-task-${taskId}`} data-task-id={taskId} tabIndex={-1}>
           {item.props.children}
           <button
             type="button"

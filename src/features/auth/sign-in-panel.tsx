@@ -52,11 +52,10 @@ export function SignInPanel({
   }
 
   return (
-    <div className={styles.authPanel}>
+    <section className={styles.authPanel} aria-labelledby="sign-in-panel-title">
       <div className={styles.authPanelHeading}>
-        <p className={styles.authPanelKicker}>Your Fieldnotes account</p>
-        <h2>Keep your progress with you</h2>
-        <p>Sign in to save notes and checkpoints privately to your account.</p>
+        <h2 id="sign-in-panel-title">Sign in</h2>
+        {providers.length > 0 && <p>Choose a provider to open your notebook.</p>}
       </div>
 
       {providers.length ? (
@@ -94,6 +93,6 @@ export function SignInPanel({
       <p className={styles.accountNote}>First sign-in creates your account. No invitation is needed.</p>
       <Link className={styles.exploreButton} href="/roadmap">Continue exploring without signing in</Link>
       <p className={styles.privacyNote}>Fieldnotes uses basic account details to keep your records private. It does not request access to your Google Drive or GitHub repositories. Read the <Link href="/privacy">Privacy notice</Link> and <Link href="/terms">Terms</Link>.</p>
-    </div>
+    </section>
   );
 }

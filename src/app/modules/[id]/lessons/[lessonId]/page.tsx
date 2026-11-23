@@ -57,20 +57,26 @@ export default async function LessonPage({ params }: LessonPageProps) {
         <span>Lesson {moduleNumber}.{lessonNumber}</span>
       </nav>
 
+      <header className="learning-lesson-header">
+        <h1 id="lesson-page-title">{lesson.title}</h1>
+        <div className="study-lesson-meta">
+          <p>Lesson {lessonIndex + 1} of {learningModule.lessons.length}</p>
+          <nav aria-label="Lesson shortcuts">
+            <a href="#lesson-completion">Lesson progress</a>
+            {activity && <Link href={`/activities/${activity.id}`}>Practice in {activity.id} <ArrowRight size={14} aria-hidden="true" /></Link>}
+          </nav>
+        </div>
+      </header>
+
       <div className="learning-lesson-grid">
-        <ModuleLessonOutline moduleId={learningModule.id} lessons={learningModule.lessons} currentLessonId={lesson.id} />
         <div className="learning-lesson-main">
           <ModuleLessonOutline moduleId={learningModule.id} lessons={learningModule.lessons} currentLessonId={lesson.id} compact />
-          <header className="learning-lesson-header">
-            <div><p className="eyebrow">MODULE {moduleNumber} / LESSON {moduleNumber}.{lessonNumber}</p><h1 id="lesson-page-title">{lesson.title}</h1></div>
-            <span className="learning-lesson-position">{lessonIndex + 1} of {learningModule.lessons.length}</span>
-          </header>
 
-          <div className="card learning-lesson-reading">
+          <div className="learning-lesson-reading">
             <ModuleLessonContent learningModule={learningModule} lesson={lesson} />
           </div>
 
-          <section className="learning-lesson-progress" aria-label="Lesson completion">
+          <section className="learning-lesson-progress" id="lesson-completion" tabIndex={-1} aria-label="Lesson completion">
             <ProgressEditor key={lesson.id} itemType="lesson" itemId={lesson.id} title="Lesson progress" variant="lesson-status" />
           </section>
 
@@ -81,8 +87,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
                 : <Link className="button button-primary" href={activity ? `/activities/${activity.id}` : moduleRoute(learningModule.id)}><span><small>Continue</small><strong>{activity ? `Activity ${activity.id}` : `Module ${moduleNumber} overview`}</strong></span><ArrowRight size={14} /></Link>}
             </div>
           </nav>
-          <p className="learning-lesson-free-navigation"><Link href={moduleRoute(learningModule.id)}>Return to the module overview</Link> · You can move between lessons freely.</p>
+          <p className="learning-lesson-free-navigation"><Link href={moduleRoute(learningModule.id)}>Return to the module overview</Link></p>
         </div>
+        <ModuleLessonOutline moduleId={learningModule.id} lessons={learningModule.lessons} currentLessonId={lesson.id} />
       </div>
     </div>
   );

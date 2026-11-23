@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, FlaskConical } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { ModuleSummary } from "@/content/catalog";
 import { formatStatus, type ProgressStatus } from "@/features/progress/model";
-
-const colorTones = ["charcoal", "lavender", "teal", "earth", "stone"] as const;
 
 export function ModuleCard({
   module,
@@ -21,30 +19,20 @@ export function ModuleCard({
   completedLessonCount?: number;
 }) {
   const id = String(module.id).padStart(2, "0");
-  const tone = colorTones[(module.id - 1) % colorTones.length];
   const safeCompletedLessonCount = Math.min(module.lessons.length, Math.max(0, completedLessonCount));
   const statusLabel = status ? formatStatus(status) : module.level;
-  const actionLabel = status === "in_progress"
-    ? "Continue module"
-    : status === "needs_review"
-      ? "Review module"
-      : status === "completed"
-        ? "Revisit module"
-        : "Explore module";
-
   return (
-    <Link className="module-card-link" href={`/modules/${id}`}>
-      <article className={`module-card module-card--${tone}`}>
-        <div className="module-card-header">
-          <div className="module-card-meta"><span className="module-number">MODULE {id}</span><span>{module.phase}</span></div>
-          <span className={`module-card-status${status ? ` status-${status}` : ""}`}>{statusLabel}</span>
-          <h3>{module.title}</h3>
+    <article className="module-card study-module-row">
+        <span className="module-number">MODULE {id}</span>
+        <div className="study-module-copy">
+          <h3><Link className="module-card-link" href={`/modules/${id}`}>{module.title}</Link></h3>
+          <p>{module.intro}</p>
         </div>
-        <div className="module-card-content">
-          <p className="module-card-intro">{module.intro}</p>
-          <div className="module-card-counts">
-            <span><BookOpen size={14} aria-hidden="true" /> {module.lessons.length} {module.lessons.length === 1 ? "lesson" : "lessons"}</span>
-            <span><FlaskConical size={14} aria-hidden="true" /> {activityCount} {activityCount === 1 ? "activity" : "activities"}</span>
+        <div className="study-module-meta">
+          <div className="study-module-counts">
+            <span className={`module-card-status${status ? ` status-${status}` : ""}`}>{statusLabel}</span>
+            <span>{module.lessons.length} {module.lessons.length === 1 ? "lesson" : "lessons"}</span>
+            {activityCount > 0 && <span>{activityCount} {activityCount === 1 ? "activity" : "activities"}</span>}
           </div>
           {status !== undefined && <div className="module-step-progress">
             <div className="module-lesson-card-progress-label"><span>Lessons complete</span><strong>{safeCompletedLessonCount} of {module.lessons.length}</strong></div>
@@ -53,9 +41,8 @@ export function ModuleCard({
             </div>
             {activityCount > 0 && <div className="module-card-activity-status"><span>{activityId ? `Activity ${activityId}` : "Activity"}</span><span className={`progress-status-tag${activityStatus ? ` status-${activityStatus}` : ""}`}>{formatStatus(activityStatus ?? "not_started")}</span></div>}
           </div>}
-          <span className="module-card-action">{actionLabel}<ArrowRight size={15} aria-hidden="true" /></span>
         </div>
-      </article>
-    </Link>
+        <ArrowUpRight className="study-module-action" size={17} aria-hidden="true" />
+    </article>
   );
 }

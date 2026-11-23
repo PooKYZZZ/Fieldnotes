@@ -30,6 +30,7 @@ type ProgressEditorProps = {
   showComfort?: boolean;
   wide?: boolean;
   checkpointContext?: { id: string; label: string };
+  workspaceHandlesSessionFailure?: boolean;
   variant?: "full" | "module-summary" | "lesson-status" | "project-workbench";
 };
 
@@ -40,6 +41,7 @@ function ProgressEditorInstance({
   showComfort = false,
   wide = false,
   checkpointContext,
+  workspaceHandlesSessionFailure = false,
   variant = "full",
 }: ProgressEditorProps) {
   const isModuleSummary = variant === "module-summary";
@@ -102,6 +104,7 @@ function ProgressEditorInstance({
   }
 
   if (status === "unavailable") {
+    if (workspaceHandlesSessionFailure) return <p id={`progress-editor-${itemId}`}>Private notes are unavailable. Retry from the Build instructions.</p>;
     return <div id={`progress-editor-${itemId}`}><AuthUnavailableNotice message="Your account could not be checked. This private record is hidden until the account service responds." onRetry={retryLoad} /></div>;
   }
 

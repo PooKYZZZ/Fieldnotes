@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Download, FileUp } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-session-context";
-import { ProgressSignInNotice } from "@/features/auth/progress-sign-in-notice";
-import { AuthUnavailableNotice } from "@/features/auth/auth-unavailable-notice";
 import { maxBackupBytes } from "@/features/progress/backup-limits";
 import { progressAccountHeaders } from "@/features/progress/progress-draft";
 import type { ProgressRecord } from "@/features/progress/model";
@@ -56,9 +54,8 @@ function serverError(value: unknown, fallback: string): string {
 export function ProgressBackup() {
   const session = useAuthSession();
   if (session.status === "loading") return <p role="status">Loading backup options…</p>;
-  if (session.status === "unavailable") return <AuthUnavailableNotice message="Your account could not be checked. Backup and restore stay unavailable until the account service responds." onRetry={() => void session.retry()} />;
-  if (session.status === "signed-out") return <ProgressSignInNotice>Sign in to export or restore your learning records.</ProgressSignInNotice>;
-  return <AccountProgressBackup key={session.userId} userId={session.userId} />;
+  if (session.status !== "signed-in") return null;
+  return <aside className="progress-backup-rail" aria-label="Progress data tools"><AccountProgressBackup key={session.userId} userId={session.userId} /></aside>;
 }
 
 function AccountProgressBackup({ userId }: { userId: string }) {
