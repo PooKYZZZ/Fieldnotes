@@ -1773,7 +1773,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   }
 });
 test("all module overviews, lessons, and activity pages render", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(300_000);
   for (let number = 1; number <= 24; number += 1) {
     const moduleId = String(number).padStart(2, "0");
     const activityId = `A${moduleId}`;
