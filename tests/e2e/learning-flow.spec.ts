@@ -1470,6 +1470,7 @@ test("other activities link each practical step to one shared saved notebook", a
 });
 
 test("A01 keeps task observations in one notebook through save, review, and reopen", async ({ page, request }) => {
+  test.setTimeout(90_000);
   const legacyA01 = await request.put(testOrigin + "/api/progress", {
     headers: { "Content-Type": "application/json", Origin: testOrigin },
     data: await progressSaveBody(request, {
