@@ -39,12 +39,12 @@ test("an outage after sign-in hides account notes and recovers the original draf
 
   unavailable = true;
   await refetchSession(page);
-  await expect(editor.getByText("Your account could not be checked.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Your account could not be checked.", { exact: false })).toBeVisible();
   await expect(note).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
   unavailable = false;
-  await editor.getByRole("button", { name: "Retry account check" }).click();
+  await page.getByRole("button", { name: "Retry account check", exact: true }).click();
   await expect(note).toBeEnabled();
   await expect(note).toHaveValue(draft);
 });

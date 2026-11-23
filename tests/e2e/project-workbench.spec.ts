@@ -61,14 +61,13 @@ test("review checkpoint links select the URL checkpoint without replacing its no
 
 test("direct project checkpoint links win and unknown checkpoints use the next unfinished step", async ({ page }) => {
   await page.goto("/projects/S02#milestone-S02.3");
-  await page.locator(".project-build-selector > summary").click();
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("tab", { name: "Build" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("button", { name: /^S02\.3\b/ })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByText("Checkpoint 3 of 4 · S02.3", { exact: true })).toBeVisible();
 
   await page.evaluate(() => { window.location.hash = "#milestone-not-a-checkpoint"; });
   await expect(page.getByRole("tab", { name: "Build" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("button", { name: /^S02\.1\b/ })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByText("Checkpoint 1 of 4 · S02.1", { exact: true })).toBeVisible();
 });
 
 test("the mobile project notebook traps focus on its visible native disclosure while loading", async ({ page }) => {
