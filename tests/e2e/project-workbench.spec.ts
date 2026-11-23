@@ -61,6 +61,7 @@ test("review checkpoint links select the URL checkpoint without replacing its no
 
 test("direct project checkpoint links win and unknown checkpoints use the next unfinished step", async ({ page }) => {
   await page.goto("/projects/S02#milestone-S02.3");
+  await page.locator(".project-build-selector > summary").click();
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("tab", { name: "Build" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("button", { name: /^S02\.3\b/ })).toHaveAttribute("aria-current", "step");
