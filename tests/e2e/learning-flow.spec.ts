@@ -1663,7 +1663,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   });
   await review.getByRole("button", { name: "Mark activity complete" }).click();
   await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
-  type A01Rows = Array<{ status: string; taskObservations: Record<string, string> }>;
+  type A01Rows = Array<{ status: string; updatedAt: number; taskObservations: Record<string, string> }>;
   let currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as A01Rows;
   expect(currentRows).toHaveLength(1);
   expect(currentRows[0].status).toBe("completed");
@@ -1698,7 +1698,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
         notes: "Imported older A01 note.",
         evidence: "Imported earlier evidence.",
         repositoryUrl: "",
-        updatedAt: Date.now() - 1000,
+        updatedAt: currentRows[0].updatedAt - 1,
       }],
     },
   });
@@ -1833,7 +1833,7 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
       await expect(page.locator(".activity-a01-safety-note")).toBeVisible();
       await expect(page.getByRole("heading", { name: "Follow one process across Linux views" })).toBeVisible();
     } else {
-      await expect(page.locator(".activity-a01-objectives > summary")).toHaveText("What you’ll practice");
+      await expect(page.locator(".activity-a01-objectives > summary")).toHaveText("Scenario and learning objectives");
       await expect(page.locator(".activity-a01-notebook")).toBeVisible();
       await expect(page.getByRole("heading", { name: "Work through the lab steps" })).toBeVisible();
     }

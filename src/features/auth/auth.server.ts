@@ -117,7 +117,7 @@ const createAuth = () => betterAuth({
     freshAge: 60 * 10,
   },
   rateLimit: {
-    enabled: true,
+    enabled: !testAuthEnabled,
     storage: "database",
     modelName: "rateLimit",
     window: 60,
