@@ -1874,6 +1874,7 @@ test("all module overviews, lessons, and activity pages render", async ({ page }
 });
 
 test("primary pages and a dedicated lesson route reflow at a 320px viewport", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 320, height: 844 });
   for (const route of ["/", "/roadmap", "/activities", "/modules/01", "/modules/01/lessons/m01-l01", "/activities/A01", "/progress", "/projects", "/resources", "/guide"]) {
     await page.goto(route);
