@@ -1677,7 +1677,7 @@ test("A01 keeps task observations in one notebook through save, review, and reop
   await expect(notebook.locator(".form-message")).toContainText("Draft saved to your account. The activity remains marked complete.");
   await page.locator(".activity-workflow-nav a").nth(3).click();
   await expect(review.locator(".activity-a01-status")).toHaveText("Completed");
-  currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as Array<{ status: string; taskObservations: Record<string, string> }>;
+  currentRows = await (await request.get(testOrigin + "/api/progress?itemType=activity&itemId=A01")).json() as A01Rows;
   expect(currentRows[0].status).toBe("completed");
   expect(currentRows[0].taskObservations["choose-process"]).toContain("Revised after review:");
 
