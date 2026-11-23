@@ -111,7 +111,7 @@ test("auth outage keeps project content public and offers a working retry", asyn
   const readsBeforeRetry = sessionReads;
   await page.getByRole("button", { name: "Retry account check" }).last().click();
   await page.getByText("Project-wide notes and final evidence", { exact: false }).click();
-  await expect(page.getByLabel("Engineering log")).toBeVisible();
+  await expect(page.getByLabel("Engineering log")).toBeEnabled();
   expect(sessionReads - readsBeforeRetry).toBe(1);
   expect(traffic.started.filter((query) => query.includes("itemType=project") && query.includes("itemId=P1"))).toHaveLength(1);
 });
